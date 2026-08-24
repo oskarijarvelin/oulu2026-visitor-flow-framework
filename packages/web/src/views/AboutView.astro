@@ -1,0 +1,265 @@
+---
+import Callout from '../components/Callout.astro';
+import Layout from '../components/Layout.astro';
+import TableScroll from '../components/TableScroll.astro';
+import forecastData from '../data/forecast.json';
+import metaData from '../data/meta.json';
+import { localizedPath, type Lang } from '../i18n/index.ts';
+import { ui } from '../i18n/ui/index.ts';
+import { formatters } from '../lib/format.ts';
+import { modelLabel, sourceLabel, sourceStatusLabel, weatherSourceLabel } from '../lib/labels.ts';
+import { RAINY_DAY_MM } from '../lib/weather.ts';
+import type { ForecastData, Meta } from '../lib/types.ts';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui(lang);
+const f = formatters(lang);
+
+const site = metaData as Meta;
+const forecast = forecastData as unknown as ForecastData;
+const firstWeatherDays = forecast.venues[String(site.venues[0]!.venue_id)]?.forecast_weather_days ?? 16;
+---
+
+<Layout
+  lang={lang}
+  title={t.about.title}
+  heading={t.about.heading}
+  description={t.about.description}
+  lead={t.about.lead}
+>
+  <div class="mt-8 space-y-8">
+    <section aria-labelledby="kasitteet">
+      <h2 id="kasitteet" class="text-lg font-semibold tracking-tight text-ink">{t.about.conceptsHeading}</h2>
+      <dl class="mt-4 space-y-4 text-sm leading-6">
+        <div class="rounded-lg border border-line bg-surface p-4">
+          <dt class="font-medium text-ink">{t.about.conceptEventTitle}</dt>
+          <dd class="mt-1 text-ink-muted">
+            {t.about.conceptEventBody1}{' '}
+            <strong class="font-medium text-ink">{t.about.conceptEventStrong}</strong>{' '}
+            {t.about.conceptEventBody2}
+          </dd>
+        </div>
+        <div class="rounded-lg border border-line bg-surface p-4">
+          <dt class="font-medium text-ink">{t.about.conceptZeroTitle}</dt>
+          <dd class="mt-1 text-ink-muted">
+            {t.about.conceptZeroBody1} <code class="rounded bg-canvas px-1">is_imputed</code>{t.about.conceptZeroBody2}
+          </dd>
+        </div>
+        <div class="rounded-lg border border-line bg-surface p-4">
+          <dt class="font-medium text-ink">{t.about.conceptSensorTitle}</dt>
+          <dd class="mt-1 text-ink-muted">
+            {
+              site.venues
+                .map((venue) => t.about.conceptSensorVenue(venue.name, f.date(venue.first_day)))
+                .join(', ')
+            }. {t.about.conceptSensorBody}
+          </dd>
+        </div>
+        <div class="rounded-lg border border-line bg-surface p-4">
+          <dt class="font-medium text-ink">{t.about.conceptIntervalTitle}</dt>
+          <dd class="mt-1 text-ink-muted">{t.about.conceptIntervalBody}</dd>
+        </div>
+        <div class="rounded-lg border border-line bg-surface p-4">
+          <dt class="font-medium text-ink">{t.about.conceptRainTitle}</dt>
+          <dd class="mt-1 text-ink-muted">
+            {t.about.conceptRainBody1(f.decimal(RAINY_DAY_MM))}{' '}
+            <code class="rounded bg-canvas px-1">is_rainy_day</code>{t.about.conceptRainBody2}
+          </dd>
+        </div>
+        <div class="rounded-lg border border-line bg-surface p-4">
+          <dt class="font-medium text-ink">{t.about.conceptCapacityTitle}</dt>
+          <dd class="mt-1 text-ink-muted">
+            {t.about.conceptCapacityBody1(
+              site.venues.map((venue) => `${venue.name} ${f.int(venue.capacity)}`).join(', '),
+            )}{' '}
+            {t.about.conceptCapacityBody2}
+          </dd>
+        </div>
+      </dl>
+    </section>
+
+    <section aria-labelledby="lahteet">
+      <h2 id="lahteet" class="text-lg font-semibold tracking-tight text-ink">{t.about.sourcesHeading}</h2>
+      <p class="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">
+        {t.about.sourcesLead(f.utc(site.ingest.generated_at), site.ingest.version)}
+      </p>
+      <div class="mt-4">
+        <TableScroll label={t.about.sourcesLabel} scrollY={false}>
+          <table class="data-table">
+            <caption>{t.about.sourcesCaption}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{t.about.sourceColumn}</th>
+                <th scope="col">{t.about.statusColumn}</th>
+                <th scope="col" class="num">{t.about.rowsColumn}</th>
+                <th scope="col">{t.about.windowColumn}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                site.ingest.sources.map((source) => (
+                  <tr>
+                    <th scope="row">{sourceLabel(source.name, lang)}</th>
+                    <td class:list={[source.status !== 'ok' && 'warn']}>
+                      {sourceStatusLabel(source.status, lang)}
+                    </td>
+                    <td class="num">{source.rows === undefined ? f.missing() : f.int(source.rows)}</td>
+                    <td class="muted">
+                      {source.window ? f.dateRange(source.window[0], source.window[1]) : f.missing()}
+                    </td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </TableScroll>
+      </div>
+
+      <ul class="mt-4 space-y-2 text-sm leading-6 text-ink-muted">
+        <li>
+          <strong class="font-medium text-ink">{t.about.sourceVisitors}</strong>{' '}
+          {t.about.sourceVisitorsBody}
+        </li>
+        <li>
+          <strong class="font-medium text-ink">{t.about.sourceWeather}</strong>{' '}
+          {t.about.sourceWeatherBody(firstWeatherDays)}
+        </li>
+        <li>
+          <strong class="font-medium text-ink">{t.about.sourceTickets}</strong>{' '}
+          {t.about.sourceTicketsBody}
+        </li>
+        <li>
+          <strong class="font-medium text-ink">{t.about.sourceCalendar}</strong>{' '}
+          {t.about.sourceCalendarBody}
+        </li>
+        <li>
+          <strong class="font-medium text-ink">{t.about.sourceTraffic}</strong>{' '}
+          {t.about.sourceTrafficBody}
+        </li>
+      </ul>
+    </section>
+
+    {
+      site.traffic && (
+        <section aria-labelledby="liikenne">
+          <h2 id="liikenne" class="text-lg font-semibold tracking-tight text-ink">
+            {t.about.trafficHeading}
+          </h2>
+          <Callout tone="warning">
+            <p>{t.about.trafficBody1(site.traffic.site_name, site.traffic.site_id)}</p>
+            <p class="mt-2">
+              {t.about.trafficBody2a}{' '}
+              <strong class="font-medium text-ink">{t.about.trafficBody2Strong}</strong>{' '}
+              {t.about.trafficBody2b}
+            </p>
+            <p class="mt-2">
+              {t.about.trafficBody3(
+                f.date(site.traffic.first_day),
+                f.date(site.traffic.last_day),
+                f.int(site.traffic.pedestrians),
+                f.int(site.traffic.cyclists),
+                f.int(site.traffic.hours),
+              )}
+            </p>
+          </Callout>
+        </section>
+      )
+    }
+
+    <section aria-labelledby="ennuste">
+      <h2 id="ennuste" class="text-lg font-semibold tracking-tight text-ink">{t.about.forecastHeading}</h2>
+      <p class="mt-2 max-w-3xl text-sm leading-6 text-ink-muted">
+        {t.about.forecastLead1(
+          modelLabel(forecast.default_model, lang),
+          forecast.models
+            .filter((model) => model !== forecast.default_model)
+            .map((model) => modelLabel(model, lang))
+            .join(', '),
+        )}{' '}
+        <a class="underline" href={localizedPath('/forecast', lang)}>{t.about.forecastLink1}</a>{' '}
+        {t.about.forecastAnd}{' '}
+        <a class="underline" href={localizedPath('/quality', lang)}>{t.about.forecastLink2}</a>.{' '}
+        {t.about.forecastLead2}
+      </p>
+      <div class="mt-4">
+        <TableScroll label={t.about.forecastLabel} scrollY={false}>
+          <table class="data-table">
+            <caption>{t.about.forecastCaption}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{t.common.venue}</th>
+                <th scope="col">{t.about.originColumn}</th>
+                <th scope="col" class="num">{t.about.horizonColumn}</th>
+                <th scope="col">{t.about.weatherNearColumn}</th>
+                <th scope="col">{t.about.weatherFarColumn}</th>
+                <th scope="col">{t.about.openingColumn}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                site.venues.map((venue) => {
+                  const weatherDays =
+                    forecast.venues[String(venue.venue_id)]?.forecast_weather_days ?? 16;
+                  return (
+                    <tr>
+                      <th scope="row">{venue.name}</th>
+                      <td class="muted">{f.date(venue.origin_date)}</td>
+                      <td class="num">{t.about.daysUnit(site.forecast.horizon_days)}</td>
+                      <td class="muted">
+                        {t.about.daysRange(1, weatherDays)} {weatherSourceLabel('forecast', lang)}
+                      </td>
+                      <td class="muted">
+                        {t.about.daysRange(weatherDays + 1, site.forecast.horizon_days)}{' '}
+                        {weatherSourceLabel('climatology', lang)}
+                      </td>
+                      <td class="muted">{t.about.openingHours(f.hourRanges(venue.open_hours))}</td>
+                    </tr>
+                  );
+                })
+              }
+            </tbody>
+          </table>
+        </TableScroll>
+      </div>
+    </section>
+
+    <section aria-labelledby="ei-tarkoita">
+      <h2 id="ei-tarkoita" class="text-lg font-semibold tracking-tight text-ink">{t.about.notHeading}</h2>
+      <ul class="mt-4 space-y-3 text-sm leading-6 text-ink-muted">
+        <li>
+          <strong class="font-medium text-ink">{t.about.not1Strong}</strong> {t.about.not1Body}
+        </li>
+        <li>
+          <strong class="font-medium text-ink">{t.about.not2Strong}</strong> {t.about.not2Body}
+        </li>
+        <li>
+          <strong class="font-medium text-ink">{t.about.not3Strong}</strong> {t.about.not3Body}
+        </li>
+        <li>
+          <strong class="font-medium text-ink">{t.about.not4Strong}</strong> {t.about.not4Body}{' '}
+          <a class="underline" href={localizedPath('/quality', lang)}>{t.about.not4Link}</a>.
+        </li>
+        <li>
+          <strong class="font-medium text-ink">{t.about.not5Strong}</strong> {t.about.not5Body}
+        </li>
+        <li>
+          <strong class="font-medium text-ink">{t.about.not6Strong}</strong> {t.about.not6Body}
+        </li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="tekninen">
+      <h2 id="tekninen" class="text-lg font-semibold tracking-tight text-ink">{t.about.technicalHeading}</h2>
+      <ul class="mt-4 space-y-2 text-sm leading-6 text-ink-muted">
+        <li>{t.about.technical1}</li>
+        <li>{t.about.technical2}</li>
+        <li>{t.about.technical3}</li>
+        <li>{t.about.technical4(f.utc(site.built_at), f.decimal(site.ingest.age_hours))}</li>
+      </ul>
+    </section>
+  </div>
+</Layout>

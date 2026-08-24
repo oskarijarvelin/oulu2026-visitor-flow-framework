@@ -1,0 +1,247 @@
+---
+import ForecastChart from '../charts/forecastchart.ts';
+import Callout from '../components/Callout.astro';
+import Figure from '../components/Figure.astro';
+import Layout from '../components/Layout.astro';
+import StatCard from '../components/StatCard.astro';
+import TableScroll from '../components/TableScroll.astro';
+import forecastData from '../data/forecast.json';
+import metaData from '../data/meta.json';
+import qualityData from '../data/quality.json';
+import { localizedPath, type Lang } from '../i18n/index.ts';
+import { ui } from '../i18n/ui/index.ts';
+import { addDays } from '../lib/dates.ts';
+import { formatters } from '../lib/format.ts';
+import { horizonBucketLabel, modelLabel, translateWarnings, weatherSourceLabel } from '../lib/labels.ts';
+import { weatherGroupLabel } from '../lib/weather.ts';
+import type { ForecastData, Meta, QualityData } from '../lib/types.ts';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui(lang);
+const f = formatters(lang);
+
+const site = metaData as Meta;
+const forecast = forecastData as unknown as ForecastData;
+const quality = qualityData as unknown as QualityData;
+const defaultModel = forecast.default_model;
+
+const panels = site.venues.map((venue) => {
+  const key = String(venue.venue_id);
+  const venueForecast = forecast.venues[key]!;
+  const venueQuality = quality.venues[key]!;
+
+  const models = forecast.models.map((name) => ({
+    name,
+    label: modelLabel(name, lang),
+    mae: t.forecast.maeNote(f.decimal(venueQuality.metrics[name]?.['1-7']?.mae ?? 0)),
+  }));
+
+  const toSeries = (
+    rows: { date?: string; ts?: string; p10: number; p50: number; p90: number; weather_source: string }[],
+  ) =>
+    rows.map((row) => ({
+      t: row.date ?? row.ts ?? '',
+      p10: row.p10,
+      p50: row.p50,
+      p90: row.p90,
+      clim: row.weather_source === 'climatology',
+    }));
+
+  return {
+    venue,
+    venueForecast,
+    venueQuality,
+    models,
+    daily: Object.fromEntries(
+      Object.entries(venueForecast.daily).map(([model, rows]) => [model, toSeries(rows)]),
+    ),
+    hourly: Object.fromEntries(
+      Object.entries(venueForecast.hourly).map(([model, rows]) => [model, toSeries(rows)]),
+    ),
+    defaultRows: venueForecast.daily[defaultModel] ?? [],
+    climatologyFrom: addDays(venueForecast.origin_date, venueForecast.forecast_weather_days + 1),
+  };
+});
+
+const warnings = translateWarnings(site.forecast.warnings, lang);
+
+// Sään lähde vaihtuu klimatologiaksi venuekohtaisesti. Käytännössä raja on sama
+// molemmilla, mutta teksti lasketaan silti datasta eikä oleteta.
+const weatherDays = panels.map((panel) => panel.venueForecast.forecast_weather_days);
+const minWeatherDays = Math.min(...weatherDays);
+const maxWeatherDays = Math.max(...weatherDays);
+const weatherDaysLabel =
+  minWeatherDays === maxWeatherDays ? String(minWeatherDays) : `${minWeatherDays}-${maxWeatherDays}`;
+---
+
+<Layout
+  lang={lang}
+  title={t.forecast.title}
+  heading={t.forecast.heading}
+  description={t.forecast.description}
+  lead={t.forecast.lead(
+    f.utc(forecast.generated_at),
+    f.date(site.forecast.origin_date),
+    modelLabel(defaultModel, lang),
+  )}
+>
+  <div class="mt-6">
+    <Callout tone="warning" title={t.forecast.warningTitle}>
+      <ul class="list-disc space-y-1 pl-5">
+        {warnings.map((warning) => <li>{warning}</li>)}
+        <li>{t.forecast.warningWeather(weatherDaysLabel)}</li>
+        <li>{t.forecast.warningIntervals}</li>
+      </ul>
+    </Callout>
+  </div>
+
+  <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    {
+      site.venues.map((venue) => (
+        <>
+          <StatCard
+            label={t.forecast.next7(venue.name)}
+            value={f.int(venue.next7?.p50 ?? 0)}
+            unit={t.common.countUnit}
+            note={t.forecast.next7Note(f.int(venue.next7?.p10 ?? 0), f.int(venue.next7?.p90 ?? 0))}
+          />
+          <StatCard
+            label={t.forecast.dailyMean(venue.name)}
+            value={f.int((venue.next7?.p50 ?? 0) / Math.max(1, venue.next7?.days ?? 7))}
+            unit={t.home.perDay}
+            note={t.forecast.dailyMeanNote(f.int(venue.last30.mean_daily))}
+          />
+        </>
+      ))
+    }
+  </div>
+
+  <div class="mt-6 space-y-6">
+    {
+      panels.map(({ venue, venueForecast, venueQuality, models, daily, hourly, defaultRows, climatologyFrom }) => (
+        <Figure
+          lang={lang}
+          title={t.forecast.panelTitle(venue.name)}
+          description={t.forecast.panelDescription}
+          footnote={t.forecast.panelFootnote(f.date(climatologyFrom))}
+        >
+          <ForecastChart
+            client:visible
+            lang={lang}
+            ariaLabel={t.forecast.panelAria(venue.name)}
+            daily={daily}
+            hourly={hourly}
+            models={models}
+            defaultModel={defaultModel}
+            forecastWeatherDays={venueForecast.forecast_weather_days}
+            originDate={venueForecast.origin_date}
+            placeholderHeight={300}
+          />
+
+          <div slot="alternative">
+            <p class="mb-3 text-xs leading-5 text-ink-muted">
+              {t.forecast.panelAlternative(
+                venue.name,
+                modelLabel(defaultModel, lang),
+                f.date(venueForecast.first_day),
+                f.date(venueForecast.last_day),
+                f.count(defaultRows.reduce((acc, row) => acc + row.p50, 0)),
+                venueForecast.forecast_weather_days,
+                venueForecast.forecast_weather_days + 1,
+                defaultRows.length,
+                f.decimal(venueQuality.metrics[defaultModel]?.['1-7']?.mae ?? 0),
+              )}
+            </p>
+            <TableScroll label={t.forecast.tableCaption(venue.name, modelLabel(defaultModel, lang))}>
+              <table class="data-table">
+                <caption>{t.forecast.tableCaption(venue.name, modelLabel(defaultModel, lang))}</caption>
+                <thead class="is-sticky">
+                  <tr>
+                    <th scope="col">{t.common.day}</th>
+                    <th scope="col" class="num">{t.forecast.horizonColumn}</th>
+                    <th scope="col" class="num">p10</th>
+                    <th scope="col" class="num">{t.common.median}</th>
+                    <th scope="col" class="num">p90</th>
+                    <th scope="col">{t.forecast.weatherSource}</th>
+                    <th scope="col">{t.forecast.weatherAndHolidays}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {defaultRows.map((row) => (
+                    <tr class:list={[row.weather_source === 'climatology' && 'is-climatology']}>
+                      <th scope="row" class="nowrap">{f.dateWithWeekday(row.date)}</th>
+                      <td class="num muted">{row.horizon_days}</td>
+                      <td class="num">{f.int(row.p10)}</td>
+                      <td class="num strong">{f.int(row.p50)}</td>
+                      <td class="num">{f.int(row.p90)}</td>
+                      <td class="muted">{weatherSourceLabel(row.weather_source, lang)}</td>
+                      <td class="muted">
+                        {[
+                          row.temp_mean === undefined ? null : f.celsius(row.temp_mean),
+                          row.weather_group ? weatherGroupLabel(row.weather_group, lang) : null,
+                          row.is_holiday ? (row.holiday_name ?? t.common.holiday) : null,
+                        ]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableScroll>
+          </div>
+        </Figure>
+      ))
+    }
+  </div>
+
+  <section aria-labelledby="mallivertailu" class="mt-8">
+    <h2 id="mallivertailu" class="text-lg font-semibold tracking-tight text-ink">
+      {t.forecast.comparisonHeading}
+    </h2>
+    <p class="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">
+      {t.forecast.comparisonLead(modelLabel(defaultModel, lang))}{' '}
+      <a class="underline" href={localizedPath('/quality', lang)}>{t.forecast.comparisonLink}</a>.
+    </p>
+    <div class="mt-4">
+      <TableScroll label={t.forecast.comparisonCaption} scrollY={false}>
+        <table class="data-table">
+          <caption>{t.forecast.comparisonCaption}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{t.common.venue}</th>
+              <th scope="col">{t.common.model}</th>
+              {
+                panels[0]!.venueQuality.horizon_buckets.map((bucket) => (
+                  <th scope="col" class="num">{t.forecast.maeFor(horizonBucketLabel(bucket, lang))}</th>
+                ))
+              }
+            </tr>
+          </thead>
+          <tbody>
+            {
+              panels.flatMap(({ venue, venueQuality }) =>
+                forecast.models.map((model) => (
+                  <tr>
+                    <th scope="row">{venue.name}</th>
+                    <td class:list={[model === defaultModel && 'strong']}>
+                      {modelLabel(model, lang)}
+                      {model === defaultModel ? ` (${t.common.production})` : ''}
+                    </td>
+                    {venueQuality.horizon_buckets.map((bucket) => (
+                      <td class="num">{f.decimal(venueQuality.metrics[model]?.[bucket]?.mae ?? 0)}</td>
+                    ))}
+                  </tr>
+                )),
+              )
+            }
+          </tbody>
+        </table>
+      </TableScroll>
+    </div>
+  </section>
+</Layout>

@@ -7,22 +7,21 @@
  * Oletuksena nakyy vain tuotantomalli.
  */
 
-import { BAND_FILL, BAND_FILL_COMPARE, CLIMATOLOGY_FILL, NEUTRAL, SERIES, modelStyle } from '../lib/colors.ts';
-import { addDays, plotDate, plotDay } from '../lib/dates.ts';
-import { formatDate, formatInt } from '../lib/format.ts';
+import { chartStrings, type ChartStrings } from '../i18n/charts.ts';
+import type { Lang } from '../i18n/index.ts';
+import { BAND_FILL, BAND_FILL_COMPARE, CLIMATOLOGY_FILL, NEUTRAL, modelStyle } from '../lib/colors.ts';
+import { plotDate, plotDay } from '../lib/dates.ts';
+import { formatters } from '../lib/format.ts';
 import { island } from '../renderer/index.ts';
 import {
   Plot,
   baseOptions,
+  chartFormat,
   createChartFrame,
   createLegend,
   createToggleGroup,
   mountResponsive,
-  tickCount,
-  tickDay,
-  tickHour,
-  titleDate,
-  titleDateTime,
+  type ChartFormat,
   type LegendEntry,
 } from './base.ts';
 
@@ -35,6 +34,7 @@ export interface ForecastSeriesPoint {
 }
 
 export interface ForecastChartProps {
+  lang: Lang;
   ariaLabel: string;
   /** Mallin nimi -> sarja. */
   daily: Record<string, ForecastSeriesPoint[]>;
@@ -60,6 +60,8 @@ interface Row {
 }
 
 export default island<ForecastChartProps>((element, props) => {
+  const strings = chartStrings(props.lang);
+  const format = chartFormat(props.lang);
   const frame = createChartFrame(element);
   let granularity: Granularity = 'daily';
   let selection: Selection = props.defaultModel;
@@ -67,10 +69,10 @@ export default island<ForecastChartProps>((element, props) => {
   let redraw = (): void => {};
 
   const granularityToggle = createToggleGroup<Granularity>(
-    'Tarkkuus',
+    strings.granularityLabel,
     [
-      { value: 'daily', label: '30 vrk, päivä' },
-      { value: 'hourly', label: '7 vrk, tunti' },
+      { value: 'daily', label: strings.granularityDaily },
+      { value: 'hourly', label: strings.granularityHourly },
     ],
     granularity,
     (value) => {
@@ -82,9 +84,9 @@ export default island<ForecastChartProps>((element, props) => {
 
   const modelOptions = [
     ...props.models.map((model) => ({ value: model.name, label: model.label })),
-    ...(props.models.length > 1 ? [{ value: 'all', label: 'Molemmat' }] : []),
+    ...(props.models.length > 1 ? [{ value: 'all', label: strings.bothModels }] : []),
   ];
-  const modelToggle = createToggleGroup<Selection>('Malli', modelOptions, selection, (value) => {
+  const modelToggle = createToggleGroup<Selection>(strings.modelLabel, modelOptions, selection, (value) => {
     selection = value;
     redraw();
     renderLegend();
@@ -99,14 +101,14 @@ export default island<ForecastChartProps>((element, props) => {
       const style = modelStyle(model.name);
       entries.push({ label: model.label, color: style.color, dash: style.dash, note: model.mae });
       entries.push({
-        label: `${model.label}: p10 - p90`,
+        label: `${model.label}: ${strings.interval}`,
         color: model.name === props.defaultModel ? BAND_FILL : BAND_FILL_COMPARE,
         swatch: true,
       });
     }
     if (granularity === 'daily') {
       entries.push({
-        label: `Sää klimatologiasta, vrk ${props.forecastWeatherDays + 1} alkaen`,
+        label: strings.climatologyBand(props.forecastWeatherDays + 1),
         color: CLIMATOLOGY_FILL,
         swatch: true,
       });
@@ -132,7 +134,7 @@ export default island<ForecastChartProps>((element, props) => {
           model: model.name,
         })),
       );
-      return draw(width, rows, active, granularity, props);
+      return draw(width, rows, active, granularity, props, strings, format);
     },
     { ariaLabel: props.ariaLabel },
   );
@@ -152,7 +154,10 @@ function draw(
   models: { name: string; label: string; mae: string }[],
   granularity: Granularity,
   props: ForecastChartProps,
+  strings: ChartStrings,
+  format: ChartFormat,
 ): SVGSVGElement | HTMLElement {
+  const f = formatters(props.lang);
   const height = Math.max(220, Math.min(380, Math.round(width * 0.45)));
   const step = granularity === 'daily' ? 86_400_000 : 3_600_000;
   const yMax = rows.length === 0 ? 10 : Math.max(10, Math.max(...rows.map((row) => row.p90)) * 1.12);
@@ -177,7 +182,7 @@ function draw(
         fillOpacity: 0.85,
       }),
       Plot.ruleX([start], { stroke: NEUTRAL.muted, strokeWidth: 1.4 }),
-      Plot.text([{ at: start, label: `Vrk ${props.forecastWeatherDays + 1} alkaen: sää klimatologiaa` }], {
+      Plot.text([{ at: start, label: strings.climatologyRule(props.forecastWeatherDays + 1) }], {
         x: 'at',
         y: yMax,
         text: 'label',
@@ -207,7 +212,7 @@ function draw(
 
   marks.push(Plot.ruleY([0], { stroke: NEUTRAL.line }));
 
-  const titleOf = granularity === 'daily' ? titleDate : titleDateTime;
+  const titleOf = granularity === 'daily' ? format.titleDate : format.titleDateTime;
 
   for (const model of models) {
     const series = rows.filter((row) => row.model === model.name);
@@ -249,9 +254,9 @@ function draw(
         r: granularity === 'daily' ? 2.6 : 1.6,
         title: (row: Row) =>
           `${model.label}\n${titleOf(row.at)}\n` +
-          `Mediaani ${formatInt(row.p50)} kävijätapahtumaa\n` +
-          `Väli ${formatInt(row.p10)} - ${formatInt(row.p90)}` +
-          (row.clim ? '\nSää klimatologiasta, ei dynaamista ennustetta' : ''),
+          `${strings.forecastTip(f.count(row.p50))}\n` +
+          `${strings.intervalTip(f.int(row.p10), f.int(row.p90))}` +
+          (row.clim ? `\n${strings.climatologyTip}` : ''),
         tip: true,
       }),
     );
@@ -262,18 +267,11 @@ function draw(
     x: {
       type: 'utc',
       domain,
-      tickFormat: granularity === 'daily' ? tickDay : tickHour,
+      tickFormat: granularity === 'daily' ? format.tickDay : format.tickHour,
       ticks: width < 480 ? 4 : 7,
       label: null,
     },
-    y: { domain: [0, yMax], label: null, tickFormat: tickCount, grid: true, ticks: 5 },
+    y: { domain: [0, yMax], label: null, tickFormat: format.count, grid: true, ticks: 5 },
     marks,
   });
 }
-
-/** Ensimmainen klimatologiavuorokausi tekstivastinetta varten. */
-export function climatologyStartDate(originDate: string, forecastWeatherDays: number): string {
-  return formatDate(addDays(originDate, forecastWeatherDays + 1));
-}
-
-export const FORECAST_ACCENT = SERIES.forecast;

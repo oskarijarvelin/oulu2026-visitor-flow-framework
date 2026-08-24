@@ -1,0 +1,46 @@
+---
+/**
+ * Kielivalitsin. Osoitteet vastaavat toisiaan yksi yhteen, joten valitsin vie aina
+ * samaan sivuun toisella kielellä eikä etusivulle.
+ *
+ * Valitsin on tavallisia linkkejä: se toimii näppäimistöllä, ruudunlukijalla ja ilman
+ * JavaScriptia, eikä valinta riipu localStoragesta.
+ */
+import { LANGS, LANG_NAME, LANG_SHORT, localizedPath, type Lang } from '../i18n/index.ts';
+import { ui } from '../i18n/ui/index.ts';
+
+interface Props {
+  lang: Lang;
+  /** Nykyisen sivun polku, esimerkiksi "/venue/1" tai "/en/venue/1". */
+  pathname: string;
+}
+
+const { lang, pathname } = Astro.props;
+const t = ui(lang);
+---
+
+<div class="flex shrink-0 items-center gap-1" role="group" aria-label={t.nav.languageLabel}>
+  <span class="sr-only">{t.nav.currentLanguage(LANG_NAME[lang])}</span>
+  {
+    LANGS.map((candidate) => {
+      const active = candidate === lang;
+      return (
+        <a
+          href={localizedPath(pathname, candidate)}
+          lang={candidate}
+          hreflang={candidate}
+          aria-current={active ? 'true' : undefined}
+          aria-label={active ? undefined : t.nav.switchTo(LANG_NAME[candidate])}
+          class:list={[
+            'rounded-md border px-2 py-1 text-xs font-medium no-underline transition-colors',
+            active
+              ? 'border-series-1 bg-series-1 text-white'
+              : 'border-line bg-surface text-ink-muted hover:border-ink-muted hover:text-ink',
+          ]}
+        >
+          {LANG_SHORT[candidate]}
+        </a>
+      );
+    })
+  }
+</div>

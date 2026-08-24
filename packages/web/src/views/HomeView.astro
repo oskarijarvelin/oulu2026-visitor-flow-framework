@@ -1,0 +1,285 @@
+---
+import Timeseries from '../charts/timeseries.ts';
+import Callout from '../components/Callout.astro';
+import Figure from '../components/Figure.astro';
+import Layout from '../components/Layout.astro';
+import StatCard from '../components/StatCard.astro';
+import TableScroll from '../components/TableScroll.astro';
+import dailyData from '../data/daily.json';
+import forecastData from '../data/forecast.json';
+import metaData from '../data/meta.json';
+import { localizedPath, type Lang } from '../i18n/index.ts';
+import { ui } from '../i18n/ui/index.ts';
+import { addDays } from '../lib/dates.ts';
+import { formatters } from '../lib/format.ts';
+import { modelLabel } from '../lib/labels.ts';
+import { toDailyRows } from '../lib/series.ts';
+import { RAINY_DAY_MM } from '../lib/weather.ts';
+import type { DailyData, ForecastData, Meta } from '../lib/types.ts';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui(lang);
+const f = formatters(lang);
+
+const site = metaData as Meta;
+const daily = dailyData as unknown as DailyData;
+const forecast = forecastData as unknown as ForecastData;
+
+const OVERVIEW_DAYS = 30;
+const OVERVIEW_FORECAST_DAYS = 7;
+const model = forecast.default_model;
+const rainMm = f.decimal(RAINY_DAY_MM);
+
+const panels = site.venues.map((venue) => {
+  const key = String(venue.venue_id);
+  const rows = toDailyRows(daily.venues[key], daily.weather_groups).filter((row) => row.is_reporting);
+  const from = addDays(venue.last_day, -(OVERVIEW_DAYS - 1));
+  const window = rows.filter((row) => row.date >= from);
+  const forecastRows = (forecast.venues[key]?.daily[model] ?? []).filter(
+    (row) => row.horizon_days <= OVERVIEW_FORECAST_DAYS,
+  );
+
+  return {
+    venue,
+    window,
+    forecastRows,
+    history: window.map((row) => ({ t: row.date, v: row.visitors_total })),
+    forecastPoints: forecastRows.map((row) => ({
+      t: row.date,
+      p10: row.p10,
+      p50: row.p50,
+      p90: row.p90,
+      clim: row.weather_source === 'climatology',
+    })),
+    rain: window.filter((row) => (row.precip_sum ?? 0) >= RAINY_DAY_MM).map((row) => row.date),
+    holidays: [
+      ...window
+        .filter((row) => row.is_holiday)
+        .map((row) => ({ t: row.date, name: row.holiday_name ?? t.common.holiday })),
+      ...forecastRows
+        .filter((row) => row.is_holiday)
+        .map((row) => ({ t: row.date, name: row.holiday_name ?? t.common.holiday })),
+    ],
+  };
+});
+
+const totalLast30 = site.venues.reduce((acc, venue) => acc + venue.last30.visitors_total, 0);
+const observedFrom = site.venues.map((venue) => venue.first_day).sort()[0]!;
+
+// Ennuste lähtee viimeisimmästä havaitusta vuorokaudesta. Jos havainnot ovat jäljessä,
+// se on kerrottava: ennuste ei ala tästä päivästä vaan datan lopusta.
+const forecastRunDate = site.forecast.generated_at.slice(0, 10);
+const observationLagDays = Math.max(
+  0,
+  ...site.venues.map((venue) =>
+    Math.round(
+      (Date.parse(`${forecastRunDate}T00:00:00Z`) - Date.parse(`${venue.last_day}T00:00:00Z`)) / 86_400_000,
+    ),
+  ),
+);
+---
+
+<Layout
+  lang={lang}
+  title={t.home.title}
+  heading={t.home.heading}
+  description={t.home.description}
+  lead={t.home.lead(OVERVIEW_DAYS, OVERVIEW_FORECAST_DAYS, f.date(observedFrom), f.date(site.venues[0]!.last_day))}
+>
+  <section aria-labelledby="avainluvut" class="mt-8">
+    <h2 id="avainluvut" class="text-lg font-semibold tracking-tight text-ink">{t.home.keyFigures}</h2>
+    <p class="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">{t.home.keyFiguresNote}</p>
+
+    <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <StatCard
+        label={t.home.last30Total}
+        value={f.int(totalLast30)}
+        unit={t.common.countUnit}
+        note={t.home.last30TotalNote}
+      />
+      {
+        site.venues.map((venue) => (
+          <StatCard
+            label={t.home.venueMean(venue.name)}
+            value={f.int(venue.last30.mean_daily)}
+            unit={t.home.perDay}
+            change={venue.change_pct === null ? undefined : f.signedPct(venue.change_pct)}
+            changeTone={
+              venue.change_pct === null || Math.abs(venue.change_pct) < 1
+                ? 'flat'
+                : venue.change_pct > 0
+                  ? 'up'
+                  : 'down'
+            }
+            note={t.home.changeNote(f.date(venue.max_daily_date), f.int(venue.max_daily))}
+          />
+        ))
+      }
+      <StatCard
+        label={t.home.next7}
+        value={f.int(site.venues.reduce((acc, venue) => acc + (venue.next7?.p50 ?? 0), 0))}
+        unit={t.common.countUnit}
+        note={t.home.next7Note(modelLabel(model, lang))}
+      />
+    </div>
+  </section>
+
+  <div class="mt-6 space-y-6">
+    {
+      panels.map(({ venue, window, forecastRows, history, forecastPoints, rain, holidays }) => (
+        <Figure
+          lang={lang}
+          title={t.home.panelTitle(venue.name, OVERVIEW_DAYS, OVERVIEW_FORECAST_DAYS)}
+          description={t.home.panelDescription(modelLabel(model, lang), rainMm)}
+          footnote={t.home.panelFootnote(f.int(venue.capacity), f.hourRanges(venue.open_hours))}
+        >
+          <Timeseries
+            client:visible
+            lang={lang}
+            ariaLabel={t.home.panelAria(venue.name, OVERVIEW_DAYS, OVERVIEW_FORECAST_DAYS)}
+            mode="day"
+            history={history}
+            forecast={forecastPoints}
+            rain={rain}
+            holidays={holidays}
+            ranges={[OVERVIEW_DAYS]}
+            initialRange={OVERVIEW_DAYS}
+          />
+
+          <div slot="alternative">
+            <p class="mb-3 text-xs leading-5 text-ink-muted">
+              {t.home.panelAlternative(
+                f.date(window[0]?.date ?? venue.last_day),
+                f.date(venue.last_day),
+                f.count(venue.last30.visitors_total),
+                f.int(venue.last30.mean_daily),
+                f.count(venue.next7?.p50 ?? 0),
+              )}
+            </p>
+            <TableScroll label={t.home.tableCaption(venue.name)}>
+              <table class="data-table">
+                <caption>{t.home.tableCaption(venue.name)}</caption>
+                <thead class="is-sticky">
+                  <tr>
+                    <th scope="col">{t.common.day}</th>
+                    <th scope="col" class="num">{t.home.actual}</th>
+                    <th scope="col" class="num">{t.home.forecastP50}</th>
+                    <th scope="col" class="num">{t.home.interval}</th>
+                    <th scope="col">{t.common.notes}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {window.map((row) => (
+                    <tr>
+                      <th scope="row" class="nowrap">{f.dateWithWeekday(row.date)}</th>
+                      <td class="num">{f.int(row.visitors_total)}</td>
+                      <td class="num muted">{f.missing()}</td>
+                      <td class="num muted">{f.missing()}</td>
+                      <td class="muted">
+                        {[
+                          row.is_holiday ? (row.holiday_name ?? t.common.holiday) : null,
+                          (row.precip_sum ?? 0) >= RAINY_DAY_MM ? t.common.rain : null,
+                          row.is_complete ? null : t.common.partialDay,
+                        ]
+                          .filter(Boolean)
+                          .join(', ') || f.missing()}
+                      </td>
+                    </tr>
+                  ))}
+                  {forecastRows.map((row) => (
+                    <tr class="is-forecast">
+                      <th scope="row" class="nowrap">{f.dateWithWeekday(row.date)}</th>
+                      <td class="num muted">{f.missing()}</td>
+                      <td class="num">{f.int(row.p50)}</td>
+                      <td class="num">
+                        {f.int(row.p10)} - {f.int(row.p90)}
+                      </td>
+                      <td class="muted">
+                        {[
+                          t.common.forecastRow,
+                          row.is_holiday ? (row.holiday_name ?? t.common.holiday) : null,
+                          row.weather_source === 'climatology' ? t.common.climatologyRow : null,
+                        ]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableScroll>
+          </div>
+        </Figure>
+      ))
+    }
+  </div>
+
+  <section aria-labelledby="tuoreus" class="mt-8">
+    <h2 id="tuoreus" class="text-lg font-semibold tracking-tight text-ink">{t.home.freshness}</h2>
+    <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        Object.entries(site.ingest.coverage).map(([name, entry]) => (
+          <div class="rounded-lg border border-line bg-surface p-4 text-sm">
+            <p class="font-medium text-ink">{name}</p>
+            <p class="mt-1 text-xs leading-5 text-ink-muted">
+              {f.dateRange(entry.first.slice(0, 10), entry.last.slice(0, 10))}
+              <br />
+              {entry.missing_hours === 0
+                ? t.home.noMissingHours
+                : t.home.missingHours(f.int(entry.missing_hours))}
+            </p>
+          </div>
+        ))
+      }
+    </div>
+
+    <div class="mt-4">
+      {
+        observationLagDays > 1 ? (
+          <Callout tone="warning" title={t.home.staleTitle}>
+            <p>
+              {t.home.staleBody(
+                f.date(site.venues[0]!.last_day),
+                f.date(forecastRunDate),
+                observationLagDays,
+              )}
+            </p>
+          </Callout>
+        ) : (
+          <Callout title={t.home.freshTitle}>
+            <p>{t.home.freshBody(f.date(forecastRunDate), f.date(site.venues[0]!.last_day))}</p>
+          </Callout>
+        )
+      }
+    </div>
+  </section>
+
+  {
+    site.traffic && (
+      <section aria-labelledby="konteksti" class="mt-8">
+        <h2 id="konteksti" class="text-lg font-semibold tracking-tight text-ink">
+          {t.home.contextHeading}
+        </h2>
+        <Callout>
+          <p>{t.home.contextBody(site.traffic.site_name)}</p>
+          <p class="mt-2">
+            {t.home.contextNumbers(
+              f.date(site.traffic.first_day),
+              f.date(site.traffic.last_day),
+              f.int(site.traffic.pedestrians),
+              f.int(site.traffic.cyclists),
+            )}{' '}
+            <a class="underline" href={localizedPath('/weather', lang)}>
+              {t.home.contextLink}
+            </a>
+            .
+          </p>
+        </Callout>
+      </section>
+    )
+  }
+</Layout>

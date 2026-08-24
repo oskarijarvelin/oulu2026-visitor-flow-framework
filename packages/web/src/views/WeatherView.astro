@@ -1,0 +1,308 @@
+---
+import Bars from '../charts/bars.ts';
+import Lines from '../charts/lines.ts';
+import Scatter from '../charts/scatter.ts';
+import Callout from '../components/Callout.astro';
+import Figure from '../components/Figure.astro';
+import Layout from '../components/Layout.astro';
+import TableScroll from '../components/TableScroll.astro';
+import dailyData from '../data/daily.json';
+import metaData from '../data/meta.json';
+import type { Lang } from '../i18n/index.ts';
+import { ui } from '../i18n/ui/index.ts';
+import { SERIES, WEATHER_GROUP_COLOR } from '../lib/colors.ts';
+import { formatters } from '../lib/format.ts';
+import { meanOf, medianOf, toDailyRows } from '../lib/series.ts';
+import { RAINY_DAY_MM, WEATHER_GROUP_ORDER, weatherGroupLabel } from '../lib/weather.ts';
+import type { DailyData, DailyRow, Meta, WeatherGroup } from '../lib/types.ts';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui(lang);
+const f = formatters(lang);
+
+const site = metaData as Meta;
+const daily = dailyData as unknown as DailyData;
+const rainMm = f.decimal(RAINY_DAY_MM);
+
+interface VenueWeather {
+  name: string;
+  rows: DailyRow[];
+  rainy: DailyRow[];
+  dry: DailyRow[];
+  groups: { group: WeatherGroup; days: number; mean: number; median: number }[];
+}
+
+const perVenue: VenueWeather[] = site.venues.map((venue) => {
+  const rows = toDailyRows(daily.venues[String(venue.venue_id)], daily.weather_groups).filter(
+    (row) => row.is_reporting && row.temp_mean !== undefined,
+  );
+  const rainy = rows.filter((row) => (row.precip_sum ?? 0) >= RAINY_DAY_MM);
+  const dry = rows.filter((row) => (row.precip_sum ?? 0) < RAINY_DAY_MM);
+  const groups = WEATHER_GROUP_ORDER.map((group) => {
+    const subset = rows.filter((row) => row.weather_group === group);
+    return {
+      group,
+      days: subset.length,
+      mean: meanOf(subset.map((row) => row.visitors_total)),
+      median: medianOf(subset.map((row) => row.visitors_total)),
+    };
+  }).filter((entry) => entry.days > 0);
+  return { name: venue.name, rows, rainy, dry, groups };
+});
+
+const scatterPoints = site.venues.flatMap((venue) =>
+  toDailyRows(daily.venues[String(venue.venue_id)], daily.weather_groups)
+    .filter((row) => row.is_reporting && row.temp_mean !== undefined)
+    .map((row) => ({
+      date: row.date,
+      venue: venue.name,
+      temp: row.temp_mean ?? 0,
+      visitors: row.visitors_total,
+      precip: row.precip_sum ?? 0,
+      group: row.weather_group ?? ('other' as WeatherGroup),
+    })),
+);
+
+const observationsLabel = (n: number): string => t.common.observationCount(f.int(n));
+
+const rainyBars = perVenue.flatMap((entry) => [
+  {
+    label: t.weather.dryLabel(entry.name),
+    value: Math.round(meanOf(entry.dry.map((row) => row.visitors_total)) * 10) / 10,
+    n: entry.dry.length,
+    nLabel: observationsLabel(entry.dry.length),
+    color: SERIES.history,
+    note: t.weather.dryNote(rainMm),
+  },
+  {
+    label: t.weather.rainyLabel(entry.name),
+    value: Math.round(meanOf(entry.rainy.map((row) => row.visitors_total)) * 10) / 10,
+    n: entry.rainy.length,
+    nLabel: observationsLabel(entry.rainy.length),
+    color: SERIES.light,
+    note: t.weather.rainyNote(rainMm),
+  },
+]);
+
+const groupBars = perVenue.flatMap((entry) =>
+  entry.groups.map((group) => ({
+    label: `${entry.name}: ${weatherGroupLabel(group.group, lang)}`,
+    value: Math.round(group.mean * 10) / 10,
+    n: group.days,
+    nLabel: observationsLabel(group.days),
+    color: WEATHER_GROUP_COLOR[group.group] ?? SERIES.history,
+  })),
+);
+
+const trafficRows = daily.traffic;
+---
+
+<Layout
+  lang={lang}
+  title={t.weather.title}
+  heading={t.weather.heading}
+  description={t.weather.description}
+  lead={t.weather.lead}
+>
+  <div class="mt-6 space-y-6">
+    <Figure
+      lang={lang}
+      title={t.weather.scatterTitle}
+      description={t.weather.scatterDescription}
+      footnote={t.weather.scatterFootnote}
+    >
+      <Scatter
+        client:visible
+        lang={lang}
+        ariaLabel={t.weather.scatterAria}
+        points={scatterPoints}
+        placeholderHeight={320}
+      />
+      <div slot="alternative">
+        <p class="mb-3 text-xs leading-5 text-ink-muted">
+          {t.weather.scatterAlternative(
+            f.int(scatterPoints.length),
+            f.decimal(Math.min(...scatterPoints.map((point) => point.temp))),
+            f.decimal(Math.max(...scatterPoints.map((point) => point.temp))),
+            rainMm,
+            f.int(scatterPoints.filter((point) => point.precip >= RAINY_DAY_MM).length),
+          )}
+        </p>
+        <TableScroll label={t.weather.scatterTableCaption}>
+          <table class="data-table">
+            <caption>{t.weather.scatterTableCaption}</caption>
+            <thead class="is-sticky">
+              <tr>
+                <th scope="col">{t.common.day}</th>
+                <th scope="col">{t.common.venue}</th>
+                <th scope="col" class="num">{t.common.visitorEvents}</th>
+                <th scope="col" class="num">{t.common.temperature}</th>
+                <th scope="col" class="num">{t.common.precipitation}</th>
+                <th scope="col">{t.common.weather}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                [...scatterPoints]
+                  .sort((a, b) => b.visitors - a.visitors)
+                  .slice(0, 10)
+                  .map((point) => (
+                    <tr>
+                      <th scope="row" class="nowrap">{f.date(point.date)}</th>
+                      <td>{point.venue}</td>
+                      <td class="num">{f.int(point.visitors)}</td>
+                      <td class="num">{f.celsius(point.temp)}</td>
+                      <td class="num">{f.mm(point.precip)}</td>
+                      <td>{weatherGroupLabel(point.group, lang)}</td>
+                    </tr>
+                  ))
+              }
+            </tbody>
+          </table>
+        </TableScroll>
+      </div>
+    </Figure>
+
+    <Figure
+      lang={lang}
+      title={t.weather.rainyTitle}
+      description={t.weather.rainyDescription(rainMm)}
+      footnote={t.weather.rainyFootnote}
+    >
+      <Bars
+        client:visible
+        lang={lang}
+        ariaLabel={t.weather.rainyAria}
+        data={rainyBars}
+        horizontal={true}
+        placeholderHeight={220}
+      />
+      <div slot="alternative">
+        <TableScroll label={t.weather.rainyTableCaption} scrollY={false}>
+          <table class="data-table">
+            <caption>{t.weather.rainyTableCaption}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{t.weather.group}</th>
+                <th scope="col" class="num">{t.common.days}</th>
+                <th scope="col" class="num">{t.common.mean}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                rainyBars.map((bar) => (
+                  <tr>
+                    <th scope="row">{bar.label}</th>
+                    <td class="num">{f.int(bar.n ?? 0)}</td>
+                    <td class="num">{f.decimal(bar.value)}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </TableScroll>
+      </div>
+    </Figure>
+
+    <Figure
+      lang={lang}
+      title={t.weather.groupsTitle}
+      description={t.weather.groupsDescription}
+      footnote={t.weather.groupsFootnote}
+    >
+      <Bars
+        client:visible
+        lang={lang}
+        ariaLabel={t.weather.groupsAria}
+        data={groupBars}
+        horizontal={true}
+        placeholderHeight={280}
+      />
+      <div slot="alternative">
+        <TableScroll label={t.weather.groupsTableCaption} scrollY={false}>
+          <table class="data-table">
+            <caption>{t.weather.groupsTableCaption}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{t.weather.venueAndWeather}</th>
+                <th scope="col" class="num">{t.common.days}</th>
+                <th scope="col" class="num">{t.common.mean}</th>
+                <th scope="col" class="num">{t.common.median}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                perVenue.flatMap((entry) =>
+                  entry.groups.map((group) => (
+                    <tr>
+                      <th scope="row">
+                        {entry.name}: {weatherGroupLabel(group.group, lang)}
+                      </th>
+                      <td class="num">{f.int(group.days)}</td>
+                      <td class="num">{f.decimal(group.mean)}</td>
+                      <td class="num">{f.decimal(group.median)}</td>
+                    </tr>
+                  )),
+                )
+              }
+            </tbody>
+          </table>
+        </TableScroll>
+      </div>
+    </Figure>
+
+    {
+      site.traffic && trafficRows.length > 0 && (
+        <Figure
+          lang={lang}
+          title={t.weather.trafficTitle}
+          description={t.weather.trafficDescription(site.traffic.site_name)}
+          footnote={t.weather.trafficFootnote}
+        >
+          <Lines
+            client:visible
+            lang={lang}
+            ariaLabel={t.weather.trafficAria(site.traffic.site_name)}
+            xType="date"
+            unit={t.weather.trafficUnit}
+            showPoints={false}
+            series={[
+              {
+                name: t.weather.pedestrians,
+                color: SERIES.accent,
+                points: trafficRows.map((row) => ({ x: row.date, y: row.pedestrians })),
+              },
+              {
+                name: t.weather.cyclists,
+                color: SERIES.compare,
+                dash: '5 4',
+                points: trafficRows.map((row) => ({ x: row.date, y: row.cyclists })),
+              },
+            ]}
+            placeholderHeight={240}
+          />
+          <div slot="alternative">
+            <p class="text-xs leading-5 text-ink-muted">
+              {t.weather.trafficAlternative(
+                f.date(site.traffic.first_day),
+                f.date(site.traffic.last_day),
+                f.int(site.traffic.pedestrians),
+                f.int(site.traffic.cyclists),
+                f.decimal(site.traffic.pedestrians / trafficRows.length),
+                f.decimal(site.traffic.cyclists / trafficRows.length),
+              )}
+            </p>
+          </div>
+        </Figure>
+      )
+    }
+
+    <Callout tone="warning" title={t.weather.causationTitle}>
+      <p>{t.weather.causationBody}</p>
+    </Callout>
+  </div>
+</Layout>

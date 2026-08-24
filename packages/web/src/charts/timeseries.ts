@@ -4,22 +4,21 @@
  * vaihtaa nakyvan jakson.
  */
 
+import { chartStrings, type ChartStrings } from '../i18n/charts.ts';
+import type { Lang } from '../i18n/index.ts';
 import { BAND_FILL, CLIMATOLOGY_FILL, HOLIDAY_LINE, NEUTRAL, RAIN_FILL, SERIES } from '../lib/colors.ts';
 import { plotDate, plotDay } from '../lib/dates.ts';
-import { formatInt } from '../lib/format.ts';
+import { formatters } from '../lib/format.ts';
 import { island } from '../renderer/index.ts';
 import {
   Plot,
   baseOptions,
+  chartFormat,
   createChartFrame,
   createLegend,
   createToggleGroup,
   mountResponsive,
-  tickCount,
-  tickDay,
-  tickHour,
-  titleDate,
-  titleDateTime,
+  type ChartFormat,
   type LegendEntry,
 } from './base.ts';
 
@@ -39,6 +38,7 @@ export interface TimeseriesForecastPoint {
 }
 
 export interface TimeseriesProps {
+  lang: Lang;
   ariaLabel: string;
   mode: 'day' | 'hour';
   history: TimeseriesPoint[];
@@ -46,11 +46,11 @@ export interface TimeseriesProps {
   /** Sateiset paivat tai tunnit samassa muodossa kuin `t`. */
   rain?: string[];
   holidays?: { t: string; name: string }[];
-  ranges?: { label: string; days: number | null; description?: string }[];
+  /** Rajausvaihtoehdot vuorokausina. `null` tarkoittaa koko sarjaa. */
+  ranges?: (number | null)[];
   initialRange?: number | null;
-  historyLabel?: string;
-  forecastLabel?: string;
-  yLabel?: string;
+  /** Yksikko vihjeisiin. Oletuksena kavijatapahtuma. */
+  unit?: string;
   [key: string]: unknown;
 }
 
@@ -70,6 +70,8 @@ interface ForecastRow {
 }
 
 export default island<TimeseriesProps>((element, props) => {
+  const strings = chartStrings(props.lang);
+  const format = chartFormat(props.lang);
   const parse = props.mode === 'hour' ? plotDate : plotDay;
   const step = props.mode === 'hour' ? 3_600_000 : 86_400_000;
 
@@ -85,52 +87,44 @@ export default island<TimeseriesProps>((element, props) => {
   const rainSet = new Set(props.rain ?? []);
   const holidays = (props.holidays ?? []).map((entry) => ({ at: parse(entry.t), name: entry.name }));
 
-  const ranges = props.ranges ?? [
-    { label: '7 vrk', days: 7, description: 'Viimeiset 7 vuorokautta' },
-    { label: '30 vrk', days: 30, description: 'Viimeiset 30 vuorokautta' },
-    { label: '90 vrk', days: 90, description: 'Viimeiset 90 vuorokautta' },
-    { label: 'Kaikki', days: null, description: 'Koko havaintojakso' },
-  ];
+  const ranges = props.ranges ?? [7, 30, 90, null];
 
   const frame = createChartFrame(element);
   let selectedDays: number | null = props.initialRange === undefined ? 30 : props.initialRange;
 
-  const historyLabel = props.historyLabel ?? 'Toteuma';
-  const forecastLabel = props.forecastLabel ?? 'Ennuste, mediaani';
-
-  const legendEntries: LegendEntry[] = [{ label: historyLabel, color: SERIES.history }];
+  const legendEntries: LegendEntry[] = [{ label: strings.actual, color: SERIES.history }];
   if (forecast.length > 0) {
     legendEntries.push(
-      { label: forecastLabel, color: SERIES.forecast, dash: '6 4' },
-      { label: 'Ennustevali p10 - p90', color: BAND_FILL, swatch: true },
+      { label: strings.forecastMedian, color: SERIES.forecast, dash: '6 4' },
+      { label: strings.interval, color: BAND_FILL, swatch: true },
     );
     if (forecast.some((row) => row.clim)) {
-      legendEntries.push({ label: 'Sää klimatologiasta', color: CLIMATOLOGY_FILL, swatch: true });
+      legendEntries.push({ label: strings.climatologyLegend, color: CLIMATOLOGY_FILL, swatch: true });
     }
   }
   if (rainSet.size > 0) {
     legendEntries.push({
-      label: props.mode === 'hour' ? 'Sadetunnit' : 'Sadepäivät',
+      label: props.mode === 'hour' ? strings.rainHours : strings.rainDays,
       color: RAIN_FILL,
       swatch: true,
     });
   }
-  if (holidays.length > 0) legendEntries.push({ label: 'Pyhäpäivä', color: HOLIDAY_LINE, dash: '3 3' });
+  if (holidays.length > 0) legendEntries.push({ label: strings.holiday, color: HOLIDAY_LINE, dash: '3 3' });
   frame.legend.append(createLegend(legendEntries));
 
   let redraw = (): void => {};
 
   if (ranges.length > 1) {
     const toggle = createToggleGroup(
-      'Aikajakso',
-      ranges.map((range, index) => ({
+      strings.rangeLabel,
+      ranges.map((days, index) => ({
         value: String(index),
-        label: range.label,
-        description: range.description,
+        label: days === null ? strings.rangeAll : strings.rangeDays(days),
+        description: days === null ? strings.rangeAllDescription : strings.rangeDaysDescription(days),
       })),
-      String(Math.max(0, ranges.findIndex((range) => range.days === selectedDays))),
+      String(Math.max(0, ranges.indexOf(selectedDays))),
       (value) => {
-        selectedDays = ranges[Number(value)]?.days ?? null;
+        selectedDays = ranges[Number(value)] ?? null;
         redraw();
       },
     );
@@ -145,7 +139,7 @@ export default island<TimeseriesProps>((element, props) => {
       // Ennuste rajataan samalle pituudelle kuin historia, jotta lyhyt rajaus ei nayta
       // seitsemaa vuorokautta historiaa ja kolmeakymmenta vuorokautta ennustetta.
       const visibleForecast = forecast.filter((row) => row.at >= from && row.at <= to);
-      return draw(width, visibleHistory, visibleForecast, rainSet, holidays, props, step);
+      return draw(width, visibleHistory, visibleForecast, rainSet, holidays, props, step, strings, format);
     },
     { ariaLabel: props.ariaLabel },
   );
@@ -174,6 +168,8 @@ function draw(
   holidays: { at: Date; name: string }[],
   props: TimeseriesProps,
   step: number,
+  strings: ChartStrings,
+  format: ChartFormat,
 ): SVGSVGElement | HTMLElement {
   const height = Math.max(200, Math.min(360, Math.round(width * 0.42)));
   const values = [...history.map((row) => row.v), ...forecast.map((row) => row.p90)];
@@ -318,8 +314,10 @@ function draw(
     marks.push(Plot.dot(history, { x: 'at', y: 'v', fill: SERIES.history, r: 2.4 }));
   }
 
-  const titleOf = step === 3_600_000 ? titleDateTime : titleDate;
-  const unit = props.yLabel ?? 'kävijätapahtumaa';
+  const titleOf = step === 3_600_000 ? format.titleDateTime : format.titleDate;
+  const f = formatters(props.lang);
+  const amount = (value: number): string =>
+    props.unit === undefined ? f.count(value) : `${f.int(value)} ${props.unit}`;
 
   if (history.length > 0) {
     marks.push(
@@ -328,7 +326,7 @@ function draw(
         Plot.pointerX({
           x: 'at',
           y: 'v',
-          title: (row: Row) => `${titleOf(row.at)}\n${formatInt(row.v)} ${unit}`,
+          title: (row: Row) => `${titleOf(row.at)}\n${amount(row.v)}`,
           fontSize: 12,
         }),
       ),
@@ -342,9 +340,9 @@ function draw(
           x: 'at',
           y: 'p50',
           title: (row: ForecastRow) =>
-            `${titleOf(row.at)}\nEnnuste ${formatInt(row.p50)} ${unit}\n` +
-            `Vali ${formatInt(row.p10)} - ${formatInt(row.p90)}` +
-            (row.clim ? '\nSää klimatologiasta' : ''),
+            `${titleOf(row.at)}\n${strings.forecastTip(amount(row.p50))}` +
+            `\n${strings.intervalTip(f.int(row.p10), f.int(row.p90))}` +
+            (row.clim ? `\n${strings.climatologyTip}` : ''),
           fontSize: 12,
         }),
       ),
@@ -358,7 +356,7 @@ function draw(
     x: {
       type: 'utc',
       domain: xDomain,
-      tickFormat: step === 3_600_000 && spanDays(xDomain) <= 3 ? tickHour : tickDay,
+      tickFormat: step === 3_600_000 && spanDays(xDomain) <= 3 ? format.tickHour : format.tickDay,
       ticks: width < 480 ? 4 : 7,
       label: null,
       grid: false,
@@ -366,7 +364,7 @@ function draw(
     y: {
       domain: [0, yMax],
       label: null,
-      tickFormat: tickCount,
+      tickFormat: format.count,
       grid: true,
       ticks: 5,
     },

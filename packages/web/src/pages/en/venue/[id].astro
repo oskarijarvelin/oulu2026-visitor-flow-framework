@@ -1,7 +1,7 @@
 ---
-import metaData from '../../data/meta.json';
-import VenueView from '../../views/VenueView.astro';
-import type { Meta } from '../../lib/types.ts';
+import metaData from '../../../data/meta.json';
+import VenueView from '../../../views/VenueView.astro';
+import type { Meta } from '../../../lib/types.ts';
 
 export function getStaticPaths() {
   const site = metaData as Meta;
@@ -11,4 +11,4 @@ export function getStaticPaths() {
 const { venue } = Astro.props;
 ---
 
-<VenueView lang="fi" venue={venue} />
+<VenueView lang="en" venue={venue} />

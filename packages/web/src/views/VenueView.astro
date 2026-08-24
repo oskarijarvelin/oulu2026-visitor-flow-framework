@@ -1,0 +1,523 @@
+---
+import Heatmap from '../charts/heatmap.ts';
+import Lines from '../charts/lines.ts';
+import Timeseries from '../charts/timeseries.ts';
+import Callout from '../components/Callout.astro';
+import Figure from '../components/Figure.astro';
+import Layout from '../components/Layout.astro';
+import StatCard from '../components/StatCard.astro';
+import TableScroll from '../components/TableScroll.astro';
+import dailyData from '../data/daily.json';
+import forecastData from '../data/forecast.json';
+import hourlyData from '../data/hourly.json';
+import metaData from '../data/meta.json';
+import profileData from '../data/profile.json';
+import { localizedPath, type Lang } from '../i18n/index.ts';
+import { ui } from '../i18n/ui/index.ts';
+import { SERIES } from '../lib/colors.ts';
+import { localDate, localHour } from '../lib/dates.ts';
+import { formatters } from '../lib/format.ts';
+import { modelLabel } from '../lib/labels.ts';
+import { meanOf, quantileOf, toDailyRows } from '../lib/series.ts';
+import { RAINY_DAY_MM } from '../lib/weather.ts';
+import type { DailyData, ForecastData, HourlyData, Meta, ProfileData, VenueSummary } from '../lib/types.ts';
+
+interface Props {
+  lang: Lang;
+  venue: VenueSummary;
+}
+
+const { lang, venue } = Astro.props;
+const t = ui(lang);
+const f = formatters(lang);
+
+const site = metaData as Meta;
+const daily = dailyData as unknown as DailyData;
+const hourly = hourlyData as unknown as HourlyData;
+const profile = profileData as unknown as ProfileData;
+const forecast = forecastData as unknown as ForecastData;
+
+const key = String(venue.venue_id);
+const model = forecast.default_model;
+
+const rows = toDailyRows(daily.venues[key], daily.weather_groups).filter((row) => row.is_reporting);
+const forecastRows = forecast.venues[key]?.daily[model] ?? [];
+const series = hourly.venues[key]!;
+const cells = profile.venues[key]!.cells;
+const profileWindow = profile.venues[key]!;
+
+const historyDaily = rows.map((row) => ({ t: row.date, v: row.visitors_total }));
+const rainDays = rows.filter((row) => (row.precip_sum ?? 0) >= RAINY_DAY_MM).map((row) => row.date);
+const holidayDays = [
+  ...rows
+    .filter((row) => row.is_holiday)
+    .map((row) => ({ t: row.date, name: row.holiday_name ?? t.common.holiday })),
+  ...forecastRows
+    .filter((row) => row.is_holiday)
+    .map((row) => ({ t: row.date, name: row.holiday_name ?? t.common.holiday })),
+];
+const forecastPoints = forecastRows.map((row) => ({
+  t: row.date,
+  p10: row.p10,
+  p50: row.p50,
+  p90: row.p90,
+  clim: row.weather_source === 'climatology',
+}));
+
+const rainHours = new Set(series.rain_idx);
+const historyHourly = series.ts.map((ts, index) => ({ t: ts, v: series.visitors_total[index] ?? 0 }));
+const rainHourList = series.ts.filter((_, index) => rainHours.has(index));
+
+// Kapasiteettinäkymä: tunnin sisääntulot suhteessa kapasiteettiin. Tämä ei ole
+// yhtäaikainen kävijämäärä, koska viipymää ei mitata.
+const CAPACITY_WINDOW_DAYS = 90;
+const capacityFrom = series.ts.length > 0 ? localDate(series.ts.at(-1)!) : venue.last_day;
+const capacityStart = new Date(new Date(`${capacityFrom}T00:00:00Z`).getTime() - CAPACITY_WINDOW_DAYS * 86_400_000)
+  .toISOString()
+  .slice(0, 10);
+const arrivalsByHour = new Map<number, number[]>();
+series.ts.forEach((ts, index) => {
+  if (localDate(ts) < capacityStart) return;
+  const hour = localHour(ts);
+  const bucket = arrivalsByHour.get(hour) ?? [];
+  bucket.push(series.visitors_in[index] ?? 0);
+  arrivalsByHour.set(hour, bucket);
+});
+const capacityRows = [...arrivalsByHour.entries()]
+  .sort((a, b) => a[0] - b[0])
+  .map(([hour, values]) => ({
+    hour,
+    mean: Math.round(meanOf(values) * 10) / 10,
+    p95: Math.round(quantileOf(values, 0.95) * 10) / 10,
+    max: Math.max(0, ...values),
+    n: values.length,
+  }));
+const openCapacityRows = capacityRows.filter((row) => venue.open_hours.includes(row.hour));
+const peakArrivals = Math.max(0, ...capacityRows.map((row) => row.max));
+const hoursOverCapacity = series.ts.filter(
+  (ts, index) => localDate(ts) >= capacityStart && (series.visitors_in[index] ?? 0) > venue.capacity,
+).length;
+const observedHours = series.ts.filter((ts) => localDate(ts) >= capacityStart).length;
+
+// Lippuvertailu.
+const ticketRows = rows.filter((row) => typeof row.tickets_total === 'number');
+const ticketSum = ticketRows.reduce((acc, row) => acc + (row.tickets_total ?? 0), 0);
+const ticketVisitorSum = ticketRows.reduce((acc, row) => acc + row.visitors_total, 0);
+const eventsPerTicket = ticketSum === 0 ? null : ticketVisitorSum / ticketSum;
+
+const bestCell = [...cells].sort((a, b) => (b.mean ?? 0) - (a.mean ?? 0))[0];
+const bestCellLabel = bestCell
+  ? t.venue.heatmapBest(
+      f.weekdayShort(bestCell.dow),
+      `${String(bestCell.hour).padStart(2, '0')}:00`,
+      f.decimal(bestCell.mean ?? 0),
+    )
+  : t.venue.heatmapNoData;
+
+const other = site.venues.find((entry) => entry.venue_id !== venue.venue_id);
+const weekdays = f.weekdaysShort();
+const rainMm = f.decimal(RAINY_DAY_MM);
+---
+
+<Layout
+  lang={lang}
+  title={venue.name}
+  heading={venue.name}
+  description={t.venue.description(venue.name)}
+  lead={t.venue.lead(
+    f.date(venue.first_day),
+    f.date(venue.last_day),
+    f.int(venue.reporting_days),
+    f.int(venue.capacity),
+  )}
+>
+  <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <StatCard
+      label={t.venue.wholePeriod}
+      value={f.int(venue.visitors_total)}
+      unit={t.common.countUnit}
+      note={t.venue.wholePeriodNote(f.int(venue.visitors_in), f.int(venue.visitors_out))}
+    />
+    <StatCard
+      label={t.venue.dailyMean}
+      value={f.int(venue.mean_daily)}
+      unit={t.home.perDay}
+      note={t.venue.dailyMeanNote(f.int(venue.median_daily))}
+    />
+    <StatCard
+      label={t.venue.last30}
+      value={f.int(venue.last30.mean_daily)}
+      unit={t.home.perDay}
+      change={venue.change_pct === null ? undefined : f.signedPct(venue.change_pct)}
+      changeTone={
+        venue.change_pct === null || Math.abs(venue.change_pct) < 1
+          ? 'flat'
+          : venue.change_pct > 0
+            ? 'up'
+            : 'down'
+      }
+      note={t.venue.last30Note}
+    />
+    <StatCard
+      label={t.venue.busiestHour}
+      value={f.int(venue.max_hourly)}
+      unit={t.common.countUnit}
+      note={t.venue.busiestHourNote(f.hourRanges(venue.open_hours))}
+    />
+  </div>
+
+  <div class="mt-6 space-y-6">
+    <Figure
+      lang={lang}
+      title={t.venue.dailyTitle}
+      description={t.venue.dailyDescription(modelLabel(model, lang), rainMm)}
+      footnote={t.venue.dailyFootnote}
+    >
+      <Timeseries
+        client:visible
+        lang={lang}
+        ariaLabel={t.venue.dailyAria(venue.name)}
+        mode="day"
+        history={historyDaily}
+        forecast={forecastPoints}
+        rain={rainDays}
+        holidays={holidayDays}
+        initialRange={30}
+      />
+      <div slot="alternative">
+        <p class="mb-3 text-xs leading-5 text-ink-muted">
+          {t.venue.dailyAlternative(
+            f.date(venue.first_day),
+            f.date(venue.last_day),
+            f.count(venue.visitors_total),
+            f.int(venue.mean_daily),
+            f.int(venue.median_daily),
+            f.date(venue.max_daily_date),
+            f.count(venue.max_daily),
+            f.int(rainDays.length),
+            f.int(rows.filter((row) => row.is_holiday).length),
+          )}
+        </p>
+        <TableScroll label={t.venue.dailyTableCaption(venue.name)}>
+          <table class="data-table">
+            <caption>{t.venue.dailyTableCaption(venue.name)}</caption>
+            <thead class="is-sticky">
+              <tr>
+                <th scope="col">{t.common.day}</th>
+                <th scope="col" class="num">{t.common.visitorEvents}</th>
+                <th scope="col" class="num">{t.common.entries}</th>
+                <th scope="col" class="num">{t.common.exits}</th>
+                <th scope="col" class="num">{t.common.temperature}</th>
+                <th scope="col" class="num">{t.common.precipitation}</th>
+                <th scope="col">{t.common.notes}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                rows.slice(-30).map((row) => (
+                  <tr>
+                    <th scope="row" class="nowrap">{f.dateWithWeekday(row.date)}</th>
+                    <td class="num">{f.int(row.visitors_total)}</td>
+                    <td class="num muted">{f.int(row.visitors_in)}</td>
+                    <td class="num muted">{f.int(row.visitors_out)}</td>
+                    <td class="num muted">{f.celsius(row.temp_mean)}</td>
+                    <td class="num muted">{f.mm(row.precip_sum)}</td>
+                    <td class="muted">
+                      {[
+                        row.is_holiday ? (row.holiday_name ?? t.common.holiday) : null,
+                        row.is_complete ? null : t.common.partialDay,
+                      ]
+                        .filter(Boolean)
+                        .join(', ') || f.missing()}
+                    </td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </TableScroll>
+      </div>
+    </Figure>
+
+    <Figure
+      lang={lang}
+      title={t.venue.hourlyTitle}
+      description={t.venue.hourlyDescription(f.int(hourly.days), f.date(hourly.first_day))}
+      footnote={t.venue.hourlyFootnote}
+    >
+      <Timeseries
+        client:visible
+        lang={lang}
+        ariaLabel={t.venue.hourlyAria(venue.name, hourly.days)}
+        mode="hour"
+        history={historyHourly}
+        rain={rainHourList}
+        ranges={[7, 30, 90, null]}
+        initialRange={7}
+      />
+      <div slot="alternative">
+        <p class="text-xs leading-5 text-ink-muted">
+          {t.venue.hourlyAlternative(
+            f.int(series.ts.length),
+            f.date(hourly.first_day),
+            f.date(hourly.last_day),
+            f.count(venue.max_hourly),
+            f.int(rainHourList.length),
+            f.decimal((rainHourList.length / Math.max(1, series.ts.length)) * 100),
+          )}
+        </p>
+      </div>
+    </Figure>
+
+    <Figure
+      lang={lang}
+      title={t.venue.heatmapTitle}
+      description={t.venue.heatmapDescription(
+        f.date(profileWindow.first_day),
+        f.date(profileWindow.last_day),
+        f.int(profileWindow.days),
+      )}
+      footnote={t.venue.heatmapFootnote}
+    >
+      <Heatmap
+        client:visible
+        lang={lang}
+        ariaLabel={t.venue.heatmapAria(venue.name)}
+        cells={cells}
+        openHours={venue.open_hours}
+        placeholderHeight={300}
+      />
+      <div slot="alternative">
+        <p class="mb-3 text-xs leading-5 text-ink-muted">{t.venue.heatmapAlternative(bestCellLabel)}</p>
+        <TableScroll label={t.venue.heatmapTableCaption(venue.name)}>
+          <table class="data-table">
+            <caption>{t.venue.heatmapTableCaption(venue.name)}</caption>
+            <thead class="is-sticky">
+              <tr>
+                <th scope="col">{t.common.hour}</th>
+                {weekdays.map((day) => <th scope="col" class="num">{day}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {
+                Array.from({ length: 24 }, (_, hour) => (
+                  <tr>
+                    <th scope="row" class="num" style="text-align:left">
+                      {String(hour).padStart(2, '0')}:00
+                    </th>
+                    {
+                      weekdays.map((_, dow) => {
+                        const cell = cells.find((entry) => entry.dow === dow && entry.hour === hour);
+                        return (
+                          <td class="num muted">
+                            {cell === undefined || cell.n === 0
+                              ? t.venue.heatmapNoData
+                              : f.decimal(cell.mean ?? 0)}
+                          </td>
+                        );
+                      })
+                    }
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </TableScroll>
+      </div>
+    </Figure>
+
+    <Figure
+      lang={lang}
+      title={t.venue.capacityTitle}
+      description={t.venue.capacityDescription(CAPACITY_WINDOW_DAYS, f.int(venue.capacity))}
+      footnote={t.venue.capacityFootnote}
+    >
+      <Lines
+        client:visible
+        lang={lang}
+        ariaLabel={t.venue.capacityAria(venue.name)}
+        xType="number"
+        xLabel={t.venue.capacityAxis}
+        unit={t.venue.capacityUnit}
+        reference={{ value: venue.capacity, label: t.venue.capacityReference(f.int(venue.capacity)) }}
+        series={[
+          {
+            name: t.venue.capacityMean,
+            color: SERIES.history,
+            points: openCapacityRows.map((row) => ({ x: row.hour, y: row.mean })),
+          },
+          {
+            name: t.venue.capacityP95,
+            color: SERIES.compare,
+            dash: '5 4',
+            points: openCapacityRows.map((row) => ({ x: row.hour, y: row.p95 })),
+          },
+        ]}
+      />
+      <div slot="alternative">
+        <p class="mb-3 text-xs leading-5 text-ink-muted">
+          {t.venue.capacityAlternative(
+            f.int(peakArrivals),
+            f.int(hoursOverCapacity),
+            f.int(observedHours),
+            f.decimal((hoursOverCapacity / Math.max(1, observedHours)) * 100),
+          )}
+        </p>
+        <TableScroll label={t.venue.capacityTableCaption(venue.name)} scrollY={false}>
+          <table class="data-table">
+            <caption>{t.venue.capacityTableCaption(venue.name)}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{t.common.hour}</th>
+                <th scope="col" class="num">{t.venue.capacityMean}</th>
+                <th scope="col" class="num">{t.venue.capacityP95}</th>
+                <th scope="col" class="num">{t.common.largest}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                openCapacityRows.map((row) => (
+                  <tr>
+                    <th scope="row" class="num" style="text-align:left">
+                      {String(row.hour).padStart(2, '0')}:00
+                    </th>
+                    <td class="num">{f.decimal(row.mean)}</td>
+                    <td class="num">{f.decimal(row.p95)}</td>
+                    <td class="num">{f.int(row.max)}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </TableScroll>
+      </div>
+    </Figure>
+
+    {
+      ticketRows.length > 0 && (
+        <Figure
+          lang={lang}
+          title={t.venue.ticketsTitle}
+          description={t.venue.ticketsDescription(
+            f.int(ticketRows.length),
+            f.date(ticketRows[0]!.date),
+            f.date(ticketRows.at(-1)!.date),
+          )}
+          footnote={t.venue.ticketsFootnote}
+        >
+          <div class="space-y-5">
+            <div>
+              <h3 class="mb-2 text-sm font-medium text-ink">{t.venue.ticketsVisitorsHeading}</h3>
+              <Lines
+                client:visible
+                lang={lang}
+                ariaLabel={t.venue.ticketsVisitorsAria(venue.name)}
+                xType="date"
+                showPoints={false}
+                series={[
+                  {
+                    name: t.common.visitorEvents,
+                    color: SERIES.history,
+                    points: ticketRows.map((row) => ({ x: row.date, y: row.visitors_total })),
+                  },
+                ]}
+                placeholderHeight={220}
+              />
+            </div>
+            <div>
+              <h3 class="mb-2 text-sm font-medium text-ink">{t.venue.ticketsSoldHeading}</h3>
+              <Lines
+                client:visible
+                lang={lang}
+                ariaLabel={t.venue.ticketsSoldAria(venue.name)}
+                xType="date"
+                unit={t.venue.ticketsUnit}
+                showPoints={false}
+                series={[
+                  {
+                    name: t.venue.ticketsTotal,
+                    color: SERIES.accent,
+                    points: ticketRows.map((row) => ({ x: row.date, y: row.tickets_total ?? 0 })),
+                  },
+                  {
+                    name: t.venue.ticketsGroups,
+                    color: SERIES.light,
+                    dash: '5 4',
+                    points: ticketRows.map((row) => ({ x: row.date, y: row.groups_sold ?? 0 })),
+                  },
+                ]}
+                placeholderHeight={220}
+              />
+            </div>
+          </div>
+          <div slot="alternative">
+            <p class="mb-3 text-xs leading-5 text-ink-muted">
+              {t.venue.ticketsAlternative(
+                f.int(ticketSum),
+                f.count(ticketVisitorSum),
+                eventsPerTicket === null
+                  ? t.venue.ticketsNotComputable
+                  : t.venue.ticketsRatio(f.decimal(eventsPerTicket)),
+              )}
+            </p>
+            <TableScroll label={t.venue.ticketsTableLabel(venue.name)}>
+              <table class="data-table">
+                <caption>{t.venue.ticketsTableCaption(venue.name)}</caption>
+                <thead class="is-sticky">
+                  <tr>
+                    <th scope="col">{t.common.day}</th>
+                    <th scope="col" class="num">{t.common.visitorEvents}</th>
+                    <th scope="col" class="num">{t.venue.ticketsTotal}</th>
+                    <th scope="col" class="num">{t.venue.ticketsSingle}</th>
+                    <th scope="col" class="num">{t.venue.ticketsGroups}</th>
+                    <th scope="col" class="num">{t.venue.ticketsPerTicket}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {
+                    ticketRows.slice(-30).map((row) => (
+                      <tr>
+                        <th scope="row" class="nowrap">{f.dateWithWeekday(row.date)}</th>
+                        <td class="num">{f.int(row.visitors_total)}</td>
+                        <td class="num">{f.int(row.tickets_total ?? 0)}</td>
+                        <td class="num muted">{f.int(row.tickets_sold ?? 0)}</td>
+                        <td class="num muted">{f.int(row.groups_sold ?? 0)}</td>
+                        <td class="num muted">
+                          {(row.tickets_total ?? 0) === 0
+                            ? f.missing()
+                            : f.decimal(row.visitors_total / (row.tickets_total ?? 1))}
+                        </td>
+                      </tr>
+                    ))
+                  }
+                </tbody>
+              </table>
+            </TableScroll>
+          </div>
+        </Figure>
+      )
+    }
+  </div>
+
+  <div class="mt-6 space-y-4">
+    <Callout title={t.venue.meaningTitle}>
+      <p>{t.venue.meaningBody1}</p>
+      <p class="mt-2">{t.venue.meaningBody2(f.date(venue.first_day))}</p>
+    </Callout>
+
+    {
+      other && (
+        <p class="text-sm text-ink-muted">
+          <a class="underline" href={localizedPath(`/venue/${other.venue_id}`, lang)}>
+            {t.venue.compareLink(other.name)}
+          </a>{' '}
+          {t.venue.contextNote}{' '}
+          <a class="underline" href={localizedPath('/about', lang)}>
+            {t.venue.contextNoteLink}
+          </a>
+          .
+        </p>
+      )
+    }
+  </div>
+</Layout>

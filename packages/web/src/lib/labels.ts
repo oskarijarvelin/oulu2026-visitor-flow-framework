@@ -1,63 +1,95 @@
 /**
- * Suomenkieliset nimet malleille ja lahteille seka Python-osioiden englanninkielisten
- * varoitusten kaannokset. Tuntematon varoitus naytetaan sellaisenaan: se on parempi
- * kuin varoituksen piilottaminen.
+ * Kielikohtaiset nimet malleille ja lahteille seka Python-osioiden englanninkielisten
+ * varoitusten kaannokset.
+ *
+ * Osiot 1 ja 3 kirjoittavat varoituksensa englanniksi. Englanninkielisessa
+ * kayttoliittymassa ne naytetaan sellaisenaan, suomenkielisessa kaannettyna.
+ * Tuntematon varoitus naytetaan aina sellaisenaan: se on parempi kuin varoituksen
+ * piilottaminen.
  */
 
+import type { Lang } from '../i18n/index.ts';
 import type { ModelName } from './types.ts';
 
-export const MODEL_LABEL: Record<string, string> = {
-  baseline: 'Perusmalli',
-  prophet_xgb: 'Prophet + XGBoost',
-  seasonal_naive: 'Sama viikonpäivä viimeksi',
-  moving_average_28d: '28 vrk liukuva keskiarvo',
+const MODEL_LABEL: Record<Lang, Record<string, string>> = {
+  fi: {
+    baseline: 'Perusmalli',
+    prophet_xgb: 'Prophet + XGBoost',
+    seasonal_naive: 'Sama viikonpäivä viimeksi',
+    moving_average_28d: '28 vrk liukuva keskiarvo',
+  },
+  en: {
+    baseline: 'Baseline',
+    prophet_xgb: 'Prophet + XGBoost',
+    seasonal_naive: 'Same weekday last time',
+    moving_average_28d: '28-day moving average',
+  },
 };
 
-export const MODEL_DESCRIPTION: Record<string, string> = {
-  baseline: 'Gradient boosting Poisson-tappiolla, tuotantomalli.',
-  prophet_xgb: 'Prophet-trendi ja XGBoost-jäännösmalli, vertailukohta.',
-  seasonal_naive: 'Vertailukohta: saman viikonpäivän viimeisin havainto.',
-  moving_average_28d: 'Vertailukohta: 28 vuorokauden liukuva keskiarvo.',
-};
-
-export function modelLabel(model: ModelName): string {
-  return MODEL_LABEL[model] ?? model;
+export function modelLabel(model: ModelName, lang: Lang): string {
+  return MODEL_LABEL[lang][model] ?? model;
 }
 
-export const SOURCE_LABEL: Record<string, string> = {
-  jaskaretail: 'Jaskaretail, kävijälaskurit',
-  'open-meteo': 'Open-Meteo, sää',
-  'eco-counter': 'Eco-Counter, Oulun liikenne',
-  tickets: 'Lipunmyynti, ylläpidetty CSV',
-  calendar: 'Pyhäkalenteri',
+const SOURCE_LABEL: Record<Lang, Record<string, string>> = {
+  fi: {
+    jaskaretail: 'Jaskaretail, kävijälaskurit',
+    'open-meteo': 'Open-Meteo, sää',
+    'eco-counter': 'Eco-Counter, Oulun liikenne',
+    tickets: 'Lipunmyynti, ylläpidetty CSV',
+    calendar: 'Pyhäkalenteri',
+  },
+  en: {
+    jaskaretail: 'Jaskaretail, visitor counters',
+    'open-meteo': 'Open-Meteo, weather',
+    'eco-counter': 'Eco-Counter, Oulu traffic',
+    tickets: 'Ticket sales, maintained CSV',
+    calendar: 'Holiday calendar',
+  },
 };
 
-export function sourceLabel(name: string): string {
-  return SOURCE_LABEL[name] ?? name;
+export function sourceLabel(name: string, lang: Lang): string {
+  return SOURCE_LABEL[lang][name] ?? name;
 }
 
-export const SOURCE_STATUS_LABEL: Record<string, string> = {
-  ok: 'kunnossa',
-  degraded: 'heikentynyt',
-  failed: 'epäonnistui',
-  missing: 'puuttuu',
+const SOURCE_STATUS_LABEL: Record<Lang, Record<string, string>> = {
+  fi: { ok: 'kunnossa', degraded: 'heikentynyt', failed: 'epäonnistui', missing: 'puuttuu' },
+  en: { ok: 'ok', degraded: 'degraded', failed: 'failed', missing: 'missing' },
 };
 
-export function sourceStatusLabel(status: string): string {
-  return SOURCE_STATUS_LABEL[status] ?? status;
+export function sourceStatusLabel(status: string, lang: Lang): string {
+  return SOURCE_STATUS_LABEL[lang][status] ?? status;
 }
 
-export const WEATHER_SOURCE_LABEL: Record<string, string> = {
-  archive: 'toteutunut sää',
-  forecast: 'sääennuste',
-  climatology: 'klimatologia, 10 vuoden keskiarvo',
+const WEATHER_SOURCE_LABEL: Record<Lang, Record<string, string>> = {
+  fi: {
+    archive: 'toteutunut sää',
+    forecast: 'sääennuste',
+    climatology: 'klimatologia, 10 vuoden keskiarvo',
+  },
+  en: {
+    archive: 'observed weather',
+    forecast: 'weather forecast',
+    climatology: 'climatology, 10-year average',
+  },
 };
 
-export function weatherSourceLabel(source: string): string {
-  return WEATHER_SOURCE_LABEL[source] ?? source;
+export function weatherSourceLabel(source: string, lang: Lang): string {
+  return WEATHER_SOURCE_LABEL[lang][source] ?? source;
 }
 
-/** Osioiden 1 ja 3 kirjoittamat varoitukset ovat englanniksi. Nama ovat tunnetut. */
+const HORIZON_BUCKET_LABEL: Record<Lang, (bucket: string) => string> = {
+  fi: (bucket) => `${bucket} vrk`,
+  en: (bucket) => `${bucket} days`,
+};
+
+export function horizonBucketLabel(bucket: string, lang: Lang): string {
+  return HORIZON_BUCKET_LABEL[lang](bucket);
+}
+
+/**
+ * Osioiden 1 ja 3 varoitukset ovat englanniksi. Nama ovat tunnetut muodot; muut
+ * palautetaan sellaisenaan.
+ */
 const WARNING_PATTERNS: { test: RegExp; render: (match: RegExpExecArray) => string }[] = [
   {
     test: /^The last observed day is (\d{4}-\d{2}-\d{2}), (\d+) days before this run\./,
@@ -98,8 +130,9 @@ function fi(date: string): string {
   return `${Number(date.slice(8, 10))}.${Number(date.slice(5, 7))}.${date.slice(0, 4)}`;
 }
 
-/** Kaantaa tunnetun varoituksen. Tuntematon palautetaan sellaisenaan. */
-export function translateWarning(warning: string): string {
+/** Kaantaa tunnetun varoituksen. Englanniksi lahde on jo oikealla kielella. */
+export function translateWarning(warning: string, lang: Lang): string {
+  if (lang === 'en') return warning;
   for (const pattern of WARNING_PATTERNS) {
     const match = pattern.test.exec(warning);
     if (match) return pattern.render(match);
@@ -107,16 +140,6 @@ export function translateWarning(warning: string): string {
   return warning;
 }
 
-export function translateWarnings(warnings: string[]): string[] {
-  return warnings.map(translateWarning);
-}
-
-export const HORIZON_BUCKET_LABEL: Record<string, string> = {
-  '1-7': '1-7 vrk',
-  '8-14': '8-14 vrk',
-  '15-30': '15-30 vrk',
-};
-
-export function horizonBucketLabel(bucket: string): string {
-  return HORIZON_BUCKET_LABEL[bucket] ?? `${bucket} vrk`;
+export function translateWarnings(warnings: string[], lang: Lang): string[] {
+  return warnings.map((warning) => translateWarning(warning, lang));
 }

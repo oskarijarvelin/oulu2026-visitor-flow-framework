@@ -2,12 +2,15 @@
 import '../styles/global.css';
 
 import meta from '../data/meta.json';
+import { LANGS, canonicalPath, localizedPath, DEFAULT_LANG, type Lang } from '../i18n/index.ts';
+import { ui } from '../i18n/ui/index.ts';
+import { formatters } from '../lib/format.ts';
+import type { Meta } from '../lib/types.ts';
 import QualityBanner from './QualityBanner.astro';
 import SiteNav from './SiteNav.astro';
-import { formatUtcAsHelsinki } from '../lib/format.ts';
-import type { Meta } from '../lib/types.ts';
 
 interface Props {
+  lang: Lang;
   title: string;
   description: string;
   /** Sivun oma otsikko, oletuksena sama kuin title. */
@@ -15,13 +18,17 @@ interface Props {
   lead?: string;
 }
 
-const { title, description, heading, lead } = Astro.props;
+const { lang, title, description, heading, lead } = Astro.props;
 const site = meta as Meta;
-const pageTitle = `${title} | Oulu2026 kävijävirrat`;
+const t = ui(lang);
+const f = formatters(lang);
+const pageTitle = `${title} | ${t.site.titleSuffix}`;
+const pathname = Astro.url.pathname;
+const canonical = canonicalPath(pathname);
 ---
 
 <!doctype html>
-<html lang="fi">
+<html lang={lang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -30,28 +37,38 @@ const pageTitle = `${title} | Oulu2026 kävijävirrat`;
     <meta name="robots" content="noindex" />
     <meta name="color-scheme" content="light" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href={new URL(localizedPath(canonical, lang), Astro.site)} />
+    {
+      LANGS.map((candidate) => (
+        <link
+          rel="alternate"
+          hreflang={candidate}
+          href={new URL(localizedPath(canonical, candidate), Astro.site)}
+        />
+      ))
+    }
+    <link rel="alternate" hreflang="x-default" href={new URL(localizedPath(canonical, DEFAULT_LANG), Astro.site)} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
+    <meta property="og:locale" content={lang === 'fi' ? 'fi_FI' : 'en_GB'} />
     <meta property="og:type" content="website" />
   </head>
   <body class="min-h-screen">
-    <a class="skip-link" href="#sisalto">Siirry sisältöön</a>
+    <a class="skip-link" href="#sisalto">{t.site.skipToContent}</a>
 
     <header class="border-b border-line bg-surface">
       <div class="mx-auto w-full max-w-6xl px-4 py-4 sm:px-6">
         <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-          <a href="/" class="text-base font-semibold tracking-tight text-ink no-underline">
-            Oulu2026 kävijävirrat
+          <a href={localizedPath('/', lang)} class="text-base font-semibold tracking-tight text-ink no-underline">
+            {t.site.name}
           </a>
-          <p class="text-xs text-ink-muted">
-            Päivitetty {formatUtcAsHelsinki(site.ingest.generated_at)}
-          </p>
+          <p class="text-xs text-ink-muted">{t.site.updatedAt(f.utc(site.ingest.generated_at))}</p>
         </div>
-        <SiteNav />
+        <SiteNav lang={lang} pathname={pathname} />
       </div>
     </header>
 
-    <QualityBanner />
+    <QualityBanner lang={lang} />
 
     <main id="sisalto" class="mx-auto w-full max-w-6xl px-4 pb-16 pt-6 sm:px-6">
       <h1 class="text-2xl font-semibold tracking-tight text-ink sm:text-3xl">{heading ?? title}</h1>
@@ -61,14 +78,10 @@ const pageTitle = `${title} | Oulu2026 kävijävirrat`;
 
     <footer class="border-t border-line bg-surface">
       <div class="mx-auto w-full max-w-6xl px-4 py-6 text-xs leading-5 text-ink-muted sm:px-6">
-        <p>
-          Kaikki luvut ovat kävijätapahtumia: <strong class="font-medium text-ink">visitors_total</strong> on
-          sisään- ja ulosmenojen summa, ei uniikkien kävijöiden määrä. Ajat ovat Suomen aikaa.
-        </p>
+        <p>{t.site.footerUnit}</p>
         <p class="mt-2">
-          Aineisto haettu {formatUtcAsHelsinki(site.ingest.generated_at)}, ennuste ajettu
-          {' '}{formatUtcAsHelsinki(site.forecast.generated_at)}. Sivusto on staattinen ja rakennetaan
-          uudelleen jokaisella ajolla. <a class="underline" href="/about">Mistä data tulee</a>.
+          {t.site.footerRuns(f.utc(site.ingest.generated_at), f.utc(site.forecast.generated_at))}{' '}
+          <a class="underline" href={localizedPath('/about', lang)}>{t.site.footerAboutLink}</a>.
         </p>
       </div>
     </footer>

@@ -1,0 +1,303 @@
+---
+import Backtest from '../charts/backtest.ts';
+import Lines from '../charts/lines.ts';
+import Callout from '../components/Callout.astro';
+import Figure from '../components/Figure.astro';
+import Layout from '../components/Layout.astro';
+import TableScroll from '../components/TableScroll.astro';
+import forecastData from '../data/forecast.json';
+import metaData from '../data/meta.json';
+import qualityData from '../data/quality.json';
+import type { Lang } from '../i18n/index.ts';
+import { ui } from '../i18n/ui/index.ts';
+import { modelStyle } from '../lib/colors.ts';
+import { formatters } from '../lib/format.ts';
+import { horizonBucketLabel, modelLabel, translateWarnings } from '../lib/labels.ts';
+import { toBacktestRows } from '../lib/series.ts';
+import type { ForecastData, Meta, QualityData, VenueQuality } from '../lib/types.ts';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui(lang);
+const f = formatters(lang);
+
+const site = metaData as Meta;
+const quality = qualityData as unknown as QualityData;
+const forecast = forecastData as unknown as ForecastData;
+const defaultModel = forecast.default_model;
+
+const panels = site.venues.map((venue) => {
+  const venueQuality = quality.venues[String(venue.venue_id)]!;
+  const allModels = [...venueQuality.models, ...venueQuality.benchmarks];
+  return {
+    venue,
+    q: venueQuality,
+    allModels,
+    maeSeries: allModels
+      .filter((model) => venueQuality.mae_by_horizon[model])
+      .map((model) => {
+        const style = modelStyle(model);
+        return {
+          name: modelLabel(model, lang),
+          color: style.color,
+          dash: style.dash,
+          points: (venueQuality.mae_by_horizon[model] ?? []).map((point) => ({
+            x: point.horizon_days,
+            y: point.mae,
+          })),
+        };
+      }),
+    backtestPoints: venueQuality.models.flatMap((model) =>
+      toBacktestRows(venueQuality.backtest[model]).map((row) => ({ ...row, model })),
+    ),
+  };
+});
+
+/**
+ * Suhdeluvut vertailukohtiin poimitaan valmiiksi. Avain on muotoa
+ * `mae_ratio_vs_<vertailukohta>` sellaisena kuin osio 3 sen kirjoittaa.
+ */
+function benchmarkRatio(
+  comparison: VenueQuality['benchmark_comparison'],
+  model: string,
+  bucket: string,
+  benchmark: string,
+): number | null {
+  const value = comparison[model]?.[bucket]?.['mae_ratio_vs_' + benchmark];
+  return typeof value === 'number' ? value : null;
+}
+
+const doNotTrust = translateWarnings(panels[0]!.q.do_not_trust, lang);
+const lowCoverage = panels.flatMap(({ venue, q }) =>
+  Object.entries(q.metrics).flatMap(([model, buckets]) =>
+    Object.entries(buckets)
+      .filter(([, metrics]) => metrics.coverage_80 < 0.7)
+      .map(([bucket, metrics]) => ({ venue: venue.name, model, bucket, coverage: metrics.coverage_80 })),
+  ),
+);
+
+const firstVenue = site.venues[0]!;
+const firstQuality = quality.venues[String(firstVenue.venue_id)];
+const headlineMae = firstQuality?.metrics[defaultModel]?.['1-7']?.mae ?? 0;
+---
+
+<Layout
+  lang={lang}
+  title={t.quality.title}
+  heading={t.quality.heading}
+  description={t.quality.description}
+  lead={t.quality.lead}
+>
+  <div class="mt-6">
+    <Callout tone="warning" title={t.quality.scaleTitle}>
+      <p>
+        {t.quality.scaleBody(
+          firstVenue.name,
+          f.decimal(headlineMae),
+          f.int(firstVenue.mean_daily),
+          f.int((headlineMae / Math.max(1, firstVenue.mean_daily)) * 100),
+        )}
+      </p>
+    </Callout>
+  </div>
+
+  <div class="mt-6 space-y-6">
+    {
+      panels.map(({ venue, q, maeSeries, backtestPoints }) => (
+        <div class="space-y-6">
+          <h2 class="text-xl font-semibold tracking-tight text-ink">{venue.name}</h2>
+          <p class="text-sm leading-6 text-ink-muted">
+            {t.quality.venueLead(
+              f.int(q.n_training_days),
+              f.int(q.n_origins),
+              f.date(q.backtest_window[0]),
+              f.date(q.backtest_window[1]),
+            )}
+          </p>
+
+          <Figure
+            lang={lang}
+            title={t.quality.maeTitle}
+            level={3}
+            description={t.quality.maeDescription}
+            footnote={t.quality.maeFootnote}
+          >
+            <Lines
+              client:visible
+              lang={lang}
+              ariaLabel={t.quality.maeAria(venue.name)}
+              xType="number"
+              xLabel={t.quality.maeAxis}
+              showPoints={false}
+              series={maeSeries}
+              placeholderHeight={260}
+            />
+            <div slot="alternative">
+              <TableScroll label={t.quality.metricsCaption(venue.name)}>
+                <table class="data-table">
+                  <caption>{t.quality.metricsCaption(venue.name)}</caption>
+                  <thead class="is-sticky">
+                    <tr>
+                      <th scope="col">{t.common.model}</th>
+                      <th scope="col">{t.common.horizon}</th>
+                      <th scope="col" class="num">MAE</th>
+                      <th scope="col" class="num">RMSE</th>
+                      <th scope="col" class="num">sMAPE</th>
+                      <th scope="col" class="num">{t.quality.bias}</th>
+                      <th scope="col" class="num">{t.quality.coverage80}</th>
+                      <th scope="col" class="num">n</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(q.metrics).flatMap(([model, buckets]) =>
+                      Object.entries(buckets).map(([bucket, metrics]) => (
+                        <tr>
+                          <th scope="row">{modelLabel(model, lang)}</th>
+                          <td>{horizonBucketLabel(bucket, lang)}</td>
+                          <td class="num">{f.decimal(metrics.mae)}</td>
+                          <td class="num">{f.decimal(metrics.rmse)}</td>
+                          <td class="num">{f.pct(metrics.smape)}</td>
+                          <td class="num">
+                            {metrics.bias > 0 ? '+' : ''}
+                            {f.decimal(metrics.bias)}
+                          </td>
+                          <td class:list={['num', metrics.coverage_80 < 0.7 && 'warn']}>
+                            {f.pct(metrics.coverage_80 * 100, 0)}
+                          </td>
+                          <td class="num muted">{metrics.n}</td>
+                        </tr>
+                      )),
+                    )}
+                  </tbody>
+                </table>
+              </TableScroll>
+            </div>
+          </Figure>
+
+          <Figure
+            lang={lang}
+            title={t.quality.backtestTitle}
+            level={3}
+            description={t.quality.backtestDescription}
+            footnote={t.quality.backtestFootnote}
+          >
+            <Backtest
+              client:visible
+              lang={lang}
+              ariaLabel={t.quality.backtestAria(venue.name)}
+              points={backtestPoints}
+              models={q.models.map((model) => ({ name: model, label: modelLabel(model, lang) }))}
+              defaultModel={defaultModel}
+              buckets={q.horizon_buckets}
+              placeholderHeight={320}
+            />
+            <div slot="alternative">
+              <p class="mb-3 text-xs leading-5 text-ink-muted">
+                {t.quality.backtestAlternative(f.int(backtestPoints.length), f.int(q.n_origins))}
+              </p>
+              <TableScroll label={t.quality.bandsCaption(venue.name)} scrollY={false}>
+                <table class="data-table">
+                  <caption>{t.quality.bandsCaption(venue.name)}</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">{t.common.model}</th>
+                      <th scope="col">{t.common.horizon}</th>
+                      <th scope="col" class="num">{t.quality.p10Factor}</th>
+                      <th scope="col" class="num">{t.quality.p90Factor}</th>
+                      <th scope="col" class="num">n</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {q.models.flatMap((model) =>
+                      (q.interval_bands[model] ?? []).map((band) => (
+                        <tr>
+                          <th scope="row">{modelLabel(model, lang)}</th>
+                          <td>{horizonBucketLabel(band.bucket, lang)}</td>
+                          <td class="num">{f.decimal(band.q10, 2)}</td>
+                          <td class="num">{f.decimal(band.q90, 2)}</td>
+                          <td class="num muted">{band.n}</td>
+                        </tr>
+                      )),
+                    )}
+                  </tbody>
+                </table>
+              </TableScroll>
+            </div>
+          </Figure>
+
+          <section class="rounded-lg border border-line bg-surface p-4 sm:p-5">
+            <h3 class="text-base font-semibold tracking-tight text-ink">{t.quality.benchmarkTitle}</h3>
+            <p class="mt-1 text-sm leading-6 text-ink-muted">{t.quality.benchmarkLead}</p>
+            <div class="mt-4">
+              <TableScroll label={t.quality.benchmarkCaption(venue.name)} scrollY={false}>
+                <table class="data-table">
+                  <caption>{t.quality.benchmarkCaption(venue.name)}</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">{t.common.model}</th>
+                      <th scope="col">{t.common.horizon}</th>
+                      {q.benchmarks.map((benchmark) => (
+                        <th scope="col" class="num">
+                          {t.quality.benchmarkColumn(modelLabel(benchmark, lang))}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {q.models.flatMap((model) =>
+                      q.horizon_buckets.map((bucket) => (
+                        <tr>
+                          <th scope="row">{modelLabel(model, lang)}</th>
+                          <td>{horizonBucketLabel(bucket, lang)}</td>
+                          {q.benchmarks
+                            .map((benchmark) => benchmarkRatio(q.benchmark_comparison, model, bucket, benchmark))
+                            .map((value) => (
+                              <td class:list={['num', value !== null && value >= 1 && 'warn']}>
+                                {value === null ? f.missing() : f.decimal(value, 2)}
+                              </td>
+                            ))}
+                        </tr>
+                      )),
+                    )}
+                  </tbody>
+                </table>
+              </TableScroll>
+            </div>
+          </section>
+        </div>
+      ))
+    }
+  </div>
+
+  <section aria-labelledby="rajoitteet" class="mt-8">
+    <h2 id="rajoitteet" class="text-lg font-semibold tracking-tight text-ink">{t.quality.limitsHeading}</h2>
+    <p class="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">{t.quality.limitsLead}</p>
+    <ol class="mt-4 list-decimal space-y-2 pl-6 text-sm leading-6 text-ink-muted">
+      {doNotTrust.map((item) => <li>{item}</li>)}
+      {
+        lowCoverage.length > 0 && (
+          <li>
+            {t.quality.lowCoverage(
+              lowCoverage
+                .map((entry) =>
+                  t.quality.lowCoverageEntry(
+                    entry.venue,
+                    modelLabel(entry.model, lang),
+                    horizonBucketLabel(entry.bucket, lang),
+                    f.decimal(entry.coverage * 100, 0),
+                  ),
+                )
+                .join('; '),
+            )}
+          </li>
+        )
+      }
+      <li>{t.quality.limitBenchmarks}</li>
+      <li>{t.quality.limitWeather}</li>
+      <li>{t.quality.limitYearly}</li>
+    </ol>
+  </section>
+</Layout>

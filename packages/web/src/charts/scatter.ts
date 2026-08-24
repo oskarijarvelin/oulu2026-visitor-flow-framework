@@ -5,13 +5,15 @@
  * Mukana on pienimman nelionsumman suora. Se kuvaa yhteisvaihtelua, ei syysuhdetta.
  */
 
+import { chartStrings, type ChartStrings } from '../i18n/charts.ts';
+import type { Lang } from '../i18n/index.ts';
 import { NEUTRAL, WEATHER_GROUP_COLOR } from '../lib/colors.ts';
-import { formatDate, formatDecimal, formatInt } from '../lib/format.ts';
+import { formatters } from '../lib/format.ts';
 import { linearFit } from '../lib/series.ts';
 import { island } from '../renderer/index.ts';
-import { WEATHER_GROUP_LABEL, WEATHER_GROUP_ORDER } from '../lib/weather.ts';
+import { WEATHER_GROUP_ORDER, weatherGroupLabel } from '../lib/weather.ts';
 import type { WeatherGroup } from '../lib/types.ts';
-import { Plot, baseOptions, createChartFrame, mountResponsive, tickCount } from './base.ts';
+import { Plot, baseOptions, chartFormat, createChartFrame, mountResponsive } from './base.ts';
 
 export interface ScatterPoint {
   date: string;
@@ -23,6 +25,7 @@ export interface ScatterPoint {
 }
 
 export interface ScatterProps {
+  lang: Lang;
   ariaLabel: string;
   points: ScatterPoint[];
   [key: string]: unknown;
@@ -37,13 +40,15 @@ const SYMBOLS: Record<string, string> = {
 };
 
 export default island<ScatterProps>((element, props) => {
+  const strings = chartStrings(props.lang);
+  const f = formatters(props.lang);
   const frame = createChartFrame(element);
   const venues = [...new Set(props.points.map((point) => point.venue))];
   let selected = venues[0] ?? '';
 
   let redraw = (): void => {};
   if (venues.length > 1) {
-    const toggle = createToggleGroup(venues, selected, (value) => {
+    const toggle = createToggleGroup(strings.venueLabel, venues, selected, (value) => {
       selected = value;
       redraw();
     });
@@ -60,25 +65,27 @@ export default island<ScatterProps>((element, props) => {
       const points = props.points.filter((point) => point.venue === selected);
       const fit = linearFit(points.map((point) => ({ x: point.temp, y: point.visitors })));
       fitNote.textContent = fit
-        ? `Sovite: ${formatDecimal(fit.slope)} kävijätapahtumaa lämpöastetta kohti, ` +
-          `korrelaatiokerroin r = ${formatDecimal(fit.r, 2)}, ${fit.n} vuorokautta. ` +
-          'Korrelaatio ei ole syysuhde: lämpötila kulkee Oulussa käsi kädessä vuodenajan, ' +
-          'ohjelmiston ja koulujen lomien kanssa, eikä sitä voi erottaa niistä tällä aineistolla.'
-        : 'Sovitetta ei laskettu: havaintoja on liian vähän.';
-      return draw(width, points, selected);
+        ? strings.scatterFit(f.decimal(fit.slope), f.decimal(fit.r, 2), fit.n)
+        : strings.scatterFitMissing;
+      return draw(width, points, selected, props.lang, strings);
     },
     { ariaLabel: props.ariaLabel },
   );
 });
 
-function createToggleGroup(venues: string[], initial: string, onChange: (value: string) => void): HTMLElement {
+function createToggleGroup(
+  legend: string,
+  venues: string[],
+  initial: string,
+  onChange: (value: string) => void,
+): HTMLElement {
   const group = document.createElement('div');
   group.className = 'flex flex-wrap items-center gap-2';
   group.setAttribute('role', 'group');
-  group.setAttribute('aria-label', 'Venue');
+  group.setAttribute('aria-label', legend);
   const label = document.createElement('span');
   label.className = 'text-xs font-medium text-ink-muted';
-  label.textContent = 'Venue';
+  label.textContent = legend;
   group.append(label);
 
   const buttons: HTMLButtonElement[] = [];
@@ -105,7 +112,15 @@ function createToggleGroup(venues: string[], initial: string, onChange: (value: 
   return group;
 }
 
-function draw(width: number, points: ScatterPoint[], venue: string): SVGSVGElement | HTMLElement {
+function draw(
+  width: number,
+  points: ScatterPoint[],
+  venue: string,
+  lang: Lang,
+  strings: ChartStrings,
+): SVGSVGElement | HTMLElement {
+  const f = formatters(lang);
+  const format = chartFormat(lang);
   const height = Math.max(240, Math.min(400, Math.round(width * 0.55)));
   const fit = linearFit(points.map((point) => ({ x: point.temp, y: point.visitors })));
   const temps = points.map((point) => point.temp);
@@ -141,9 +156,13 @@ function draw(width: number, points: ScatterPoint[], venue: string): SVGSVGEleme
       strokeOpacity: 0.25,
       strokeWidth: 0.6,
       title: (point: ScatterPoint) =>
-        `${formatDate(point.date)}\n${formatInt(point.visitors)} kävijätapahtumaa\n` +
-        `${formatDecimal(point.temp)} °C, sade ${formatDecimal(point.precip)} mm\n` +
-        `${WEATHER_GROUP_LABEL[point.group]}`,
+        strings.scatterTip(
+          f.date(point.date),
+          f.count(point.visitors),
+          f.celsius(point.temp),
+          f.mm(point.precip),
+          weatherGroupLabel(point.group, lang),
+        ),
       tip: true,
     }),
   );
@@ -152,15 +171,15 @@ function draw(width: number, points: ScatterPoint[], venue: string): SVGSVGEleme
     ...baseOptions(width, height),
     marginBottom: 44,
     x: {
-      label: 'Vuorokauden keskilämpötila, °C →',
+      label: strings.scatterAxis,
       labelAnchor: 'center',
       labelOffset: 36,
-      tickFormat: (value: number) => formatDecimal(value, 0),
+      tickFormat: (value: number) => f.decimal(value, 0),
       grid: true,
     },
     y: {
       label: null,
-      tickFormat: tickCount,
+      tickFormat: format.count,
       grid: true,
       zero: true,
     },
@@ -168,8 +187,8 @@ function draw(width: number, points: ScatterPoint[], venue: string): SVGSVGEleme
       domain: WEATHER_GROUP_ORDER,
       range: WEATHER_GROUP_ORDER.map((group) => WEATHER_GROUP_COLOR[group] ?? NEUTRAL.muted),
       legend: true,
-      tickFormat: (group: string) => WEATHER_GROUP_LABEL[group as WeatherGroup] ?? group,
-      label: `${venue}: säätilaluokka`,
+      tickFormat: (group: string) => weatherGroupLabel(group as WeatherGroup, lang),
+      label: strings.scatterClass(venue),
     },
     symbol: {
       domain: WEATHER_GROUP_ORDER,

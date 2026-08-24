@@ -1,27 +1,96 @@
 /**
- * Savutesti: jokainen sivu latautuu ilman konsolivirheita, paakaavio renderoityy ja
- * sivu ei vieri vaakasuunnassa.
+ * Savutesti: jokainen sivu latautuu molemmilla kielilla ilman konsolivirheita,
+ * paakaavio renderoityy ja sivu ei vieri vaakasuunnassa.
  */
 
 import { expect, test, type ConsoleMessage, type Page } from '@playwright/test';
 
+type Lang = 'fi' | 'en';
+
 interface PageUnderTest {
+  /** Kanoninen polku ilman kielietuliitetta. */
   path: string;
-  title: string;
-  heading: RegExp;
+  title: Record<Lang, string>;
+  heading: Record<Lang, RegExp>;
   /** Vahimmaismaara kaaviosaarekkeita. Jokaisen loydetyn on renderoiduttava. */
   minCharts: number;
 }
 
 const PAGES: PageUnderTest[] = [
-  { path: '/', title: 'Yleiskuva', heading: /Kävijävirrat yhdellä silmäyksellä/, minCharts: 2 },
-  { path: '/venue/1', title: 'Pekuri', heading: /Pekuri/, minCharts: 5 },
-  { path: '/venue/2', title: 'Kaupungintalo', heading: /Kaupungintalo/, minCharts: 5 },
-  { path: '/weather', title: 'Sää', heading: /Sää ja kävijämäärät/, minCharts: 3 },
-  { path: '/forecast', title: 'Ennuste', heading: /Ennuste/, minCharts: 2 },
-  { path: '/quality', title: 'Laatu', heading: /Mallien laatu/, minCharts: 4 },
-  { path: '/about', title: 'Tietoja', heading: /Mistä data tulee/, minCharts: 0 },
+  {
+    path: '/',
+    title: { fi: 'Yleiskuva', en: 'Overview' },
+    heading: { fi: /Kävijävirrat yhdellä silmäyksellä/, en: /Visitor flows at a glance/ },
+    minCharts: 2,
+  },
+  {
+    path: '/venue/1',
+    title: { fi: 'Pekuri', en: 'Pekuri' },
+    heading: { fi: /Pekuri/, en: /Pekuri/ },
+    minCharts: 5,
+  },
+  {
+    path: '/venue/2',
+    title: { fi: 'Kaupungintalo', en: 'Kaupungintalo' },
+    heading: { fi: /Kaupungintalo/, en: /Kaupungintalo/ },
+    minCharts: 5,
+  },
+  {
+    path: '/weather',
+    title: { fi: 'Sää', en: 'Weather' },
+    heading: { fi: /Sää ja kävijämäärät/, en: /Weather and visitor counts/ },
+    minCharts: 3,
+  },
+  {
+    path: '/forecast',
+    title: { fi: 'Ennuste', en: 'Forecast' },
+    heading: { fi: /Ennuste/, en: /Forecast/ },
+    minCharts: 2,
+  },
+  {
+    path: '/quality',
+    title: { fi: 'Laatu', en: 'Quality' },
+    heading: { fi: /Mallien laatu/, en: /Model quality/ },
+    minCharts: 4,
+  },
+  {
+    path: '/about',
+    title: { fi: 'Tietoja', en: 'About' },
+    heading: { fi: /Mistä data tulee/, en: /Where the data comes from/ },
+    minCharts: 0,
+  },
 ];
+
+const LANGS: Lang[] = ['fi', 'en'];
+
+const SITE_NAME: Record<Lang, string> = {
+  fi: 'Oulu2026 kävijävirrat',
+  en: 'Oulu2026 visitor flows',
+};
+
+const BANNER_LABEL: Record<Lang, string> = { fi: 'Datan laatu', en: 'Data quality' };
+const RANGE_LABEL: Record<Lang, string> = { fi: 'Aikajakso', en: 'Period' };
+const MODEL_LABEL: Record<Lang, string> = { fi: 'Malli', en: 'Model' };
+const LANGUAGE_LABEL: Record<Lang, string> = { fi: 'Kieli', en: 'Language' };
+const SEVEN_DAYS: Record<Lang, string> = {
+  fi: 'Viimeiset 7 vuorokautta',
+  en: 'The last 7 days',
+};
+const TEXT_ALTERNATIVE: Record<Lang, string> = {
+  fi: 'Tekstivastine ja taulukko',
+  en: 'Text alternative and table',
+};
+const BASELINE: Record<Lang, string> = { fi: 'Perusmalli', en: 'Baseline' };
+const CLIMATOLOGY: Record<Lang, RegExp> = {
+  fi: /Sää klimatologiasta/,
+  en: /Weather from climatology/,
+};
+
+/** Kanoninen polku annetulla kielellä. Sama sääntö kuin src/i18n/index.ts. */
+function localized(path: string, lang: Lang): string {
+  if (lang === 'fi') return path;
+  return path === '/' ? '/en' : `/en${path}`;
+}
 
 function collectErrors(page: Page): string[] {
   const errors: string[] = [];
@@ -54,89 +123,131 @@ async function hydrateIslands(page: Page): Promise<number> {
   return count;
 }
 
-for (const target of PAGES) {
-  test(`${target.path} latautuu ilman konsolivirheita`, async ({ page }) => {
-    const errors = collectErrors(page);
+for (const lang of LANGS) {
+  for (const target of PAGES) {
+    const url = localized(target.path, lang);
 
-    const response = await page.goto(target.path);
-    expect(response?.status(), `${target.path} vastasi virheellä`).toBe(200);
+    test(`[${lang}] ${url} latautuu ilman konsolivirheita`, async ({ page }) => {
+      const errors = collectErrors(page);
 
-    await expect(page).toHaveTitle(new RegExp(`${target.title}.*Oulu2026`));
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(target.heading);
+      const response = await page.goto(url);
+      expect(response?.status(), `${url} vastasi virheellä`).toBe(200);
 
-    // Datan laatu -banneri on jokaisella sivulla.
-    await expect(page.getByRole('region', { name: 'Datan laatu' })).toBeVisible();
+      await expect(page).toHaveTitle(new RegExp(`${target.title[lang]}.*${SITE_NAME[lang]}`));
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(target.heading[lang]);
+      await expect(page.locator('html')).toHaveAttribute('lang', lang);
 
-    await hydrateIslands(page);
-    expect(errors, `${target.path}: ${errors.join(' | ')}`).toEqual([]);
-  });
+      // Datan laatu -banneri on jokaisella sivulla, kummallakin kielellä.
+      await expect(page.getByRole('region', { name: BANNER_LABEL[lang] })).toBeVisible();
 
-  if (target.minCharts > 0) {
-    test(`${target.path} renderöi kaaviot`, async ({ page }) => {
-      await page.goto(target.path);
+      await hydrateIslands(page);
+      expect(errors, `${url}: ${errors.join(' | ')}`).toEqual([]);
+    });
 
-      // Jokainen saareke korvaa paikanvaraajansa oikealla SVG:lla.
-      const count = await hydrateIslands(page);
-      expect(count, `${target.path}: kaavioita odotettua vähemmän`).toBeGreaterThanOrEqual(
-        target.minCharts,
+    if (target.minCharts > 0) {
+      test(`[${lang}] ${url} renderöi kaaviot`, async ({ page }) => {
+        await page.goto(url);
+
+        const count = await hydrateIslands(page);
+        expect(count, `${url}: kaavioita odotettua vähemmän`).toBeGreaterThanOrEqual(target.minCharts);
+        await expect(page.locator('.chart-placeholder')).toHaveCount(0);
+      });
+    }
+
+    test(`[${lang}] ${url} ei vieri vaakasuunnassa`, async ({ page }) => {
+      await page.goto(url);
+      await hydrateIslands(page);
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
       );
-      await expect(page.locator('.chart-placeholder')).toHaveCount(0);
+      expect(overflow, `${url} vierii vaakasuunnassa ${overflow} pikselia`).toBeLessThanOrEqual(1);
     });
   }
-
-  test(`${target.path} ei vieri vaakasuunnassa`, async ({ page }) => {
-    await page.goto(target.path);
-    await hydrateIslands(page);
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    );
-    expect(overflow, `${target.path} vierii vaakasuunnassa ${overflow} pikselia`).toBeLessThanOrEqual(1);
-  });
 }
 
-test('kaaviolla on tekstivastine ja saavutettava nimi', async ({ page }) => {
+test('kielivalitsin vie samaan sivuun toisella kielellä', async ({ page }) => {
   await page.goto('/venue/1');
-  await hydrateIslands(page);
 
-  const alternatives = page.getByText('Tekstivastine ja taulukko');
-  expect(await alternatives.count()).toBeGreaterThan(0);
+  const group = page.getByRole('group', { name: LANGUAGE_LABEL.fi });
+  await expect(group.getByRole('link', { name: 'FI' })).toHaveAttribute('aria-current', 'true');
 
-  // Tekstivastine avautuu ja sisaltaa taulukon.
-  const first = alternatives.first();
-  await first.click();
-  await expect(page.locator('table.data-table').first()).toBeVisible();
+  await group.getByRole('link', { name: /English/ }).click();
 
-  const labelledCharts = page.locator('astro-island svg[role="img"][aria-label]');
-  expect(await labelledCharts.count()).toBeGreaterThan(0);
+  await expect(page).toHaveURL(/\/en\/venue\/1$/);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Pekuri/);
+
+  // Ja takaisin: valitsin palaa samaan sivuun suomeksi.
+  const englishGroup = page.getByRole('group', { name: LANGUAGE_LABEL.en });
+  await expect(englishGroup.getByRole('link', { name: 'EN' })).toHaveAttribute('aria-current', 'true');
+  await englishGroup.getByRole('link', { name: /Suomi/ }).click();
+
+  await expect(page).toHaveURL(/\/venue\/1$/);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'fi');
 });
 
-test('rajausvalitsin toimii nappaimistolla', async ({ page }) => {
-  await page.goto('/venue/1');
-  await hydrateIslands(page);
-
-  const group = page.getByRole('group', { name: 'Aikajakso' }).first();
-  const sevenDays = group.getByRole('button', { name: 'Viimeiset 7 vuorokautta' });
-  await sevenDays.scrollIntoViewIfNeeded();
-  await sevenDays.focus();
-  await page.keyboard.press('Enter');
-  await expect(sevenDays).toHaveAttribute('aria-pressed', 'true');
+test('kielivalitsin toimii myös etusivulla', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('group', { name: LANGUAGE_LABEL.fi }).getByRole('link', { name: /English/ }).click();
+  await expect(page).toHaveURL(/\/en$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Visitor flows at a glance/);
 });
 
-test('ennustenäkymä erottaa klimatologiavuorokaudet', async ({ page }) => {
-  await page.goto('/forecast');
-  await hydrateIslands(page);
-
-  // Selite kertoo mista vuorokaudesta saa on klimatologiaa.
-  await expect(page.getByText(/Sää klimatologiasta, vrk \d+ alkaen/).first()).toBeVisible();
-
-  // Mallivalitsimessa on oletuksena vain tuotantomalli.
-  const modelGroup = page.getByRole('group', { name: 'Malli' }).first();
-  await expect(modelGroup.getByRole('button', { name: 'Perusmalli' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
+test('sivulla on hreflang-vaihtoehdot molemmille kielille', async ({ page }) => {
+  await page.goto('/en/weather');
+  await expect(page.locator('link[rel="alternate"][hreflang="fi"]')).toHaveAttribute(
+    'href',
+    /\/weather$/,
   );
-  await expect(modelGroup.getByRole('button', { name: 'Prophet + XGBoost' })).toHaveAttribute(
-    'aria-pressed',
-    'false',
+  await expect(page.locator('link[rel="alternate"][hreflang="en"]')).toHaveAttribute(
+    'href',
+    /\/en\/weather$/,
   );
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/en\/weather$/);
 });
+
+for (const lang of LANGS) {
+  test(`[${lang}] kaaviolla on tekstivastine ja saavutettava nimi`, async ({ page }) => {
+    await page.goto(localized('/venue/1', lang));
+    await hydrateIslands(page);
+
+    const alternatives = page.getByText(TEXT_ALTERNATIVE[lang]);
+    expect(await alternatives.count()).toBeGreaterThan(0);
+
+    await alternatives.first().click();
+    await expect(page.locator('table.data-table').first()).toBeVisible();
+
+    const labelledCharts = page.locator('astro-island svg[role="img"][aria-label]');
+    expect(await labelledCharts.count()).toBeGreaterThan(0);
+  });
+
+  test(`[${lang}] rajausvalitsin toimii nappaimistolla ja on kaannetty`, async ({ page }) => {
+    await page.goto(localized('/venue/1', lang));
+    await hydrateIslands(page);
+
+    const group = page.getByRole('group', { name: RANGE_LABEL[lang] }).first();
+    const sevenDays = group.getByRole('button', { name: SEVEN_DAYS[lang] });
+    await sevenDays.scrollIntoViewIfNeeded();
+    await sevenDays.focus();
+    await page.keyboard.press('Enter');
+    await expect(sevenDays).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test(`[${lang}] ennustenäkymä erottaa klimatologiavuorokaudet`, async ({ page }) => {
+    await page.goto(localized('/forecast', lang));
+    await hydrateIslands(page);
+
+    await expect(page.getByText(CLIMATOLOGY[lang]).first()).toBeVisible();
+
+    // Mallivalitsimessa on oletuksena vain tuotantomalli.
+    const modelGroup = page.getByRole('group', { name: MODEL_LABEL[lang] }).first();
+    await expect(modelGroup.getByRole('button', { name: BASELINE[lang], exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(modelGroup.getByRole('button', { name: 'Prophet + XGBoost' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+}

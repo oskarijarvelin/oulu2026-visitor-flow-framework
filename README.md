@@ -7,7 +7,7 @@ here:
 | --- | --- | --- |
 | 1 | `packages/ingest` | Fetches three external APIs, caches every response unmodified, rebuilds the canonical CSV tables plus a run manifest |
 | 3 | `packages/forecast` | Reads those tables and writes 7-day hourly and 30-day daily forecasts for two models, with measured quality metrics |
-| 2 | `packages/web` | Astro site that packages those files into JSON at build time and publishes a static, Finnish-language dashboard |
+| 2 | `packages/web` | Astro site that packages those files into JSON at build time and publishes a static, bilingual (Finnish and English) dashboard |
 
 The parts share no code. Their only connection is the file contract in
 `docs/FRAMEWORK_PLAN.md` chapters 4.2 and 4.3, and the web build fails loudly when that
@@ -383,9 +383,14 @@ committed data and fails if the baseline stops beating the seasonal-naive benchm
 API endpoints and no CDN scripts: every dependency comes from npm and is bundled. The
 browser never fetches data at runtime, because there is nothing to fetch.
 
-The interface language is Finnish. Dates read `22.5.2026`, times read `14:00`, and every
-count carries its unit, because `visitors_total` is the sum of entries and exits rather
-than a headcount.
+The interface is bilingual. Finnish is the default and lives at the root; English sits
+behind `/en`. Every count carries its unit in both languages, because `visitors_total` is
+the sum of entries and exits rather than a headcount.
+
+Timestamps are Finnish local time in both languages. The English pages describe the same
+instants, they do not convert them: a venue that closes at 19:00 closes at 19:00 on both
+sites. Only the spelling changes, from `22.5.2026` to `22 May 2026` and from `1 234` to
+`1,234`.
 
 ### Requirements
 
@@ -471,6 +476,49 @@ tests and reproducible runs.
 | `/quality` | Backtest by horizon, MAE and coverage, comparison to seasonal naive, known limits |
 | `/about` | Where the data comes from, what the numbers mean, what they do not mean |
 
+Each of those exists twice: at the path above in Finnish, and under `/en` in English, so
+`/venue/1` and `/en/venue/1` are the same page in two languages. That is 14 pages in all.
+
+### Two languages, one page each
+
+A page is written once, as a component in `src/views/`, and takes `lang` as a prop. The
+files in `src/pages/` are three-line route stubs that pick the language:
+
+```
+src/pages/venue/[id].astro      -> <VenueView lang="fi" venue={venue} />
+src/pages/en/venue/[id].astro   -> <VenueView lang="en" venue={venue} />
+```
+
+The two route trees mirror each other one to one. That is what lets the language switch
+in the header stay on the page you are reading instead of dropping you on the front page:
+`localizedPath()` in `src/i18n/index.ts` maps any path to its counterpart, and the same
+function generates the `hreflang` alternates in the head.
+
+The switch is two ordinary links. It works with the keyboard and without JavaScript, and
+the choice is not remembered in `localStorage`, so a shared URL always opens in the
+language it names.
+
+| File | Contents |
+| --- | --- |
+| `src/i18n/index.ts` | Locales, path mapping, `hreflang` codes |
+| `src/i18n/ui/fi.ts` | Finnish page text. This is the source of truth |
+| `src/i18n/ui/en.ts` | English page text, typed as `Translation` against the Finnish file |
+| `src/i18n/charts.ts` | The strings the chart islands need, both languages |
+
+Two things follow from typing `en.ts` against `fi.ts`. A missing key fails `npm run check`
+rather than rendering `undefined`, and a string that gained a parameter cannot be left
+behind with the old signature. `tests/i18n.test.ts` covers what types cannot see: that no
+English value is still verbatim Finnish, that no value is empty, and that every route maps
+to its counterpart and back.
+
+Chart strings live apart from the page dictionary because islands are bundled for the
+browser. Only `charts.ts` ships to the client; the long prose in `ui/` runs at build time
+and never reaches it.
+
+To add a string: put it in `fi.ts`, run `npm run check`, and the type error tells you
+exactly what `en.ts` is missing. Use a function rather than concatenation whenever a
+number or a date is involved, so word order can differ between the two languages.
+
 ### Charts
 
 Charts are Observable Plot drawn by vanilla TypeScript islands, loaded with
@@ -486,8 +534,9 @@ dash pattern as well as colour, selectors are ordinary buttons, and no view depe
 `localStorage`. Wide content scrolls inside its own container; the page itself never
 scrolls sideways.
 
-Measured on the built output: Lighthouse performance 99-100 and accessibility 100 on
-every page, and the front page weighs about 99 kB gzipped including the Plot bundle.
+Measured on the built output: Lighthouse performance 99-100 and accessibility 100 on every
+page in both languages, and the front page weighs about 100 kB gzipped including the Plot
+bundle.
 
 ### Deployment
 
@@ -544,10 +593,12 @@ packages/web/
   scripts/build-data.ts          data/ -> src/data/*.json, with the build gates
   scripts/lib/                   csv.ts, schema.ts, transform.ts, read.ts, paths.ts
   src/lib/                       types.ts (the data contract), dates, format, weather, series
+  src/i18n/                      locales and path mapping, ui/fi.ts + ui/en.ts, charts.ts
   src/renderer/                  the Astro renderer that makes client:visible work without a framework
   src/charts/                    Observable Plot islands: timeseries, heatmap, scatter, bars, lines, forecast, backtest
-  src/components/                Layout, QualityBanner, Figure, TableScroll, StatCard, Callout
-  src/pages/                     index, venue/[id], weather, forecast, quality, about
+  src/components/                Layout, SiteNav, LanguageSwitch, QualityBanner, Figure, TableScroll, StatCard, Callout
+  src/views/                     one component per page, rendered once per language
+  src/pages/                     Finnish routes, plus src/pages/en for the English ones
   tests/                         vitest unit and schema tests, tests/e2e Playwright smoke test
 data/raw/        immutable per-day response cache
 data/processed/  canonical tables and manifest.json

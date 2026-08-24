@@ -3,19 +3,18 @@
  * horisonttikayriin, lippujen ja kavijoiden vertailuun seka kontekstidataan.
  */
 
+import type { Lang } from '../i18n/index.ts';
 import { NEUTRAL, SERIES } from '../lib/colors.ts';
 import { plotDay } from '../lib/dates.ts';
-import { formatDecimal, formatInt } from '../lib/format.ts';
+import { formatters } from '../lib/format.ts';
 import { island } from '../renderer/index.ts';
 import {
   Plot,
   baseOptions,
+  chartFormat,
   createChartFrame,
   createLegend,
   mountResponsive,
-  tickCount,
-  tickDay,
-  titleDate,
   type LegendEntry,
 } from './base.ts';
 
@@ -28,6 +27,7 @@ export interface LineSeries {
 }
 
 export interface LinesProps {
+  lang: Lang;
   ariaLabel: string;
   series: LineSeries[];
   /** 'number' piirtaa numeerisen akselin, 'date' odottaa "YYYY-MM-DD"-merkkijonoja. */
@@ -65,6 +65,8 @@ export default island<LinesProps>((element, props) => {
 });
 
 function draw(width: number, props: LinesProps): SVGSVGElement | HTMLElement {
+  const f = formatters(props.lang);
+  const format = chartFormat(props.lang);
   const height = Math.max(200, Math.min(340, Math.round(width * 0.4)));
   const unit = props.unit ?? '';
   const isDate = props.xType === 'date';
@@ -115,8 +117,8 @@ function draw(width: number, props: LinesProps): SVGSVGElement | HTMLElement {
           fill: series.color,
           r: 2.6,
           title: (point: Point) =>
-            `${series.name}\n${point.x instanceof Date ? titleDate(point.x) : formatInt(point.x)}\n` +
-            `${formatDecimal(point.y)} ${unit}`.trim(),
+            `${series.name}\n${point.x instanceof Date ? format.titleDate(point.x) : f.int(point.x)}\n` +
+            `${f.decimal(point.y)} ${unit}`.trim(),
           tip: true,
         }),
       );
@@ -127,15 +129,15 @@ function draw(width: number, props: LinesProps): SVGSVGElement | HTMLElement {
     ...baseOptions(width, height),
     marginBottom: props.xLabel ? 44 : 34,
     x: isDate
-      ? { type: 'utc', label: props.xLabel ?? null, labelOffset: 36, tickFormat: tickDay, grid: false }
+      ? { type: 'utc', label: props.xLabel ?? null, labelOffset: 36, tickFormat: format.tickDay, grid: false }
       : {
           label: props.xLabel ?? null,
           labelAnchor: 'center',
           labelOffset: 36,
-          tickFormat: (value: number) => formatInt(value),
+          tickFormat: (value: number) => f.int(value),
           grid: true,
         },
-    y: { label: null, tickFormat: tickCount, grid: true, zero: true },
+    y: { label: null, tickFormat: format.count, grid: true, zero: true },
     marks,
   });
 }

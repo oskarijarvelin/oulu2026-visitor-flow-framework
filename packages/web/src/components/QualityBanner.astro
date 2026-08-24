@@ -1,17 +1,27 @@
 ---
 /**
- * Datan laatu -banneri. Nakyy jokaisella sivulla ja kertoo viimeisen ajon ajan seka
- * mahdolliset heikentyneet lahteet. Sävy vaihtuu sen mukaan onko jotain huomautettavaa.
+ * Datan laatu -banneri. Näkyy jokaisella sivulla ja kertoo viimeisen ajon ajan sekä
+ * mahdolliset heikentyneet lähteet. Sävy vaihtuu sen mukaan onko jotain huomautettavaa.
  */
 import meta from '../data/meta.json';
-import { formatDate, formatUtcAsHelsinki, formatDecimal } from '../lib/format.ts';
+import type { Lang } from '../i18n/index.ts';
+import { ui } from '../i18n/ui/index.ts';
+import { formatters } from '../lib/format.ts';
 import { sourceLabel, sourceStatusLabel, translateWarnings } from '../lib/labels.ts';
 import type { Meta } from '../lib/types.ts';
 
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
 const site = meta as Meta;
+const t = ui(lang);
+const f = formatters(lang);
+
 const degraded = site.ingest.degraded;
-const ingestWarnings = translateWarnings(site.ingest.quality_gates.warnings);
-const forecastWarnings = translateWarnings(site.forecast.warnings);
+const ingestWarnings = translateWarnings(site.ingest.quality_gates.warnings, lang);
+const forecastWarnings = translateWarnings(site.forecast.warnings, lang);
 const skipped = site.forecast.skipped_models;
 
 const hasIssue =
@@ -26,7 +36,7 @@ const tone = hasIssue
   : 'border-b-line bg-surface text-ink-muted';
 ---
 
-<section aria-label="Datan laatu" class:list={['border-b', tone]}>
+<section aria-label={t.banner.region} class:list={['border-b', tone]}>
   <div class="mx-auto w-full max-w-6xl px-4 py-2.5 text-xs leading-5 sm:px-6">
     <p class="flex flex-wrap items-center gap-x-2 gap-y-1">
       <span
@@ -35,12 +45,10 @@ const tone = hasIssue
           'inline-block h-2 w-2 shrink-0 rounded-full',
           hasIssue ? 'bg-amber-500' : 'bg-emerald-600',
         ]}></span>
-      <strong class="font-medium">
-        {hasIssue ? 'Datan laadussa huomautettavaa' : 'Data on ajan tasalla'}
-      </strong>
+      <strong class="font-medium">{hasIssue ? t.banner.issues : t.banner.ok}</strong>
       <span>
-        Viimeisin haku {formatUtcAsHelsinki(site.ingest.generated_at)}, {formatDecimal(site.ingest.age_hours)} tuntia
-        sitten. Havainnot ulottuvat {formatDate(site.venues[0]!.last_day)} asti.
+        {t.banner.fetched(f.utc(site.ingest.generated_at), f.decimal(site.ingest.age_hours))}{' '}
+        {t.banner.coverage(f.date(site.venues[0]!.last_day))}
       </span>
     </p>
 
@@ -49,7 +57,7 @@ const tone = hasIssue
         <ul class="mt-1.5 list-disc space-y-1 pl-5">
           {degraded.map((source) => (
             <li>
-              Lähde {sourceLabel(source.name)}: {sourceStatusLabel(source.status)}
+              {t.banner.source(sourceLabel(source.name, lang), sourceStatusLabel(source.status, lang))}
               {source.error ? `, ${source.error}` : ''}.
             </li>
           ))}
@@ -57,9 +65,9 @@ const tone = hasIssue
             <li>{warning}</li>
           ))}
           {forecastWarnings.map((warning) => (
-            <li>Ennuste: {warning}</li>
+            <li>{t.banner.forecastPrefix} {warning}</li>
           ))}
-          {skipped.length > 0 && <li>Ohitetut mallit: {skipped.join(', ')}.</li>}
+          {skipped.length > 0 && <li>{t.banner.skippedModels(skipped.join(', '))}</li>}
         </ul>
       )
     }

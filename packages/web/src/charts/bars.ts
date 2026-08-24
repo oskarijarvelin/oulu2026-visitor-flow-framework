@@ -3,26 +3,30 @@
  * tuntikohtaiset sisaantulot suhteessa kapasiteettiin.
  */
 
+import type { Lang } from '../i18n/index.ts';
 import { NEUTRAL, SERIES } from '../lib/colors.ts';
-import { formatDecimal, formatInt } from '../lib/format.ts';
+import { formatters } from '../lib/format.ts';
 import { island } from '../renderer/index.ts';
-import { Plot, baseOptions, createChartFrame, mountResponsive, tickCount } from './base.ts';
+import { Plot, baseOptions, chartFormat, createChartFrame, mountResponsive } from './base.ts';
 
 export interface BarDatum {
   label: string;
   value: number;
   /** Havaintojen maara, naytetaan vihjeessa. */
   n?: number;
+  /** Valmis teksti havaintomaaralle, esim. "12 havaintoa". */
+  nLabel?: string;
   color?: string;
   note?: string;
 }
 
 export interface BarsProps {
+  lang: Lang;
   ariaLabel: string;
   data: BarDatum[];
   /** Vaakasuora viiva, esimerkiksi kapasiteetti. */
   reference?: { value: number; label: string } | null;
-  yLabel?: string;
+  /** Yksikko vihjeisiin. Oletuksena kavijatapahtuma. */
   unit?: string;
   horizontal?: boolean;
   [key: string]: unknown;
@@ -35,15 +39,19 @@ export default island<BarsProps>((element, props) => {
 });
 
 function draw(width: number, props: BarsProps): SVGSVGElement | HTMLElement {
-  const unit = props.unit ?? 'kävijätapahtumaa';
+  const f = formatters(props.lang);
+  const format = chartFormat(props.lang);
   const horizontal = props.horizontal === true;
   const height = horizontal
     ? Math.max(160, props.data.length * 34 + 60)
     : Math.max(200, Math.min(320, Math.round(width * 0.4)));
 
+  const amount = (value: number): string =>
+    props.unit === undefined ? f.count(value, 1) : `${f.decimal(value)} ${props.unit}`;
+
   const title = (datum: BarDatum): string =>
-    `${datum.label}\n${formatDecimal(datum.value)} ${unit}` +
-    (datum.n === undefined ? '' : `\n${formatInt(datum.n)} havaintoa`) +
+    `${datum.label}\n${amount(datum.value)}` +
+    (datum.n === undefined ? '' : `\n${datum.nLabel ?? f.int(datum.n)}`) +
     (datum.note ? `\n${datum.note}` : '');
 
   const marks: Plot.Markish[] = [];
@@ -61,7 +69,7 @@ function draw(width: number, props: BarsProps): SVGSVGElement | HTMLElement {
       Plot.text(props.data, {
         y: 'label',
         x: 'value',
-        text: (datum: BarDatum) => formatDecimal(datum.value),
+        text: (datum: BarDatum) => f.decimal(datum.value),
         textAnchor: 'start',
         dx: 6,
         fontSize: 11,
@@ -108,9 +116,9 @@ function draw(width: number, props: BarsProps): SVGSVGElement | HTMLElement {
     marginLeft: horizontal ? Math.min(160, Math.max(70, width * 0.28)) : 56,
     marginBottom: horizontal ? 34 : 42,
     x: horizontal
-      ? { label: null, tickFormat: tickCount, grid: true }
+      ? { label: null, tickFormat: format.count, grid: true }
       : { label: null, tickRotate: props.data.length > 6 ? -30 : 0 },
-    y: horizontal ? { label: null } : { label: null, tickFormat: tickCount, grid: true, zero: true },
+    y: horizontal ? { label: null } : { label: null, tickFormat: format.count, grid: true, zero: true },
     marks,
   });
 }

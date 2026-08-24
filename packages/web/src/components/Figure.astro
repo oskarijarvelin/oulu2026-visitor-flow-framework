@@ -5,7 +5,11 @@
  * ymmarrettava myos ilman JavaScriptia.
  */
 
+import type { Lang } from '../i18n/index.ts';
+import { ui } from '../i18n/ui/index.ts';
+
 interface Props {
+  lang: Lang;
   title: string;
   /** Lyhyt selitys siita mita kaavio esittaa. */
   description?: string;
@@ -16,7 +20,8 @@ interface Props {
   id?: string;
 }
 
-const { title, description, footnote, level = 2, id } = Astro.props;
+const { lang, title, description, footnote, level = 2, id } = Astro.props;
+const t = ui(lang);
 const Heading = `h${level}` as 'h2' | 'h3';
 const hasAlternative = Astro.slots.has('alternative');
 ---
@@ -40,7 +45,7 @@ const hasAlternative = Astro.slots.has('alternative');
     hasAlternative && (
       <details class="group mt-3 border-t border-line pt-3">
         <summary class="cursor-pointer text-xs font-medium text-ink-muted hover:text-ink">
-          Tekstivastine ja taulukko
+          {t.common.textAlternative}
         </summary>
         <div class="mt-3">
           <slot name="alternative" />

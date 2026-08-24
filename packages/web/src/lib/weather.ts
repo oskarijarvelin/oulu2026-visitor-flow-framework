@@ -4,6 +4,7 @@
  * puhuvat samasta saasta.
  */
 
+import type { Lang } from '../i18n/index.ts';
 import type { WeatherGroup } from './types.ts';
 
 const WEATHER_GROUPS: Record<Exclude<WeatherGroup, 'other'>, number[]> = {
@@ -36,13 +37,26 @@ export function isRainyDay(precipSum: number | null | undefined): boolean | null
 
 export const WEATHER_GROUP_ORDER: WeatherGroup[] = ['clear', 'cloudy', 'rain', 'snow', 'other'];
 
-export const WEATHER_GROUP_LABEL: Record<WeatherGroup, string> = {
-  clear: 'Selkeää',
-  cloudy: 'Pilvistä',
-  rain: 'Sadetta',
-  snow: 'Lunta',
-  other: 'Muu',
+const WEATHER_GROUP_LABEL: Record<Lang, Record<WeatherGroup, string>> = {
+  fi: {
+    clear: 'Selkeää',
+    cloudy: 'Pilvistä',
+    rain: 'Sadetta',
+    snow: 'Lunta',
+    other: 'Muu',
+  },
+  en: {
+    clear: 'Clear',
+    cloudy: 'Cloudy',
+    rain: 'Rain',
+    snow: 'Snow',
+    other: 'Other',
+  },
 };
+
+export function weatherGroupLabel(group: WeatherGroup, lang: Lang): string {
+  return WEATHER_GROUP_LABEL[lang][group];
+}
 
 /**
  * Saatilaluokka tekstimuotoisesta koodista. Ennustetiedostot kirjoittavat

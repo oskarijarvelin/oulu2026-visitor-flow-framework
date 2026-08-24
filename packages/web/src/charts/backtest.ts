@@ -4,18 +4,13 @@
  * jaaneet merkitaan omalla symbolilla.
  */
 
+import { chartStrings, type ChartStrings } from '../i18n/charts.ts';
+import type { Lang } from '../i18n/index.ts';
 import { NEUTRAL, SERIES } from '../lib/colors.ts';
 import { addDays } from '../lib/dates.ts';
-import { formatDate, formatInt } from '../lib/format.ts';
+import { formatters } from '../lib/format.ts';
 import { island } from '../renderer/index.ts';
-import {
-  Plot,
-  baseOptions,
-  createChartFrame,
-  createToggleGroup,
-  mountResponsive,
-  tickCount,
-} from './base.ts';
+import { Plot, baseOptions, chartFormat, createChartFrame, createToggleGroup, mountResponsive } from './base.ts';
 
 export interface BacktestPoint {
   model: string;
@@ -28,6 +23,7 @@ export interface BacktestPoint {
 }
 
 export interface BacktestProps {
+  lang: Lang;
   ariaLabel: string;
   points: BacktestPoint[];
   models: { name: string; label: string }[];
@@ -54,12 +50,14 @@ const BUCKET_SYMBOL: Record<string, string> = {
 };
 
 export default island<BacktestProps>((element, props) => {
+  const strings = chartStrings(props.lang);
+  const f = formatters(props.lang);
   const frame = createChartFrame(element);
   let selected = props.defaultModel;
 
   let redraw = (): void => {};
   const toggle = createToggleGroup(
-    'Malli',
+    strings.modelLabel,
     props.models.map((model) => ({ value: model.name, label: model.label })),
     selected,
     (value) => {
@@ -78,16 +76,19 @@ export default island<BacktestProps>((element, props) => {
     const points = enrich(props.points.filter((point) => point.model === selected), props.buckets);
     const covered = points.filter((point) => point.covered).length;
     const share = points.length === 0 ? 0 : Math.round((covered / points.length) * 100);
-    note.textContent =
-      `${formatInt(points.length)} ennuste ja toteuma -paria. Toteuma osui p10 - p90 -välille ` +
-      `${share} prosentissa tapauksista; tavoite on 80. Lävistäjän yläpuolella oleva piste ` +
-      'tarkoittaa että malli aliarvioi kyseisen vuorokauden, alapuolella että se yliarvioi.';
+    note.textContent = strings.backtestNote(f.int(points.length), share);
   };
   updateNote();
 
   redraw = mountResponsive(
     frame.plot,
-    (width) => draw(width, enrich(props.points.filter((point) => point.model === selected), props.buckets)),
+    (width) =>
+      draw(
+        width,
+        enrich(props.points.filter((point) => point.model === selected), props.buckets),
+        props.lang,
+        strings,
+      ),
     { ariaLabel: props.ariaLabel },
   );
 });
@@ -108,7 +109,14 @@ function enrich(points: BacktestPoint[], buckets: string[]): Point[] {
   }));
 }
 
-function draw(width: number, points: Point[]): SVGSVGElement | HTMLElement {
+function draw(
+  width: number,
+  points: Point[],
+  lang: Lang,
+  strings: ChartStrings,
+): SVGSVGElement | HTMLElement {
+  const f = formatters(lang);
+  const format = chartFormat(lang);
   const size = Math.max(240, Math.min(420, Math.round(width * 0.6)));
   const values = points.flatMap((point) => [point.y_true, point.y_pred]);
   const max = values.length === 0 ? 100 : Math.max(...values) * 1.05;
@@ -122,30 +130,34 @@ function draw(width: number, points: Point[]): SVGSVGElement | HTMLElement {
   const outside = points.filter((point) => !point.covered);
 
   const title = (point: Point): string =>
-    `Origo ${formatDate(point.origin_date)}, horisontti ${point.horizon_days} vrk\n` +
-    `Kohdepäivä ${formatDate(addDays(point.origin_date, point.horizon_days))}\n` +
-    `Ennuste ${formatInt(point.y_pred)}, toteuma ${formatInt(point.y_true)}\n` +
-    `Väli ${formatInt(point.p10)} - ${formatInt(point.p90)}` +
-    (point.covered ? '' : '\nToteuma välin ulkopuolella');
+    strings.backtestTip(
+      f.date(point.origin_date),
+      point.horizon_days,
+      f.date(addDays(point.origin_date, point.horizon_days)),
+      f.int(point.y_pred),
+      f.int(point.y_true),
+      f.int(point.p10),
+      f.int(point.p90),
+    ) + (point.covered ? '' : `\n${strings.backtestOutside}`);
 
   return Plot.plot({
     ...baseOptions(width, size),
     marginBottom: 44,
     aspectRatio: undefined,
     x: {
-      label: 'Ennuste, kävijätapahtumaa →',
+      label: strings.backtestAxis,
       labelAnchor: 'center',
       labelOffset: 36,
       domain: [0, max],
-      tickFormat: tickCount,
+      tickFormat: format.count,
       grid: true,
     },
-    y: { label: null, domain: [0, max], tickFormat: tickCount, grid: true },
+    y: { label: null, domain: [0, max], tickFormat: format.count, grid: true },
     color: {
       domain: buckets,
       range: buckets.map((bucket) => BUCKET_COLOR[bucket] ?? SERIES.light),
       legend: true,
-      label: 'Horisontti, vuorokautta',
+      label: strings.backtestBucketLabel,
     },
     symbol: {
       domain: buckets,

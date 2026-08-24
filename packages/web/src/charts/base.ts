@@ -9,45 +9,49 @@
 
 import * as Plot from '@observablehq/plot';
 
+import type { Lang } from '../i18n/index.ts';
 import { NEUTRAL } from '../lib/colors.ts';
-import { formatDecimal, formatInt } from '../lib/format.ts';
+import { formatters } from '../lib/format.ts';
 
 export { Plot };
 
-const MONTHS = ['tammi', 'helmi', 'maalis', 'huhti', 'touko', 'kesä', 'heinä', 'elo', 'syys', 'loka', 'marras', 'joulu'];
-
-/** "22.5." akselille. */
-export function tickDay(value: Date): string {
-  return `${value.getUTCDate()}.${value.getUTCMonth() + 1}.`;
+/**
+ * Akselien ja vihjeiden muotoilijat yhdelle kielelle.
+ *
+ * Kaikki kaavioiden aikaleimat on koodattu seinakelloajaksi UTC-hetkena, joten naissa
+ * kaytetaan UTC-metodeja. Nain akseli nayttaa Suomen aikaa ilman aikavyohykekirjastoja
+ * riippumatta siita mika kayttoliittyman kieli on.
+ */
+export interface ChartFormat {
+  /** "22.5." tai "22 May" akselille. */
+  tickDay(value: Date): string;
+  /** "14:00" akselille. */
+  tickHour(value: Date): string;
+  /** "22.5.2026" vihjeeseen. */
+  titleDate(value: Date): string;
+  /** "22.5.2026 14:00" vihjeeseen. */
+  titleDateTime(value: Date): string;
+  count(value: number): string;
+  decimal(value: number, decimals?: number): string;
 }
 
-/** "toukokuu" tai "22.5." riippuen tiheydesta. */
-export function tickMonth(value: Date): string {
-  return value.getUTCDate() === 1 ? `${MONTHS[value.getUTCMonth()]}` : tickDay(value);
+export function chartFormat(lang: Lang): ChartFormat {
+  const f = formatters(lang);
+  const iso = (value: Date): string =>
+    `${value.getUTCFullYear()}-${pad(value.getUTCMonth() + 1)}-${pad(value.getUTCDate())}`;
+  const clock = (value: Date): string => `${pad(value.getUTCHours())}:00`;
+  return {
+    tickDay: (value) => f.dateShort(iso(value)),
+    tickHour: clock,
+    titleDate: (value) => f.date(iso(value)),
+    titleDateTime: (value) => `${f.date(iso(value))} ${clock(value)}`,
+    count: (value) => f.int(value),
+    decimal: (value, decimals = 1) => f.decimal(value, decimals),
+  };
 }
 
-/** "14:00" akselille. */
-export function tickHour(value: Date): string {
-  return `${String(value.getUTCHours()).padStart(2, '0')}:00`;
-}
-
-/** "22.5.2026 14:00" vihjeeseen. */
-export function titleDateTime(value: Date): string {
-  const date = `${value.getUTCDate()}.${value.getUTCMonth() + 1}.${value.getUTCFullYear()}`;
-  return `${date} ${String(value.getUTCHours()).padStart(2, '0')}:00`;
-}
-
-/** "22.5.2026" vihjeeseen. */
-export function titleDate(value: Date): string {
-  return `${value.getUTCDate()}.${value.getUTCMonth() + 1}.${value.getUTCFullYear()}`;
-}
-
-export function tickCount(value: number): string {
-  return formatInt(value);
-}
-
-export function tickDecimal(value: number): string {
-  return formatDecimal(value);
+function pad(value: number): string {
+  return String(value).padStart(2, '0');
 }
 
 /** Yhteiset asetukset kaikille kaavioille. */
