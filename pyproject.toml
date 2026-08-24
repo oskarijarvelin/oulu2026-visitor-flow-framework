@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ovf"
+version = "1.0.0"
+description = "Oulu2026 Visitor Flow Framework"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+
+[project.optional-dependencies]
+ingest = [
+  "pandas>=2.2",
+  "requests>=2.32",
+  "pydantic>=2.7",
+  "python-dateutil>=2.9",
+  "pyarrow>=16.0",
+]
+dev = [
+  "pytest>=8.2",
+  "ruff>=0.5",
+  "mypy>=1.10",
+  "pandas-stubs>=2.2",
+  "types-requests>=2.32",
+]
+
+[tool.setuptools]
+package-dir = { "" = "packages/ingest/src" }
+
+[tool.setuptools.packages.find]
+where = ["packages/ingest/src"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+src = ["packages/ingest/src", "packages/ingest/tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "N", "RUF"]
+ignore = ["B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"packages/ingest/tests/*" = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["packages/ingest/src", "packages/ingest/tests"]
+strict = true
+plugins = []
+warn_unused_configs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = ["pandas.*", "pyarrow.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["packages/ingest/tests"]
+pythonpath = ["packages/ingest/src"]
+addopts = "-q"

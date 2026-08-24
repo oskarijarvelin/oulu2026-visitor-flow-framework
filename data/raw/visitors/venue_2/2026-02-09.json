@@ -1,0 +1,538 @@
+{
+  "in": {
+    "result": [
+      {
+        "calendarId": "20260209 000000",
+        "categoryName": "09/02/2026 00:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 010000",
+        "categoryName": "09/02/2026 01:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 020000",
+        "categoryName": "09/02/2026 02:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 030000",
+        "categoryName": "09/02/2026 03:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 040000",
+        "categoryName": "09/02/2026 04:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 050000",
+        "categoryName": "09/02/2026 05:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 060000",
+        "categoryName": "09/02/2026 06:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 070000",
+        "categoryName": "09/02/2026 07:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 080000",
+        "categoryName": "09/02/2026 08:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 1
+      },
+      {
+        "calendarId": "20260209 090000",
+        "categoryName": "09/02/2026 09:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 100000",
+        "categoryName": "09/02/2026 10:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 1
+      },
+      {
+        "calendarId": "20260209 110000",
+        "categoryName": "09/02/2026 11:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 120000",
+        "categoryName": "09/02/2026 12:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 130000",
+        "categoryName": "09/02/2026 13:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 2
+      },
+      {
+        "calendarId": "20260209 140000",
+        "categoryName": "09/02/2026 14:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 150000",
+        "categoryName": "09/02/2026 15:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 160000",
+        "categoryName": "09/02/2026 16:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 170000",
+        "categoryName": "09/02/2026 17:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 180000",
+        "categoryName": "09/02/2026 18:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 1
+      },
+      {
+        "calendarId": "20260209 190000",
+        "categoryName": "09/02/2026 19:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 200000",
+        "categoryName": "09/02/2026 20:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 210000",
+        "categoryName": "09/02/2026 21:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 220000",
+        "categoryName": "09/02/2026 22:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 230000",
+        "categoryName": "09/02/2026 23:00:00",
+        "directionId": 4,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      }
+    ]
+  },
+  "out": {
+    "result": [
+      {
+        "calendarId": "20260209 000000",
+        "categoryName": "09/02/2026 00:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 010000",
+        "categoryName": "09/02/2026 01:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 020000",
+        "categoryName": "09/02/2026 02:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 030000",
+        "categoryName": "09/02/2026 03:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 040000",
+        "categoryName": "09/02/2026 04:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 050000",
+        "categoryName": "09/02/2026 05:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 060000",
+        "categoryName": "09/02/2026 06:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 070000",
+        "categoryName": "09/02/2026 07:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 080000",
+        "categoryName": "09/02/2026 08:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 1
+      },
+      {
+        "calendarId": "20260209 090000",
+        "categoryName": "09/02/2026 09:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 100000",
+        "categoryName": "09/02/2026 10:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 110000",
+        "categoryName": "09/02/2026 11:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 120000",
+        "categoryName": "09/02/2026 12:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 1
+      },
+      {
+        "calendarId": "20260209 130000",
+        "categoryName": "09/02/2026 13:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 2
+      },
+      {
+        "calendarId": "20260209 140000",
+        "categoryName": "09/02/2026 14:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 150000",
+        "categoryName": "09/02/2026 15:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 160000",
+        "categoryName": "09/02/2026 16:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 170000",
+        "categoryName": "09/02/2026 17:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 180000",
+        "categoryName": "09/02/2026 18:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 1
+      },
+      {
+        "calendarId": "20260209 190000",
+        "categoryName": "09/02/2026 19:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 200000",
+        "categoryName": "09/02/2026 20:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 210000",
+        "categoryName": "09/02/2026 21:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 220000",
+        "categoryName": "09/02/2026 22:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260209 230000",
+        "categoryName": "09/02/2026 23:00:00",
+        "directionId": 5,
+        "locationId": 183,
+        "seriesName": "Näyttelytila",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      }
+    ]
+  }
+}

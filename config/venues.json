@@ -1,0 +1,24 @@
+{
+  "venues": [
+    {
+      "venue_id": 1,
+      "name": "Pekuri",
+      "city": "Oulu",
+      "latitude": 65.0120,
+      "longitude": 25.4688,
+      "capacity": 160,
+      "location_hierarchy_id": 178,
+      "tickets_path": "data/raw/tickets/venue_1/tickets.csv"
+    },
+    {
+      "venue_id": 2,
+      "name": "Kaupungintalo",
+      "city": "Oulu",
+      "latitude": 65.0140,
+      "longitude": 25.4726,
+      "capacity": 20,
+      "location_hierarchy_id": 183,
+      "tickets_path": "data/raw/tickets/venue_2/tickets.csv"
+    }
+  ]
+}

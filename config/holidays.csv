@@ -1,0 +1,17 @@
+date,holiday_name,is_weekend,is_last_workday_before_holiday,type,country
+2026-01-01,Uudenvuodenpäivä,0,0,national,Finland
+2026-01-06,Loppiainen,0,0,national,Finland
+2026-04-03,Pitkäperjantai,0,0,religious,Finland
+2026-04-04,Pääsiäispäivä,1,0,religious,Finland
+2026-04-05,Toinen pääsiäispäivä,1,0,religious,Finland
+2026-05-01,Vappu,0,1,national,Finland
+2026-05-14,Helatorstai,0,0,religious,Finland
+2026-05-23,Helluntai,1,0,religious,Finland
+2026-06-19,Juhannusaatto,0,0,national,Finland
+2026-06-20,Juhannuspäivä,1,0,national,Finland
+2026-10-31,Pyhäinpäivä,1,0,religious,Finland
+2026-12-06,Itsenäisyyspäivä,1,0,national,Finland
+2026-12-24,Jouluaatto,0,1,national,Finland
+2026-12-25,Joulupäivä,0,0,national,Finland
+2026-12-26,Tapaninpäivä,1,0,national,Finland
+2026-12-31,Uudenvuodenaatto,0,1,observance,Finland

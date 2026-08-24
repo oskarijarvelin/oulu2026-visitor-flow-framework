@@ -1,0 +1,15 @@
+{
+  "sites": [
+    {
+      "site_id": "raatti",
+      "name": "Karjasilta",
+      "domain": "Oulu_Kapy",
+      "sensors": {
+        "JK_IN": "karjasilta_1",
+        "JK_OUT": "karjasilta_2",
+        "PP_IN": "karjasilta_4",
+        "PP_OUT": "karjasilta_3"
+      }
+    }
+  ]
+}

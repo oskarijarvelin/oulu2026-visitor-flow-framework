@@ -1,0 +1,19 @@
+# Secrets
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Rejected quality-gate output
+*.rejected
+
+# OS
+.DS_Store

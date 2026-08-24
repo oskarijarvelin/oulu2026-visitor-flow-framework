@@ -1,0 +1,57 @@
+{
+  "timezone": "Europe/Helsinki",
+  "default_days_back": 7,
+  "http": {
+    "timeout_seconds": 60,
+    "max_attempts": 3,
+    "backoff_seconds": [1, 4, 16]
+  },
+  "visitors": {
+    "name": "jaskaretail",
+    "api_url": "https://oulu.jaskaretail.com:443/ext/sensor/visitor",
+    "interval": "60min",
+    "counting_types": ["in", "out"],
+    "raw_dir": "data/raw/visitors",
+    "username_env": "JASKARETAIL_BASIC_AUTH_USERNAME",
+    "password_env": "JASKARETAIL_BASIC_AUTH_PASSWORD"
+  },
+  "weather": {
+    "name": "open-meteo",
+    "archive_url": "https://archive-api.open-meteo.com/v1/archive",
+    "forecast_url": "https://api.open-meteo.com/v1/forecast",
+    "hourly_variables": [
+      "temperature_2m",
+      "precipitation",
+      "wind_speed_10m",
+      "relative_humidity_2m",
+      "weathercode"
+    ],
+    "max_forecast_days": 16,
+    "archive_lag_days": 6,
+    "raw_dir": "data/raw/weather"
+  },
+  "traffic": {
+    "name": "eco-counter",
+    "graphql_url": "https://api.oulunliikenne.fi/proxy/graphql",
+    "step": "hour",
+    "raw_dir": "data/raw/traffic"
+  },
+  "tickets": {
+    "name": "tickets",
+    "raw_dir": "data/raw/tickets"
+  },
+  "calendar": {
+    "name": "calendar",
+    "holidays_path": "config/holidays.csv"
+  },
+  "quality_gates": {
+    "max_visitor_gap_hours": 48,
+    "visitor_gap_lookback_days": 30,
+    "min_weather_coverage": 0.99,
+    "daily_total_capacity_multiplier": 96
+  },
+  "climatology": {
+    "output_dir": "data/reference/climatology"
+  },
+  "processed_dir": "data/processed"
+}
