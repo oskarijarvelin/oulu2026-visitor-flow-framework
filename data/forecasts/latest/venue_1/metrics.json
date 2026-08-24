@@ -1,0 +1,307 @@
+{
+  "venue_id": 1,
+  "venue_name": "Pekuri",
+  "generated_at": "2026-08-24T10:33:02Z",
+  "trained_at": "2026-08-24T10:33:02Z",
+  "origin_date": "2026-08-24",
+  "n_training_days": 215,
+  "training_window": [
+    "2026-01-22",
+    "2026-08-24"
+  ],
+  "n_origins": 12,
+  "backtest_window": [
+    "2026-06-02",
+    "2026-08-24"
+  ],
+  "horizon_buckets": [
+    "1-7",
+    "8-14",
+    "15-30"
+  ],
+  "models": [
+    "baseline",
+    "prophet_xgb"
+  ],
+  "benchmarks": [
+    "seasonal_naive",
+    "moving_average_28d"
+  ],
+  "metrics": {
+    "baseline": {
+      "1-7": {
+        "mae": 152.606,
+        "rmse": 202.974,
+        "smape": 31.932,
+        "bias": -6.442,
+        "coverage_80": 0.7738,
+        "n": 84
+      },
+      "8-14": {
+        "mae": 154.354,
+        "rmse": 200.287,
+        "smape": 32.668,
+        "bias": -28.185,
+        "coverage_80": 0.7403,
+        "n": 77
+      },
+      "15-30": {
+        "mae": 175.557,
+        "rmse": 217.286,
+        "smape": 36.573,
+        "bias": -29.721,
+        "coverage_80": 0.7651,
+        "n": 149
+      }
+    },
+    "moving_average_28d": {
+      "1-7": {
+        "mae": 143.541,
+        "rmse": 192.286,
+        "smape": 30.266,
+        "bias": 0.324,
+        "coverage_80": 0.7857,
+        "n": 84
+      },
+      "8-14": {
+        "mae": 149.701,
+        "rmse": 199.235,
+        "smape": 31.012,
+        "bias": -14.568,
+        "coverage_80": 0.7532,
+        "n": 77
+      },
+      "15-30": {
+        "mae": 153.522,
+        "rmse": 198.395,
+        "smape": 31.829,
+        "bias": -38.839,
+        "coverage_80": 0.7584,
+        "n": 149
+      }
+    },
+    "prophet_xgb": {
+      "1-7": {
+        "mae": 159.144,
+        "rmse": 205.58,
+        "smape": 33.726,
+        "bias": 14.084,
+        "coverage_80": 0.7619,
+        "n": 84
+      },
+      "8-14": {
+        "mae": 168.969,
+        "rmse": 214.894,
+        "smape": 37.388,
+        "bias": -16.071,
+        "coverage_80": 0.7403,
+        "n": 77
+      },
+      "15-30": {
+        "mae": 190.749,
+        "rmse": 237.342,
+        "smape": 41.025,
+        "bias": -33.933,
+        "coverage_80": 0.7517,
+        "n": 149
+      }
+    },
+    "seasonal_naive": {
+      "1-7": {
+        "mae": 171.857,
+        "rmse": 248.109,
+        "smape": 34.675,
+        "bias": 7.667,
+        "coverage_80": 0.7857,
+        "n": 84
+      },
+      "8-14": {
+        "mae": 177.987,
+        "rmse": 241.494,
+        "smape": 36.389,
+        "bias": -9.805,
+        "coverage_80": 0.7532,
+        "n": 77
+      },
+      "15-30": {
+        "mae": 185.96,
+        "rmse": 240.477,
+        "smape": 38.18,
+        "bias": -19.248,
+        "coverage_80": 0.7785,
+        "n": 149
+      }
+    }
+  },
+  "benchmark_comparison": {
+    "baseline": {
+      "1-7": {
+        "beats_seasonal_naive": true,
+        "mae_ratio_vs_seasonal_naive": 0.888,
+        "beats_moving_average_28d": false,
+        "mae_ratio_vs_moving_average_28d": 1.0632
+      },
+      "8-14": {
+        "beats_seasonal_naive": true,
+        "mae_ratio_vs_seasonal_naive": 0.8672,
+        "beats_moving_average_28d": false,
+        "mae_ratio_vs_moving_average_28d": 1.0311
+      },
+      "15-30": {
+        "beats_seasonal_naive": true,
+        "mae_ratio_vs_seasonal_naive": 0.9441,
+        "beats_moving_average_28d": false,
+        "mae_ratio_vs_moving_average_28d": 1.1435
+      }
+    },
+    "prophet_xgb": {
+      "1-7": {
+        "beats_seasonal_naive": true,
+        "mae_ratio_vs_seasonal_naive": 0.926,
+        "beats_moving_average_28d": false,
+        "mae_ratio_vs_moving_average_28d": 1.1087
+      },
+      "8-14": {
+        "beats_seasonal_naive": true,
+        "mae_ratio_vs_seasonal_naive": 0.9493,
+        "beats_moving_average_28d": false,
+        "mae_ratio_vs_moving_average_28d": 1.1287
+      },
+      "15-30": {
+        "beats_seasonal_naive": false,
+        "mae_ratio_vs_seasonal_naive": 1.0258,
+        "beats_moving_average_28d": false,
+        "mae_ratio_vs_moving_average_28d": 1.2425
+      }
+    }
+  },
+  "coverage_method": "leave_one_origin_out",
+  "interval_bands": {
+    "baseline": [
+      {
+        "bucket": "1-7",
+        "q10": 0.5897,
+        "q90": 1.6416,
+        "n": 84,
+        "is_default": false
+      },
+      {
+        "bucket": "8-14",
+        "q10": 0.6129,
+        "q90": 1.5904,
+        "n": 77,
+        "is_default": false
+      },
+      {
+        "bucket": "15-30",
+        "q10": 0.5118,
+        "q90": 1.7764,
+        "n": 149,
+        "is_default": false
+      }
+    ],
+    "moving_average_28d": [
+      {
+        "bucket": "1-7",
+        "q10": 0.5653,
+        "q90": 1.5628,
+        "n": 84,
+        "is_default": false
+      },
+      {
+        "bucket": "8-14",
+        "q10": 0.59,
+        "q90": 1.6124,
+        "n": 77,
+        "is_default": false
+      },
+      {
+        "bucket": "15-30",
+        "q10": 0.6295,
+        "q90": 1.7555,
+        "n": 149,
+        "is_default": false
+      }
+    ],
+    "prophet_xgb": [
+      {
+        "bucket": "1-7",
+        "q10": 0.5774,
+        "q90": 1.6746,
+        "n": 84,
+        "is_default": false
+      },
+      {
+        "bucket": "8-14",
+        "q10": 0.5999,
+        "q90": 2.0691,
+        "n": 77,
+        "is_default": false
+      },
+      {
+        "bucket": "15-30",
+        "q10": 0.5279,
+        "q90": 2.0952,
+        "n": 149,
+        "is_default": false
+      }
+    ],
+    "seasonal_naive": [
+      {
+        "bucket": "1-7",
+        "q10": 0.5766,
+        "q90": 1.8413,
+        "n": 84,
+        "is_default": false
+      },
+      {
+        "bucket": "8-14",
+        "q10": 0.625,
+        "q90": 1.7846,
+        "n": 77,
+        "is_default": false
+      },
+      {
+        "bucket": "15-30",
+        "q10": 0.5689,
+        "q90": 1.9221,
+        "n": 149,
+        "is_default": false
+      }
+    ]
+  },
+  "hourly_profile": {
+    "lookback_days": 56,
+    "observed_days": 56,
+    "open_hours": [
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ]
+  },
+  "weather": {
+    "forecast_days": 15,
+    "climatology_days": 15,
+    "max_forecast_days": 16
+  },
+  "do_not_trust": [
+    "Horizons past 14 days: the weather is climatology and the level is frozen at the origin.",
+    "Days with programming or an event the model has never seen.",
+    "The first two weeks after a new venue or a new sensor comes online.",
+    "Periods where the ingest manifest reports a degraded source.",
+    "School holidays and midsummer, of which this dataset holds at most one observation."
+  ],
+  "warnings": [
+    "The maintained calendar does not reach 2026-09-09; those days assume no holiday."
+  ]
+}

@@ -1,0 +1,477 @@
+---
+import Heatmap from '../../charts/heatmap.ts';
+import Lines from '../../charts/lines.ts';
+import Timeseries from '../../charts/timeseries.ts';
+import Callout from '../../components/Callout.astro';
+import TableScroll from '../../components/TableScroll.astro';
+import Figure from '../../components/Figure.astro';
+import Layout from '../../components/Layout.astro';
+import StatCard from '../../components/StatCard.astro';
+import dailyData from '../../data/daily.json';
+import forecastData from '../../data/forecast.json';
+import hourlyData from '../../data/hourly.json';
+import metaData from '../../data/meta.json';
+import profileData from '../../data/profile.json';
+import { SERIES } from '../../lib/colors.ts';
+import { localDate, localHour } from '../../lib/dates.ts';
+import {
+  formatDate,
+  formatDateWithWeekday,
+  formatDecimal,
+  formatHourRanges,
+  formatInt,
+  formatSignedPct,
+  visitorEvents,
+  WEEKDAYS_SHORT,
+} from '../../lib/format.ts';
+import { modelLabel } from '../../lib/labels.ts';
+import { meanOf, quantileOf, toDailyRows } from '../../lib/series.ts';
+import { RAINY_DAY_MM } from '../../lib/weather.ts';
+import type { DailyData, ForecastData, HourlyData, Meta, ProfileData } from '../../lib/types.ts';
+
+export function getStaticPaths() {
+  const site = metaData as Meta;
+  return site.venues.map((venue) => ({ params: { id: String(venue.venue_id) }, props: { venue } }));
+}
+
+const site = metaData as Meta;
+const daily = dailyData as unknown as DailyData;
+const hourly = hourlyData as unknown as HourlyData;
+const profile = profileData as unknown as ProfileData;
+const forecast = forecastData as unknown as ForecastData;
+
+const { venue } = Astro.props;
+const key = String(venue.venue_id);
+const model = forecast.default_model;
+
+const rows = toDailyRows(daily.venues[key], daily.weather_groups).filter((row) => row.is_reporting);
+const forecastRows = forecast.venues[key]?.daily[model] ?? [];
+const series = hourly.venues[key]!;
+const cells = profile.venues[key]!.cells;
+
+const historyDaily = rows.map((row) => ({ t: row.date, v: row.visitors_total }));
+const rainDays = rows.filter((row) => (row.precip_sum ?? 0) >= RAINY_DAY_MM).map((row) => row.date);
+const holidayDays = [
+  ...rows.filter((row) => row.is_holiday).map((row) => ({ t: row.date, name: row.holiday_name ?? 'Pyhä' })),
+  ...forecastRows
+    .filter((row) => row.is_holiday)
+    .map((row) => ({ t: row.date, name: row.holiday_name ?? 'Pyhä' })),
+];
+const forecastPoints = forecastRows.map((row) => ({
+  t: row.date,
+  p10: row.p10,
+  p50: row.p50,
+  p90: row.p90,
+  clim: row.weather_source === 'climatology',
+}));
+
+const rainHours = new Set(series.rain_idx);
+const historyHourly = series.ts.map((ts, index) => ({ t: ts, v: series.visitors_total[index] ?? 0 }));
+const rainHourList = series.ts.filter((_, index) => rainHours.has(index));
+
+// Kapasiteettinakyma: tunnin sisaantulot suhteessa kapasiteettiin. Tama ei ole
+// yhtaaikainen kavijamaara, koska viipymaa ei mitata.
+const CAPACITY_WINDOW_DAYS = 90;
+const capacityFrom = series.ts.length > 0 ? localDate(series.ts.at(-1)!) : venue.last_day;
+const capacityStart = new Date(new Date(`${capacityFrom}T00:00:00Z`).getTime() - CAPACITY_WINDOW_DAYS * 86_400_000)
+  .toISOString()
+  .slice(0, 10);
+const arrivalsByHour = new Map<number, number[]>();
+series.ts.forEach((ts, index) => {
+  if (localDate(ts) < capacityStart) return;
+  const hour = localHour(ts);
+  const bucket = arrivalsByHour.get(hour) ?? [];
+  bucket.push(series.visitors_in[index] ?? 0);
+  arrivalsByHour.set(hour, bucket);
+});
+const capacityRows = [...arrivalsByHour.entries()]
+  .sort((a, b) => a[0] - b[0])
+  .map(([hour, values]) => ({
+    hour,
+    mean: Math.round(meanOf(values) * 10) / 10,
+    p95: Math.round(quantileOf(values, 0.95) * 10) / 10,
+    max: Math.max(0, ...values),
+    n: values.length,
+  }));
+const openCapacityRows = capacityRows.filter((row) => venue.open_hours.includes(row.hour));
+const peakArrivals = Math.max(0, ...capacityRows.map((row) => row.max));
+const hoursOverCapacity = series.ts.filter(
+  (ts, index) => localDate(ts) >= capacityStart && (series.visitors_in[index] ?? 0) > venue.capacity,
+).length;
+const observedHours = series.ts.filter((ts) => localDate(ts) >= capacityStart).length;
+
+// Lippuvertailu.
+const ticketRows = rows.filter((row) => typeof row.tickets_total === 'number');
+const ticketSum = ticketRows.reduce((acc, row) => acc + (row.tickets_total ?? 0), 0);
+const ticketVisitorSum = ticketRows.reduce((acc, row) => acc + row.visitors_total, 0);
+const eventsPerTicket = ticketSum === 0 ? null : ticketVisitorSum / ticketSum;
+
+const other = site.venues.find((entry) => entry.venue_id !== venue.venue_id);
+const profileWindow = profile.venues[key]!;
+---
+
+<Layout
+  title={venue.name}
+  heading={`${venue.name}`}
+  description={`${venue.name}: kävijätapahtumat tunti- ja päivätasolla, viikonpäiväprofiili, kapasiteetti ja lippuvertailu.`}
+  lead={`Sensori raportoi ${formatDate(venue.first_day)} alkaen. Aineisto ulottuu ${formatDate(venue.last_day)} asti, eli ${formatInt(venue.reporting_days)} raportoivaa vuorokautta. Kapasiteetti ${formatInt(venue.capacity)} henkilöä.`}
+>
+  <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <StatCard
+      label="Koko jakso"
+      value={formatInt(venue.visitors_total)}
+      unit="kävijätapahtumaa"
+      note={`Sisään ${formatInt(venue.visitors_in)}, ulos ${formatInt(venue.visitors_out)}.`}
+    />
+    <StatCard
+      label="Vuorokauden keskiarvo"
+      value={formatInt(venue.mean_daily)}
+      unit="/ vrk"
+      note={`Mediaani ${formatInt(venue.median_daily)}. Vaihtelu on suurta, joten mediaani kuvaa tavallista päivää paremmin.`}
+    />
+    <StatCard
+      label="Viimeiset 30 vrk"
+      value={formatInt(venue.last30.mean_daily)}
+      unit="/ vrk"
+      change={venue.change_pct === null ? undefined : formatSignedPct(venue.change_pct)}
+      changeTone={
+        venue.change_pct === null || Math.abs(venue.change_pct) < 1
+          ? 'flat'
+          : venue.change_pct > 0
+            ? 'up'
+            : 'down'
+      }
+      note="Vertailu edeltäviin 30 vuorokauteen."
+    />
+    <StatCard
+      label="Vilkkain tunti"
+      value={formatInt(venue.max_hourly)}
+      unit="kävijätapahtumaa"
+      note={`Aukiolo aineiston perusteella klo ${formatHourRanges(venue.open_hours)}.`}
+    />
+  </div>
+
+  <div class="mt-6 space-y-6">
+    <Figure
+      title="Kävijätapahtumat vuorokausittain"
+      description={`Yhtenäinen viiva on toteuma, katkoviiva mediaaniennuste ja vaalea alue sen p10 - p90 -väli. Ennusteen malli on ${modelLabel(model)}. Sinertävä tausta merkitsee vuorokautta jossa satoi vähintään ${formatDecimal(RAINY_DAY_MM)} mm, pystykatkoviiva pyhäpäivää.`}
+      footnote="Rajausvalitsin muuttaa näkyvää jaksoa. Ennuste alkaa aina havaintojen lopusta."
+    >
+      <Timeseries
+        client:visible
+        ariaLabel={`Aikasarja: ${venue.name}, kävijätapahtumat vuorokaudessa sekä 30 vuorokauden ennuste.`}
+        mode="day"
+        history={historyDaily}
+        forecast={forecastPoints}
+        rain={rainDays}
+        holidays={holidayDays}
+        initialRange={30}
+      />
+      <div slot="alternative">
+        <p class="mb-3 text-xs leading-5 text-ink-muted">
+          {`Jaksolla ${formatDate(venue.first_day)} - ${formatDate(venue.last_day)} kertyi ${visitorEvents(venue.visitors_total)}, keskimäärin ${formatInt(venue.mean_daily)} vuorokaudessa ja mediaanina ${formatInt(venue.median_daily)}. Vilkkain vuorokausi oli ${formatDate(venue.max_daily_date)}, ${visitorEvents(venue.max_daily)}. Sadepäiviä jaksolla oli ${formatInt(rainDays.length)} ja pyhäpäiviä ${formatInt(rows.filter((row) => row.is_holiday).length)}.`}
+        </p>
+        <TableScroll label={`${venue.name}: viimeiset 30 havaittua vuorokautta`}>
+          <table class="data-table">
+            <caption>{`${venue.name}: viimeiset 30 havaittua vuorokautta`}</caption>
+          <thead class="is-sticky">
+            <tr>
+              <th scope="col">Päivä</th>
+              <th scope="col" class="num">Kävijätapahtumat</th>
+              <th scope="col" class="num">Sisään</th>
+              <th scope="col" class="num">Ulos</th>
+              <th scope="col" class="num">Lämpötila</th>
+              <th scope="col" class="num">Sade</th>
+              <th scope="col">Huomiot</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              rows.slice(-30).map((row) => (
+                <tr>
+                  <th scope="row" class="nowrap">
+                    {formatDateWithWeekday(row.date)}
+                  </th>
+                  <td class="num">{formatInt(row.visitors_total)}</td>
+                  <td class="num muted">{formatInt(row.visitors_in)}</td>
+                  <td class="num muted">{formatInt(row.visitors_out)}</td>
+                  <td class="num muted">
+                    {row.temp_mean === undefined ? '-' : `${formatDecimal(row.temp_mean)} °C`}
+                  </td>
+                  <td class="num muted">
+                    {row.precip_sum === undefined ? '-' : `${formatDecimal(row.precip_sum)} mm`}
+                  </td>
+                  <td class="muted">
+                    {[row.is_holiday ? (row.holiday_name ?? 'pyhä') : null, row.is_complete ? null : 'vajaa vuorokausi']
+                      .filter(Boolean)
+                      .join(', ') || '-'}
+                  </td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+        </TableScroll>
+      </div>
+    </Figure>
+
+    <Figure
+      title="Kävijätapahtumat tunneittain"
+      description={`Tuntisarja kattaa viimeiset ${formatInt(hourly.days)} vuorokautta, ${formatDate(hourly.first_day)} alkaen. Sinertävä tausta merkitsee tuntia jolla satoi vähintään 0,1 mm.`}
+      footnote="Yöllä ja aukioloaikojen ulkopuolella luvut ovat aitoja nollia, eivät puuttuvaa dataa."
+    >
+      <Timeseries
+        client:visible
+        ariaLabel={`Aikasarja: ${venue.name}, kävijätapahtumat tunneittain viimeiset ${hourly.days} vuorokautta.`}
+        mode="hour"
+        history={historyHourly}
+        rain={rainHourList}
+        ranges={[
+          { label: '7 vrk', days: 7, description: 'Viimeiset 7 vuorokautta' },
+          { label: '30 vrk', days: 30, description: 'Viimeiset 30 vuorokautta' },
+          { label: '90 vrk', days: 90, description: 'Viimeiset 90 vuorokautta' },
+          { label: 'Kaikki', days: null, description: 'Koko tuntisarja' },
+        ]}
+        initialRange={7}
+      />
+      <div slot="alternative">
+        <p class="text-xs leading-5 text-ink-muted">
+          {`Tuntisarjassa on ${formatInt(series.ts.length)} tuntia ajalta ${formatDate(hourly.first_day)} - ${formatDate(hourly.last_day)}. Vilkkain yksittäinen tunti koko havaintojaksolla oli ${visitorEvents(venue.max_hourly)}. Sadetunteja ikkunassa on ${formatInt(rainHourList.length)}, eli ${formatDecimal((rainHourList.length / Math.max(1, series.ts.length)) * 100)} prosenttia. Tuntikohtaiset keskiarvot löytyvät viikonpäiväprofiilin taulukosta alta.`}
+        </p>
+      </div>
+    </Figure>
+
+    <Figure
+      title="Viikonpäivä ja tunti"
+      description={`Keskimääräiset kävijätapahtumat viikonpäivän ja tunnin mukaan koko raportoivalta jaksolta ${formatDate(profileWindow.first_day)} - ${formatDate(profileWindow.last_day)}, ${formatInt(profileWindow.days)} vuorokautta.`}
+      footnote="Kartta vierii vaakasuunnassa kapealla näytöllä. Ruutu jossa ei ole yhtään havaintoa on harmaa ja merkitty ristillä, aito nolla on skaalan vaalein sävy."
+    >
+      <Heatmap
+        client:visible
+        ariaLabel={`Lämpökartta: ${venue.name}, keskimääräiset kävijätapahtumat viikonpäivän ja tunnin mukaan.`}
+        cells={cells}
+        openHours={venue.open_hours}
+        placeholderHeight={300}
+      />
+      <div slot="alternative">
+        <p class="mb-3 text-xs leading-5 text-ink-muted">
+          {`Vilkkain ruutu on ${(() => {
+            const best = [...cells].sort((a, b) => (b.mean ?? 0) - (a.mean ?? 0))[0];
+            return best ? `${WEEKDAYS_SHORT[best.dow]} klo ${String(best.hour).padStart(2, '0')}:00, keskimäärin ${formatDecimal(best.mean ?? 0)} kävijätapahtumaa tunnissa` : 'ei tiedossa';
+          })()}. Taulukossa on kaikki 168 ruutua.`}
+        </p>
+        <TableScroll label={`${venue.name}: keskiarvo viikonpäivän ja tunnin mukaan`}>
+          <table class="data-table">
+            <caption>{`${venue.name}: keskiarvo viikonpäivän ja tunnin mukaan`}</caption>
+          <thead class="is-sticky">
+            <tr>
+              <th scope="col">Tunti</th>
+              {WEEKDAYS_SHORT.map((day) => <th scope="col" class="num">{day}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {
+              Array.from({ length: 24 }, (_, hour) => (
+                <tr>
+                  <th scope="row" class="num" style="text-align:left">
+                    {String(hour).padStart(2, '0')}:00
+                  </th>
+                  {
+                    WEEKDAYS_SHORT.map((_, dow) => {
+                      const cell = cells.find((entry) => entry.dow === dow && entry.hour === hour);
+                      return (
+                        <td class="num muted">
+                          {cell === undefined || cell.n === 0 ? 'ei havaintoja' : formatDecimal(cell.mean ?? 0)}
+                        </td>
+                      );
+                    })
+                  }
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+        </TableScroll>
+      </div>
+    </Figure>
+
+    <Figure
+      title="Sisääntulot suhteessa kapasiteettiin"
+      description={`Tunnin sisääntulot aukiolotunneittain viimeisiltä ${CAPACITY_WINDOW_DAYS} vuorokaudelta. Katkoviiva on kapasiteetti ${formatInt(venue.capacity)} henkilöä.`}
+      footnote="Tämä ei ole yhtäaikainen kävijämäärä. Viipymää ei mitata, joten sisääntulojen määrä tunnissa ei kerro kuinka moni oli paikalla samanaikaisesti. Luku kertoo kuormituksen tahdin, ei täyttöasteen."
+    >
+      <Lines
+        client:visible
+        ariaLabel={`Pylväskaavio: ${venue.name}, tunnin sisääntulot suhteessa kapasiteettiin.`}
+        xType="number"
+        xLabel="Tunti, Suomen aikaa →"
+        unit="sisääntuloa tunnissa"
+        reference={{ value: venue.capacity, label: `Kapasiteetti ${formatInt(venue.capacity)}` }}
+        series={[
+          {
+            name: 'Keskiarvo',
+            color: SERIES.history,
+            points: openCapacityRows.map((row) => ({ x: row.hour, y: row.mean })),
+          },
+          {
+            name: '95. persentiili',
+            color: SERIES.compare,
+            dash: '5 4',
+            points: openCapacityRows.map((row) => ({ x: row.hour, y: row.p95 })),
+          },
+        ]}
+      />
+      <div slot="alternative">
+        <p class="mb-3 text-xs leading-5 text-ink-muted">
+          {`Vilkkaimman tunnin sisääntulojen huippu jaksolla oli ${formatInt(peakArrivals)}. Kapasiteetti ylittyi ${formatInt(hoursOverCapacity)} tunnissa ${formatInt(observedHours)} havaitusta tunnista, eli ${formatDecimal((hoursOverCapacity / Math.max(1, observedHours)) * 100)} prosentissa.`}
+        </p>
+        <TableScroll label={`${venue.name}: sisääntulot tunneittain`} scrollY={false}>
+          <table class="data-table">
+            <caption>{`${venue.name}: sisääntulot tunneittain`}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Tunti</th>
+              <th scope="col" class="num">Keskiarvo</th>
+              <th scope="col" class="num">95. persentiili</th>
+              <th scope="col" class="num">Suurin</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              openCapacityRows.map((row) => (
+                <tr>
+                  <th scope="row" class="num" style="text-align:left">
+                    {String(row.hour).padStart(2, '0')}:00
+                  </th>
+                  <td class="num">{formatDecimal(row.mean)}</td>
+                  <td class="num">{formatDecimal(row.p95)}</td>
+                  <td class="num">{formatInt(row.max)}</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+        </TableScroll>
+      </div>
+    </Figure>
+
+    {
+      ticketRows.length > 0 && (
+        <Figure
+          title="Lippuvertailu"
+          description={`Myydyt liput ja kävijätapahtumat samalta jaksolta. Lippudata on ylläpidetty käsin, ja se kattaa ${formatInt(ticketRows.length)} vuorokautta ajalta ${formatDate(ticketRows[0]!.date)} - ${formatDate(ticketRows.at(-1)!.date)}.`}
+          footnote="Kaaviot on piirretty erikseen, koska suuruusluokat eroavat. Lippu ei ole sama asia kuin kävijätapahtuma: yksi lippu voi tuottaa useita tapahtumia, ja ryhmäliput kattavat monta henkilöä."
+        >
+          <div class="space-y-5">
+            <div>
+              <h3 class="mb-2 text-sm font-medium text-ink">Kävijätapahtumat</h3>
+              <Lines
+                client:visible
+                ariaLabel={`Aikasarja: ${venue.name}, kävijätapahtumat vuorokausittain lippuvertailua varten.`}
+                xType="date"
+                unit="kävijätapahtumaa"
+                showPoints={false}
+                series={[
+                  {
+                    name: 'Kävijätapahtumat',
+                    color: SERIES.history,
+                    points: ticketRows.map((row) => ({ x: row.date, y: row.visitors_total })),
+                  },
+                ]}
+                placeholderHeight={220}
+              />
+            </div>
+            <div>
+              <h3 class="mb-2 text-sm font-medium text-ink">Myydyt liput</h3>
+              <Lines
+                client:visible
+                ariaLabel={`Aikasarja: ${venue.name}, myydyt liput vuorokausittain.`}
+                xType="date"
+                unit="lippua"
+                showPoints={false}
+                series={[
+                  {
+                    name: 'Liput yhteensä',
+                    color: SERIES.accent,
+                    points: ticketRows.map((row) => ({ x: row.date, y: row.tickets_total ?? 0 })),
+                  },
+                  {
+                    name: 'Ryhmäliput',
+                    color: SERIES.light,
+                    dash: '5 4',
+                    points: ticketRows.map((row) => ({ x: row.date, y: row.groups_sold ?? 0 })),
+                  },
+                ]}
+                placeholderHeight={220}
+              />
+            </div>
+          </div>
+          <div slot="alternative">
+            <p class="mb-3 text-xs leading-5 text-ink-muted">
+              {`Jaksolla myytiin ${formatInt(ticketSum)} lippua ja kirjattiin ${visitorEvents(ticketVisitorSum)}. Suhde on ${eventsPerTicket === null ? 'ei laskettavissa' : `${formatDecimal(eventsPerTicket)} kävijätapahtumaa myytyä lippua kohti`}. Suhdetta ei pidä lukea kävijämääränä: osa kävijöistä tulee ilman lippua, ryhmälippu kattaa useita henkilöitä, ja jokainen käynti tuottaa sekä sisään- että ulosmenon.`}
+            </p>
+            <TableScroll label={`${venue.name}: liput ja kävijätapahtumat`}>
+              <table class="data-table">
+                <caption>{`${venue.name}: liput ja kävijätapahtumat, viimeiset 30 lipullista vuorokautta`}</caption>
+                <thead class="is-sticky">
+                  <tr>
+                    <th scope="col">Päivä</th>
+                    <th scope="col" class="num">Kävijätapahtumat</th>
+                    <th scope="col" class="num">Liput yhteensä</th>
+                    <th scope="col" class="num">Yksittäisliput</th>
+                    <th scope="col" class="num">Ryhmäliput</th>
+                    <th scope="col" class="num">Tapahtumaa / lippu</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {
+                    ticketRows.slice(-30).map((row) => (
+                      <tr>
+                        <th scope="row" class="nowrap">{formatDateWithWeekday(row.date)}</th>
+                        <td class="num">{formatInt(row.visitors_total)}</td>
+                        <td class="num">{formatInt(row.tickets_total ?? 0)}</td>
+                        <td class="num muted">{formatInt(row.tickets_sold ?? 0)}</td>
+                        <td class="num muted">{formatInt(row.groups_sold ?? 0)}</td>
+                        <td class="num muted">
+                          {(row.tickets_total ?? 0) === 0
+                            ? '-'
+                            : formatDecimal(row.visitors_total / (row.tickets_total ?? 1))}
+                        </td>
+                      </tr>
+                    ))
+                  }
+                </tbody>
+              </table>
+            </TableScroll>
+          </div>
+        </Figure>
+      )
+    }
+  </div>
+
+  <div class="mt-6 space-y-4">
+    <Callout title="Mitä luvut tarkoittavat">
+      <p>
+        <strong class="font-medium text-ink">visitors_total</strong> on sisään- ja ulosmenojen summa.
+        Yksi käynti tuottaa tyypillisesti kaksi tapahtumaa, joten luku ei ole uniikkien kävijöiden
+        määrä eikä sitä voi puolittaa suoraan käyntimääräksi: ovella kääntyminen, henkilökunta ja
+        useampi käynti samalla henkilöllä sekoittuvat samaan lukuun.
+      </p>
+      <p class="mt-2">
+        Sensori otettiin käyttöön {formatDate(venue.first_day)}. Sitä edeltävät nollat on rajattu
+        pois kaikista keskiarvoista ja profiileista, koska ne kertovat asentamattomasta laitteesta,
+        eivät tyhjästä tilasta.
+      </p>
+    </Callout>
+
+    {
+      other && (
+        <p class="text-sm text-ink-muted">
+          Vertaa toiseen venueen: <a class="underline" href={`/venue/${other.venue_id}`}>{other.name}</a>. Kaupungin
+          liikennelaskurin data on kontekstidataa eikä liity kumpaankaan venueen, katso{' '}
+          <a class="underline" href="/about">tietosivu</a>.
+        </p>
+      )
+    }
+  </div>
+</Layout>

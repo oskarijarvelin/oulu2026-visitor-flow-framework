@@ -1,0 +1,102 @@
+name: Deploy web
+
+# Rakentaa ja julkaisee staattisen sivuston Cloudflare Pagesiin jokaisella pushilla
+# mainiin. Pull requestit rakennetaan ja testataan, mutta niita ei julkaista.
+#
+# Build lukee data/processed/- ja data/forecasts/latest/-tiedostot repositoriosta.
+# Ne on siis oltava committoituna: paivittainen ajo (ingest ja forecast) committaa ne,
+# ja tama workflow julkaisee sivuston samasta datasta. Jos ingest-manifesti on yli
+# 48 tuntia vanha, build kaatuu tarkoituksella sen sijaan etta julkaisisi vanhaa dataa.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/web/**'
+      - 'data/processed/**'
+      - 'data/forecasts/latest/**'
+      - 'config/venues.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/deploy.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-web-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  build:
+    name: Build ja testit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Asenna riippuvuudet
+        run: npm ci
+
+      - name: Yksikkotestit ja skeeman validointi
+        run: npm test
+
+      - name: Rakenna sivusto
+        run: npm run build
+
+      - name: Asenna Playwrightin selain
+        run: npx playwright install --with-deps chromium
+        working-directory: packages/web
+
+      - name: Savutesti
+        run: npm run test:e2e
+
+      - name: Tallenna Playwrightin raportti epaonnistuessa
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: packages/web/playwright-report
+          retention-days: 7
+
+      - name: Tallenna kaannos julkaisua varten
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: packages/web/dist
+          retention-days: 1
+
+  deploy:
+    name: Julkaise Cloudflare Pagesiin
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.publish.outputs.deployment-url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Julkaise
+        id: publish
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: >-
+            pages deploy dist
+            --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT || 'oulu2026-visitor-flow' }}
+            --branch=main

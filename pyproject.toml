@@ -18,6 +18,16 @@ ingest = [
   "python-dateutil>=2.9",
   "pyarrow>=16.0",
 ]
+forecast = [
+  "pandas>=2.2",
+  "numpy>=1.26",
+  "scikit-learn>=1.5",
+  "pyarrow>=16.0",
+]
+prophet = [
+  "prophet>=1.1",
+  "xgboost>=2.0",
+]
 dev = [
   "pytest>=8.2",
   "ruff>=0.5",
@@ -27,15 +37,13 @@ dev = [
 ]
 
 [tool.setuptools]
-package-dir = { "" = "packages/ingest/src" }
-
-[tool.setuptools.packages.find]
-where = ["packages/ingest/src"]
+package-dir = { ovf_ingest = "packages/ingest/src/ovf_ingest", ovf_forecast = "packages/forecast/src/ovf_forecast" }
+packages = ["ovf_ingest", "ovf_ingest.clients", "ovf_forecast", "ovf_forecast.models"]
 
 [tool.ruff]
 line-length = 110
 target-version = "py312"
-src = ["packages/ingest/src", "packages/ingest/tests"]
+src = ["packages/ingest/src", "packages/ingest/tests", "packages/forecast/src", "packages/forecast/tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "N", "RUF"]
@@ -43,10 +51,16 @@ ignore = ["B008"]
 
 [tool.ruff.lint.per-file-ignores]
 "packages/ingest/tests/*" = ["S101"]
+"packages/forecast/tests/*" = ["S101"]
 
 [tool.mypy]
 python_version = "3.12"
-files = ["packages/ingest/src", "packages/ingest/tests"]
+files = ["packages/ingest/src", "packages/ingest/tests", "packages/forecast/src", "packages/forecast/tests"]
+# Both test packages have a conftest.py, which mypy cannot tell apart by module name.
+# The fixtures they hold are excluded; every other test module is still checked, and the
+# shared helpers live in the uniquely named support.py / synthetic.py next to them.
+exclude = "(^|/)conftest\\.py$"
+mypy_path = "packages/ingest/src:packages/forecast/src:packages/ingest/tests:packages/forecast/tests"
 strict = true
 plugins = []
 warn_unused_configs = true
@@ -56,10 +70,10 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 
 [[tool.mypy.overrides]]
-module = ["pandas.*", "pyarrow.*"]
+module = ["pandas.*", "pyarrow.*", "sklearn.*", "prophet.*", "xgboost.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-testpaths = ["packages/ingest/tests"]
-pythonpath = ["packages/ingest/src"]
+testpaths = ["packages/ingest/tests", "packages/forecast/tests"]
+pythonpath = ["packages/ingest/src", "packages/forecast/src"]
 addopts = "-q"

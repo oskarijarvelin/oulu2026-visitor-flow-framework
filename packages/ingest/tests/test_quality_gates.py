@@ -6,7 +6,6 @@ from datetime import date, timedelta
 
 import pandas as pd
 
-from conftest import helsinki_midnight_utc
 from ovf_ingest.config import AppConfig
 from ovf_ingest.normalize import build_visitors_daily, build_visitors_hourly, build_weather_hourly, tz_of
 from ovf_ingest.validate import (
@@ -19,6 +18,7 @@ from ovf_ingest.validate import (
     coverage_report,
     run_quality_gates,
 )
+from support import helsinki_midnight_utc
 
 HELSINKI = tz_of("Europe/Helsinki")
 FIRST = date(2026, 5, 1)

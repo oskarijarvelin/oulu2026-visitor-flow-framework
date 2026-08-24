@@ -7,7 +7,6 @@ from datetime import UTC, date, datetime, timedelta
 import pandas as pd
 import pytest
 
-from conftest import helsinki_midnight_utc
 from ovf_ingest.normalize import (
     build_calendar_daily,
     build_traffic_hourly,
@@ -19,6 +18,7 @@ from ovf_ingest.normalize import (
     normalize_tickets,
     tz_of,
 )
+from support import helsinki_midnight_utc
 
 HELSINKI = tz_of("Europe/Helsinki")
 DAY = date(2026, 5, 1)

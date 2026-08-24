@@ -1,0 +1,285 @@
+---
+import Backtest from '../charts/backtest.ts';
+import Lines from '../charts/lines.ts';
+import Callout from '../components/Callout.astro';
+import TableScroll from '../components/TableScroll.astro';
+import Figure from '../components/Figure.astro';
+import Layout from '../components/Layout.astro';
+import forecastData from '../data/forecast.json';
+import metaData from '../data/meta.json';
+import qualityData from '../data/quality.json';
+import { modelStyle } from '../lib/colors.ts';
+import { toBacktestRows } from '../lib/series.ts';
+import { formatDate, formatDecimal, formatInt } from '../lib/format.ts';
+import { horizonBucketLabel, modelLabel, translateWarnings } from '../lib/labels.ts';
+import type { ForecastData, Meta, QualityData, VenueQuality } from '../lib/types.ts';
+
+const site = metaData as Meta;
+const quality = qualityData as unknown as QualityData;
+const forecast = forecastData as unknown as ForecastData;
+const defaultModel = forecast.default_model;
+
+const panels = site.venues.map((venue) => {
+  const venueQuality = quality.venues[String(venue.venue_id)]!;
+  const allModels = [...venueQuality.models, ...venueQuality.benchmarks];
+  return {
+    venue,
+    q: venueQuality,
+    allModels,
+    maeSeries: allModels
+      .filter((model) => venueQuality.mae_by_horizon[model])
+      .map((model) => {
+        const style = modelStyle(model);
+        return {
+          name: modelLabel(model),
+          color: style.color,
+          dash: style.dash,
+          points: (venueQuality.mae_by_horizon[model] ?? []).map((point) => ({
+            x: point.horizon_days,
+            y: point.mae,
+          })),
+        };
+      }),
+    backtestPoints: venueQuality.models.flatMap((model) =>
+      toBacktestRows(venueQuality.backtest[model]).map((row) => ({ ...row, model })),
+    ),
+  };
+});
+
+/**
+ * Suhdeluvut vertailukohtiin poimitaan valmiiksi. Avain on muotoa
+ * `mae_ratio_vs_<vertailukohta>` sellaisena kuin osio 3 sen kirjoittaa.
+ */
+function benchmarkRatio(
+  comparison: VenueQuality['benchmark_comparison'],
+  model: string,
+  bucket: string,
+  benchmark: string,
+): number | null {
+  const value = comparison[model]?.[bucket]?.['mae_ratio_vs_' + benchmark];
+  return typeof value === 'number' ? value : null;
+}
+
+const doNotTrust = translateWarnings(panels[0]!.q.do_not_trust);
+const lowCoverage = panels.flatMap(({ venue, q }) =>
+  Object.entries(q.metrics).flatMap(([model, buckets]) =>
+    Object.entries(buckets)
+      .filter(([, metrics]) => metrics.coverage_80 < 0.7)
+      .map(([bucket, metrics]) => ({ venue: venue.name, model, bucket, coverage: metrics.coverage_80 })),
+  ),
+);
+---
+
+<Layout
+  title="Laatu"
+  heading="Mallien laatu: mitä backtest kertoo"
+  description="Backtest-mittarit, ennuste vastaan toteuma, peittävyys ja vertailu yksinkertaisiin vertailukohtiin."
+  lead={`Kaikki tämän sivun luvut on mitattu, ei arvioitu. Ne tulevat rolling origin -backtestistä, jossa malli koulutetaan yhä uudelleen menneisiin origoihin ja ennustetaan 30 vuorokautta eteenpäin. Peittävyys mitataan jättämällä pisteytettävä origo pois välien sovituksesta, joten se ei ole määritelmällisesti 80 prosenttia.`}
+>
+  <div class="mt-6">
+    <Callout tone="warning" title="Suhteuta luvut tasoon">
+      <p>
+        {`Perusmallin paras MAE on venue 1:llä ${formatDecimal(quality.venues['1']?.metrics[defaultModel]?.['1-7']?.mae ?? 0)} kävijätapahtumaa vuorokaudessa, kun venuen keskimääräinen vuorokausi on ${formatInt(site.venues[0]!.mean_daily)}. Virhe on siis noin ${formatInt(((quality.venues['1']?.metrics[defaultModel]?.['1-7']?.mae ?? 0) / Math.max(1, site.venues[0]!.mean_daily)) * 100)} prosenttia tasosta. Nämä ennusteet kertovat viikkorytmin ja karkean tason, eivät yksittäisen vuorokauden kävijämäärää.`}
+      </p>
+    </Callout>
+  </div>
+
+  <div class="mt-6 space-y-6">
+    {
+      panels.map(({ venue, q, maeSeries, backtestPoints }) => (
+        <div class="space-y-6">
+          <h2 class="text-xl font-semibold tracking-tight text-ink">{venue.name}</h2>
+          <p class="text-sm leading-6 text-ink-muted">
+            {`${formatInt(q.n_training_days)} koulutusvuorokautta, ${formatInt(q.n_origins)} origoa, backtest-ikkuna ${formatDate(q.backtest_window[0])} - ${formatDate(q.backtest_window[1])}. Koulutus päättyy aina origoon, myös tasopiirteiden ja tuntiprofiilin osalta.`}
+          </p>
+
+          <Figure
+            title="MAE horisontin mukaan"
+            level={3}
+            description="Keskimääräinen itseisvirhe sen mukaan kuinka monta vuorokautta ennuste on origosta. Mukana myös kaksi yksinkertaista vertailukohtaa: sama viikonpäivä viimeksi ja 28 vuorokauden liukuva keskiarvo."
+            footnote="Jokainen piste on keskiarvo vain 8-10 havainnosta, joten käyrät heiluvat. Merkitsevä on taso ja mallien keskinäinen järjestys, ei yksittäinen piikki."
+          >
+            <Lines
+              client:visible
+              ariaLabel={`Viivakaavio: ${venue.name}, keskimääräinen itseisvirhe horisontin funktiona neljälle mallille.`}
+              xType="number"
+              xLabel="Horisontti, vuorokautta origosta →"
+              unit="kävijätapahtumaa"
+              showPoints={false}
+              series={maeSeries}
+              placeholderHeight={260}
+            />
+            <div slot="alternative">
+              <TableScroll label={`${venue.name}: mittarit malleittain ja horisonttikoreittain`}>
+          <table class="data-table">
+            <caption>{`${venue.name}: mittarit malleittain ja horisonttikoreittain`}</caption>
+                <thead class="is-sticky">
+                  <tr>
+                    <th scope="col">Malli</th>
+                    <th scope="col">Horisontti</th>
+                    <th scope="col" class="num">MAE</th>
+                    <th scope="col" class="num">RMSE</th>
+                    <th scope="col" class="num">sMAPE</th>
+                    <th scope="col" class="num">Harha</th>
+                    <th scope="col" class="num">Peittävyys 80 %</th>
+                    <th scope="col" class="num">n</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(q.metrics).flatMap(([model, buckets]) =>
+                    Object.entries(buckets).map(([bucket, metrics]) => (
+                      <tr>
+                        <th scope="row">{modelLabel(model)}</th>
+                        <td>{horizonBucketLabel(bucket)}</td>
+                        <td class="num">{formatDecimal(metrics.mae)}</td>
+                        <td class="num">{formatDecimal(metrics.rmse)}</td>
+                        <td class="num">{formatDecimal(metrics.smape)} %</td>
+                        <td class="num">
+                          {metrics.bias > 0 ? '+' : ''}
+                          {formatDecimal(metrics.bias)}
+                        </td>
+                        <td class:list={['num', metrics.coverage_80 < 0.7 && 'warn']}>
+                          {formatDecimal(metrics.coverage_80 * 100, 0)} %
+                        </td>
+                        <td class="num muted">{metrics.n}</td>
+                      </tr>
+                    )),
+                  )}
+                </tbody>
+              </table>
+        </TableScroll>
+            </div>
+          </Figure>
+
+          <Figure
+            title="Ennuste vastaan toteuma"
+            level={3}
+            description="Jokainen piste on yksi ennuste ja sitä vastaava toteuma backtestissä. Lävistäjä on täydellinen osuma: pisteen etäisyys siitä on virhe. Väri ja symboli kertovat horisonttikorin."
+            footnote="Ristit ovat pareja joissa toteuma jäi p10 - p90 -välin ulkopuolelle. Tavoitteena on että näitä on 20 prosenttia."
+          >
+            <Backtest
+              client:visible
+              ariaLabel={`Hajontakuvio: ${venue.name}, ennuste vaaka-akselilla ja toteuma pystyakselilla backtestissä.`}
+              points={backtestPoints}
+              models={q.models.map((model) => ({ name: model, label: modelLabel(model) }))}
+              defaultModel={defaultModel}
+              buckets={q.horizon_buckets}
+              placeholderHeight={320}
+            />
+            <div slot="alternative">
+              <p class="mb-3 text-xs leading-5 text-ink-muted">
+                {`Backtestissä on ${formatInt(backtestPoints.length)} ennuste ja toteuma -paria ${formatInt(q.n_origins)} origosta. Peittävyys ja muut mittarit ovat yllä olevassa taulukossa. Harha on lähes kaikkialla positiivinen: mallit yliarvioivat, koska kävijämäärä laskee kevään mittaan ja origoon lukittu taso ei seuraa laskua.`}
+              </p>
+              <TableScroll label={`${venue.name}: ennustevälien kertoimet horisonttikoreittain`} scrollY={false}>
+          <table class="data-table">
+            <caption>{`${venue.name}: ennustevälien kertoimet horisonttikoreittain`}</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Malli</th>
+                    <th scope="col">Horisontti</th>
+                    <th scope="col" class="num">p10 kerroin</th>
+                    <th scope="col" class="num">p90 kerroin</th>
+                    <th scope="col" class="num">n</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {q.models.flatMap((model) =>
+                    (q.interval_bands[model] ?? []).map((band) => (
+                      <tr>
+                        <th scope="row">{modelLabel(model)}</th>
+                        <td>{horizonBucketLabel(band.bucket)}</td>
+                        <td class="num">{formatDecimal(band.q10, 2)}</td>
+                        <td class="num">{formatDecimal(band.q90, 2)}</td>
+                        <td class="num muted">{band.n}</td>
+                      </tr>
+                    )),
+                  )}
+                </tbody>
+              </table>
+        </TableScroll>
+            </div>
+          </Figure>
+
+          <section class="rounded-lg border border-line bg-surface p-4 sm:p-5">
+            <h3 class="text-base font-semibold tracking-tight text-ink">Voittaako malli vertailukohdat</h3>
+            <p class="mt-1 text-sm leading-6 text-ink-muted">
+              Suhdeluku alle yhden tarkoittaa että malli on vertailukohtaa parempi. Vertailukohdat ovat
+              tarkoituksella tyhmiä: jos malli ei voita niitä, sitä ei kannata ylläpitää.
+            </p>
+            <div class="mt-4">
+              <TableScroll label={`${venue.name}: suhde vertailukohtiin`} scrollY={false}>
+          <table class="data-table">
+            <caption>{`${venue.name}: suhde vertailukohtiin`}</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Malli</th>
+                    <th scope="col">Horisontti</th>
+                    {q.benchmarks.map((benchmark) => (
+                      <th scope="col" class="num">MAE-suhde: {modelLabel(benchmark)}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {q.models.flatMap((model) =>
+                    q.horizon_buckets.map((bucket) => (
+                      <tr>
+                        <th scope="row">{modelLabel(model)}</th>
+                        <td>{horizonBucketLabel(bucket)}</td>
+                        {q.benchmarks
+                          .map((benchmark) => benchmarkRatio(q.benchmark_comparison, model, bucket, benchmark))
+                          .map((value) => (
+                            <td class:list={['num', value !== null && value >= 1 && 'warn']}>
+                              {value === null ? '-' : formatDecimal(value, 2)}
+                            </td>
+                          ))}
+                      </tr>
+                    )),
+                  )}
+                </tbody>
+              </table>
+        </TableScroll>
+            </div>
+          </section>
+        </div>
+      ))
+    }
+  </div>
+
+  <section aria-labelledby="rajoitteet" class="mt-8">
+    <h2 id="rajoitteet" class="text-lg font-semibold tracking-tight text-ink">Tunnetut rajoitteet</h2>
+    <p class="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">
+      Nämä on kirjattu jokaisen venuen metrics.json-tiedoston kenttään do_not_trust. Ne eivät ole
+      arvauksia siitä mikä voisi mennä pieleen, vaan lista tilanteista joissa mitattu tarkkuus ei päde.
+    </p>
+    <ol class="mt-4 list-decimal space-y-2 pl-6 text-sm leading-6 text-ink-muted">
+      {doNotTrust.map((item) => <li>{item}</li>)}
+      {
+        lowCoverage.length > 0 && (
+          <li>
+            Peittävyys jäi alle 70 prosentin näissä:{' '}
+            {lowCoverage
+              .map(
+                (entry) =>
+                  `${entry.venue}, ${modelLabel(entry.model)}, ${horizonBucketLabel(entry.bucket)} (${formatDecimal(entry.coverage * 100, 0)} %)`,
+              )
+              .join('; ')}
+            . Näiden ennustevälit ovat liian kapeat.
+          </li>
+        )
+      }
+      <li>
+        Vertailukohdat ovat lähellä. 28 vuorokauden liukuva keskiarvo, joka sivuuttaa viikonpäivän
+        kokonaan, jää lähihorisontilla vain muutaman prosentin perusmallista. Suurin osa mallin
+        arvosta on viikkorytmissä.
+      </li>
+      <li>
+        Backtest käyttää horisonteilla 1-16 toteutunutta säätä, kun tuotanto käyttää sääennustetta.
+        Sääennusteen oma virhe ei siis näy näissä luvuissa. Tämä on tiedostettu optimismi.
+      </li>
+      <li>
+        Kumpikaan malli ei opi vuosikausivaihtelua, koska aineistossa ei ole yhtään täyttä vuotta.
+        Vuodenaikapiirteet mittaavat tässä kevään kulkua, eivät vuosikautta.
+      </li>
+    </ol>
+  </section>
+</Layout>

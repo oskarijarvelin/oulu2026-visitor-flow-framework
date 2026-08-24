@@ -6,7 +6,6 @@ from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
-from conftest import load_fixture
 from ovf_ingest.clients.ecocounter import build_site_data_query, validate_enum
 from ovf_ingest.normalize import (
     format_local,
@@ -18,6 +17,7 @@ from ovf_ingest.normalize import (
     tz_of,
     weather_offset,
 )
+from support import load_fixture
 
 HELSINKI = tz_of("Europe/Helsinki")
 

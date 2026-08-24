@@ -1,61 +1,61 @@
 {
-  "generated_at": "2026-08-23T19:51:52Z",
+  "generated_at": "2026-08-24T10:31:57Z",
   "pipeline": "ingest",
   "version": "1.0.0",
   "sources": [
     {
       "name": "jaskaretail",
       "status": "ok",
-      "rows": 13632,
+      "rows": 22656,
       "window": [
         "2026-01-01",
-        "2026-05-22"
+        "2026-08-24"
       ]
     },
     {
       "name": "open-meteo",
       "status": "ok",
-      "rows": 11998,
+      "rows": 12046,
       "window": [
         "2026-01-01",
-        "2026-09-07"
+        "2026-09-08"
       ]
     },
     {
       "name": "eco-counter",
       "status": "ok",
-      "rows": 13628,
+      "rows": 22612,
       "window": [
         "2026-01-01",
-        "2026-05-22"
+        "2026-08-24"
       ]
     },
     {
       "name": "tickets",
       "status": "ok",
-      "rows": 249
+      "rows": 444
     },
     {
       "name": "calendar",
       "status": "ok",
-      "rows": 250
+      "rows": 251
     }
   ],
   "coverage": {
     "visitors_hourly": {
       "first": "2025-12-31T22:00:00Z",
-      "last": "2026-05-22T20:00:00Z",
+      "last": "2026-08-24T20:00:00Z",
       "missing_hours": 0
     },
     "weather_hourly": {
       "first": "2025-12-31T22:00:00Z",
-      "last": "2026-09-07T20:00:00Z",
-      "missing_hours": 12
+      "last": "2026-09-08T20:00:00Z",
+      "missing_hours": 36
     },
     "traffic_hourly": {
       "first": "2025-12-31T22:00:00Z",
-      "last": "2026-05-22T20:00:00Z",
-      "missing_hours": 0
+      "last": "2026-08-24T20:00:00Z",
+      "missing_hours": 10
     }
   },
   "quality_gates": {

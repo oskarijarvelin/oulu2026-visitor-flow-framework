@@ -1,0 +1,54 @@
+{
+  "generated_at": "2026-08-24T10:33:02Z",
+  "pipeline": "forecast",
+  "version": "1.0.0",
+  "models": [
+    "baseline",
+    "prophet_xgb"
+  ],
+  "skipped_models": [],
+  "venues": [
+    {
+      "venue_id": 1,
+      "name": "Pekuri",
+      "origin_date": "2026-08-24",
+      "n_training_days": 215,
+      "n_origins": 12,
+      "models": [
+        "baseline",
+        "prophet_xgb"
+      ],
+      "horizon_days": 30,
+      "hourly_days": 7,
+      "warnings": [
+        "The maintained calendar does not reach 2026-09-09; those days assume no holiday."
+      ]
+    },
+    {
+      "venue_id": 2,
+      "name": "Kaupungintalo",
+      "origin_date": "2026-08-24",
+      "n_training_days": 229,
+      "n_origins": 12,
+      "models": [
+        "baseline",
+        "prophet_xgb"
+      ],
+      "horizon_days": 30,
+      "hourly_days": 7,
+      "warnings": [
+        "The maintained calendar does not reach 2026-09-09; those days assume no holiday."
+      ]
+    }
+  ],
+  "ingest": {
+    "generated_at": "2026-08-24T10:31:57Z",
+    "quality_gates": {
+      "passed": true,
+      "warnings": []
+    }
+  },
+  "warnings": [
+    "The maintained calendar does not reach 2026-09-09; those days assume no holiday."
+  ]
+}

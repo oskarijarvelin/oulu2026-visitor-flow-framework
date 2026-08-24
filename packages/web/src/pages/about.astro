@@ -1,0 +1,284 @@
+---
+import Callout from '../components/Callout.astro';
+import Layout from '../components/Layout.astro';
+import TableScroll from '../components/TableScroll.astro';
+import forecastData from '../data/forecast.json';
+import metaData from '../data/meta.json';
+import { formatDate, formatDecimal, formatHourRanges, formatInt, formatUtcAsHelsinki } from '../lib/format.ts';
+import { modelLabel, sourceLabel, sourceStatusLabel, weatherSourceLabel } from '../lib/labels.ts';
+import { RAINY_DAY_MM } from '../lib/weather.ts';
+import type { ForecastData, Meta } from '../lib/types.ts';
+
+const site = metaData as Meta;
+const forecast = forecastData as unknown as ForecastData;
+---
+
+<Layout
+  title="Tietoja"
+  heading="Mistä data tulee ja mitä luvut tarkoittavat"
+  description="Lähteet, käsitteet, rajoitteet ja se mitä luvut eivät tarkoita."
+  lead="Tämä sivusto on staattinen. Kaikki data on laskettu valmiiksi build-aikana, eikä selain hae mitään ajon aikana. Sivusto rakennetaan uudelleen jokaisen datahaun jälkeen."
+>
+  <div class="mt-8 space-y-8">
+    <section aria-labelledby="kasitteet">
+      <h2 id="kasitteet" class="text-lg font-semibold tracking-tight text-ink">Keskeiset käsitteet</h2>
+      <dl class="mt-4 space-y-4 text-sm leading-6">
+        <div class="rounded-lg border border-line bg-surface p-4">
+          <dt class="font-medium text-ink">Kävijätapahtuma, visitors_total</dt>
+          <dd class="mt-1 text-ink-muted">
+            Sisään- ja ulosmenojen summa. Yksi käynti tuottaa tyypillisesti kaksi tapahtumaa: yhden
+            sisään ja yhden ulos. Luku <strong class="font-medium text-ink">ei ole</strong> uniikkien
+            kävijöiden määrä, eikä sitä voi puolittaa käyntimääräksi: ovella kääntyminen, henkilökunnan
+            kulku ja saman henkilön useampi käynti kirjautuvat kaikki samaan lukuun. Sarake on tarkoituksella
+            säilytetty summana, koska laskuri mittaa juuri sitä.
+          </dd>
+        </div>
+        <div class="rounded-lg border border-line bg-surface p-4">
+          <dt class="font-medium text-ink">Aito nolla ja puuttuva havainto</dt>
+          <dd class="mt-1 text-ink-muted">
+            Tuntirivillä on sarake <code class="rounded bg-canvas px-1">is_imputed</code>, joka kertoo
+            onko rivi haettu rajapinnasta vai täytetty nollalla. Suljettu tunti on aito nolla.
+            Lämpökartassa nämä erotetaan toisistaan: aito nolla saa väriskaalan vaaleimman sävyn,
+            havainnoton ruutu piirretään harmaana ja merkitään ristillä.
+          </dd>
+        </div>
+        <div class="rounded-lg border border-line bg-surface p-4">
+          <dt class="font-medium text-ink">Sensorin käyttöönotto</dt>
+          <dd class="mt-1 text-ink-muted">
+            {
+              site.venues
+                .map((venue) => `${venue.name} raportoi ${formatDate(venue.first_day)} alkaen`)
+                .join(', ')
+            }. Sitä edeltävät nollat kertovat asentamattomasta laitteesta, eivät tyhjästä tilasta.
+            Ne on rajattu pois kaikista keskiarvoista, profiileista ja ennustemallin koulutuksesta.
+          </dd>
+        </div>
+        <div class="rounded-lg border border-line bg-surface p-4">
+          <dt class="font-medium text-ink">Ennustevälin p10 ja p90</dt>
+          <dd class="mt-1 text-ink-muted">
+            Ennustejakauman kymmenes ja yhdeksäskymmenes persentiili. Ne on laskettu mitatusta
+            backtest-virheestä, eivät mallin sisäisistä oletuksista. Väli on leveä, ja se on
+            rehellinen kuvaus siitä mitä neljän ja puolen kuukauden aineistolla voi sanoa. Ennustetta
+            ei esitetä tällä sivustolla koskaan yhtenä lukuna ilman väliä.
+          </dd>
+        </div>
+        <div class="rounded-lg border border-line bg-surface p-4">
+          <dt class="font-medium text-ink">Sadepäivä ja sadetunti</dt>
+          <dd class="mt-1 text-ink-muted">
+            Vuorokausi on sateinen kun sademäärä on vähintään {formatDecimal(RAINY_DAY_MM)} mm. Tunti
+            on sadetunti kun sademäärä on vähintään 0,1 mm. Vuorokauden kynnys on sama kuin
+            ennustemallin piirteellä <code class="rounded bg-canvas px-1">is_rainy_day</code>, jotta
+            sivusto ja malli puhuvat samasta säästä.
+          </dd>
+        </div>
+        <div class="rounded-lg border border-line bg-surface p-4">
+          <dt class="font-medium text-ink">Kapasiteetti</dt>
+          <dd class="mt-1 text-ink-muted">
+            Venuekohtainen kapasiteetti on {site.venues.map((venue) => `${venue.name} ${formatInt(venue.capacity)}`).join(', ')} henkilöä.
+            Sivusto vertaa siihen tunnin sisääntuloja. Se ei ole täyttöaste: viipymää ei mitata, joten
+            yhtäaikaista kävijämäärää ei voi laskea tästä datasta.
+          </dd>
+        </div>
+      </dl>
+    </section>
+
+    <section aria-labelledby="lahteet">
+      <h2 id="lahteet" class="text-lg font-semibold tracking-tight text-ink">Lähteet</h2>
+      <p class="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">
+        Viimeisin haku {formatUtcAsHelsinki(site.ingest.generated_at)}, ingest-versio {site.ingest.version}.
+      </p>
+      <div class="mt-4">
+        <TableScroll label="Datalähteet ja niiden tila" scrollY={false}>
+          <table class="data-table">
+            <caption>Datalähteet ja niiden tila viimeisimmässä ajossa</caption>
+            <thead>
+              <tr>
+                <th scope="col">Lähde</th>
+                <th scope="col">Tila</th>
+                <th scope="col" class="num">Rivejä</th>
+                <th scope="col">Jakso</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                site.ingest.sources.map((source) => (
+                  <tr>
+                    <th scope="row">{sourceLabel(source.name)}</th>
+                    <td class:list={[source.status !== 'ok' && 'warn']}>{sourceStatusLabel(source.status)}</td>
+                    <td class="num">{source.rows === undefined ? '-' : formatInt(source.rows)}</td>
+                    <td class="muted">
+                      {source.window ? `${formatDate(source.window[0])} - ${formatDate(source.window[1])}` : '-'}
+                    </td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </TableScroll>
+      </div>
+
+      <ul class="mt-4 space-y-2 text-sm leading-6 text-ink-muted">
+        <li>
+          <strong class="font-medium text-ink">Kävijälaskurit</strong> tulevat Jaskaretailin
+          IoT-rajapinnasta tunnin tarkkuudella, erikseen sisään ja ulos.
+        </li>
+        <li>
+          <strong class="font-medium text-ink">Sää</strong> tulee Open-Meteosta. Toteutunut sää on
+          arkistodataa, tulevaisuus on sääennustetta enintään
+          {' '}{forecast.venues[String(site.venues[0]!.venue_id)]?.forecast_weather_days ?? 16} vuorokautta
+          eteenpäin. Sen jälkeen käytetään klimatologiaa eli kymmenen vuoden keskiarvoa.
+        </li>
+        <li>
+          <strong class="font-medium text-ink">Lipunmyynti</strong> on käsin ylläpidetty CSV-tiedosto.
+          Se ei päivity automaattisesti eikä kata kaikkia päiviä.
+        </li>
+        <li>
+          <strong class="font-medium text-ink">Pyhäkalenteri</strong> on ylläpidetty tiedosto, joka
+          kattaa Suomen arkipyhät.
+        </li>
+        <li>
+          <strong class="font-medium text-ink">Liikennelaskuri</strong> on Oulun liikenteen
+          Eco-Counter-rajapinta. Katso alla oleva huomautus.
+        </li>
+      </ul>
+    </section>
+
+    {
+      site.traffic && (
+        <section aria-labelledby="liikenne">
+          <h2 id="liikenne" class="text-lg font-semibold tracking-tight text-ink">
+            Liikennedata on kontekstidataa
+          </h2>
+          <Callout tone="warning">
+            <p>
+              Laskuripiste <strong class="font-medium text-ink">{site.traffic.site_name}</strong>{' '}
+              (tunniste {site.traffic.site_id}) on yksi mittauspiste Oulussa. Se mittaa jalankulkua ja
+              pyöräilyä kadulla, ei kummankaan venuen kävijöitä.
+            </p>
+            <p class="mt-2">
+              Sitä <strong class="font-medium text-ink">ei yhdistetä</strong> venuekohtaiseksi
+              kävijämittariksi, eikä se ole venue 2:n dataa. Aiemmassa sovelluksessa liikennedata oli
+              kytketty venueen, mikä oli harhaanjohtavaa. Tässä se on omana sarjanaan ja merkitty
+              kontekstidataksi. Se auttaa arvioimaan liikkuuko kaupungissa yleisesti tavallista
+              enemmän vai vähemmän, ei sitä montako ihmistä kävi venuella.
+            </p>
+            <p class="mt-2">
+              Jaksolla {formatDate(site.traffic.first_day)} - {formatDate(site.traffic.last_day)}:
+              {' '}{formatInt(site.traffic.pedestrians)} jalankulkijaa ja {formatInt(site.traffic.cyclists)}
+              {' '}pyöräilijää, {formatInt(site.traffic.hours)} mitattua tuntia.
+            </p>
+          </Callout>
+        </section>
+      )
+    }
+
+    <section aria-labelledby="ennuste">
+      <h2 id="ennuste" class="text-lg font-semibold tracking-tight text-ink">Ennusteesta</h2>
+      <p class="mt-2 max-w-3xl text-sm leading-6 text-ink-muted">
+        Tuotantomalli on {modelLabel(forecast.default_model)}. Vertailukohtana ajetaan
+        {' '}{forecast.models.filter((model) => model !== forecast.default_model).map(modelLabel).join(', ')},
+        jonka tulokset näkyvät <a class="underline" href="/forecast">ennustesivulla</a> ja
+        {' '}<a class="underline" href="/quality">laatusivulla</a>. Molemmat mallit ennustavat
+        päivätasolla; tuntitaso syntyy yhteisestä tuntiprofiilista, joten tuntiennusteiden summa on
+        täsmälleen päiväennuste.
+      </p>
+      <div class="mt-4">
+        <TableScroll label="Ennusteen perustiedot" scrollY={false}>
+          <table class="data-table">
+            <caption>Ennusteen perustiedot venueittain</caption>
+            <thead>
+              <tr>
+                <th scope="col">Venue</th>
+                <th scope="col">Origo</th>
+                <th scope="col" class="num">Horisontti</th>
+                <th scope="col">Sään lähde, lähivuorokaudet</th>
+                <th scope="col">Sään lähde, loppuhorisontti</th>
+                <th scope="col">Aukiolo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                site.venues.map((venue) => (
+                  <tr>
+                    <th scope="row">{venue.name}</th>
+                    <td class="muted">{formatDate(venue.origin_date)}</td>
+                    <td class="num">{site.forecast.horizon_days} vrk</td>
+                    <td class="muted">
+                      vrk 1-{forecast.venues[String(venue.venue_id)]?.forecast_weather_days ?? 16}:{' '}
+                      {weatherSourceLabel('forecast')}
+                    </td>
+                    <td class="muted">
+                      vrk {(forecast.venues[String(venue.venue_id)]?.forecast_weather_days ?? 16) + 1}-
+                      {site.forecast.horizon_days}: {weatherSourceLabel('climatology')}
+                    </td>
+                    <td class="muted">klo {formatHourRanges(venue.open_hours)}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </TableScroll>
+      </div>
+    </section>
+
+    <section aria-labelledby="ei-tarkoita">
+      <h2 id="ei-tarkoita" class="text-lg font-semibold tracking-tight text-ink">
+        Mitä luvut eivät tarkoita
+      </h2>
+      <ul class="mt-4 space-y-3 text-sm leading-6 text-ink-muted">
+        <li>
+          <strong class="font-medium text-ink">Kävijätapahtuma ei ole kävijä.</strong> Se on
+          laskurin havainto ovella. Kahdella tapahtumalla jakaminen antaa karkean arvion käynneistä,
+          mutta se on arvio eikä mittaus.
+        </li>
+        <li>
+          <strong class="font-medium text-ink">Sään ja kävijämäärän yhteys ei ole syysuhde.</strong>{' '}
+          Aineisto kattaa tammikuusta toukokuuhun. Sinä aikana muuttuu sään lisäksi kaikki muukin:
+          ohjelmisto, koulujen lomat, valoisuus ja matkailukausi. Näitä ei voi erottaa toisistaan
+          tällä aineistolla.
+        </li>
+        <li>
+          <strong class="font-medium text-ink">Ennuste ei tunne tulevia tapahtumia.</strong> Malli
+          näkee menneet piikit datassa mutta ei tiedä ensi viikon konsertista. Tämä on suurin
+          yksittäinen virhelähde.
+        </li>
+        <li>
+          <strong class="font-medium text-ink">Ennuste ei ole tarkka yksittäiselle vuorokaudelle.</strong>{' '}
+          Se kertoo viikkorytmin ja karkean tason. Mitatut virheet ja niiden suuruus suhteessa tasoon
+          ovat <a class="underline" href="/quality">laatusivulla</a>.
+        </li>
+        <li>
+          <strong class="font-medium text-ink">Kapasiteettivertailu ei ole täyttöaste.</strong>{' '}
+          Viipymää ei mitata.
+        </li>
+        <li>
+          <strong class="font-medium text-ink">Liput eivät ole kävijöitä.</strong> Ryhmälippu kattaa
+          useita henkilöitä, ja osa kävijöistä tulee ilman lippua.
+        </li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="tekninen">
+      <h2 id="tekninen" class="text-lg font-semibold tracking-tight text-ink">Tekniset tiedot</h2>
+      <ul class="mt-4 space-y-2 text-sm leading-6 text-ink-muted">
+        <li>
+          Sivusto on staattinen Astro-sivusto. Data paketoidaan JSONiksi build-aikana, eikä selain
+          hae mitään ajon aikana. Ei palvelinreittejä, ei rajapintoja, ei ulkoisia skriptejä.
+        </li>
+        <li>
+          Build kaatuu jos ingest-manifesti on yli 48 tuntia vanha, jos ennustetiedostot puuttuvat tai
+          jos syötetiedostojen sarakkeet eivät vastaa odotettua. Vanhaa dataa ei julkaista oikeana.
+        </li>
+        <li>
+          Kaikki ajat ovat Suomen aikaa. Kesäajan vaihtuminen on käsitelty jo aineiston puolella:
+          paikallinen vuorokausi voi olla 23 tai 25 tuntia, ja tuntiosuudet normalisoidaan sille
+          tuntijoukolle joka päivällä oikeasti on.
+        </li>
+        <li>
+          Sivusto rakennettiin {formatUtcAsHelsinki(site.built_at)}, ingest-manifesti oli silloin
+          {' '}{formatDecimal(site.ingest.age_hours)} tuntia vanha.
+        </li>
+      </ul>
+    </section>
+  </div>
+</Layout>

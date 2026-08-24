@@ -8,9 +8,9 @@ from typing import Any
 
 import pytest
 
-from conftest import TICKETS_CSV_FINNISH, FakeEcoCounter, FakeJaskaretail, FakeOpenMeteo
 from ovf_ingest.cli import EXIT_ALL_SOURCES_FAILED, EXIT_GATE_FAILED, EXIT_OK, main
 from ovf_ingest.validate import validate_manifest
+from support import TICKETS_CSV_FINNISH, FakeEcoCounter, FakeJaskaretail, FakeOpenMeteo
 
 RUN_ARGS = ["run", "--start", "2026-05-01", "--end", "2026-05-20", "--today", "2026-05-21"]
 PROCESSED = (

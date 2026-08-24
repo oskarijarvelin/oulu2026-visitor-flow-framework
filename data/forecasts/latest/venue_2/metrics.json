@@ -1,0 +1,310 @@
+{
+  "venue_id": 2,
+  "venue_name": "Kaupungintalo",
+  "generated_at": "2026-08-24T10:33:02Z",
+  "trained_at": "2026-08-24T10:33:02Z",
+  "origin_date": "2026-08-24",
+  "n_training_days": 229,
+  "training_window": [
+    "2026-01-08",
+    "2026-08-24"
+  ],
+  "n_origins": 12,
+  "backtest_window": [
+    "2026-06-02",
+    "2026-08-24"
+  ],
+  "horizon_buckets": [
+    "1-7",
+    "8-14",
+    "15-30"
+  ],
+  "models": [
+    "baseline",
+    "prophet_xgb"
+  ],
+  "benchmarks": [
+    "seasonal_naive",
+    "moving_average_28d"
+  ],
+  "metrics": {
+    "baseline": {
+      "1-7": {
+        "mae": 72.95,
+        "rmse": 96.162,
+        "smape": 55.809,
+        "bias": -22.991,
+        "coverage_80": 0.7381,
+        "n": 84
+      },
+      "8-14": {
+        "mae": 71.513,
+        "rmse": 93.744,
+        "smape": 57.612,
+        "bias": -32.859,
+        "coverage_80": 0.7792,
+        "n": 77
+      },
+      "15-30": {
+        "mae": 75.462,
+        "rmse": 105.612,
+        "smape": 56.309,
+        "bias": -45.085,
+        "coverage_80": 0.7987,
+        "n": 149
+      }
+    },
+    "moving_average_28d": {
+      "1-7": {
+        "mae": 77.045,
+        "rmse": 96.633,
+        "smape": 56.171,
+        "bias": -1.051,
+        "coverage_80": 0.7857,
+        "n": 84
+      },
+      "8-14": {
+        "mae": 82.106,
+        "rmse": 100.267,
+        "smape": 59.822,
+        "bias": -5.302,
+        "coverage_80": 0.7662,
+        "n": 77
+      },
+      "15-30": {
+        "mae": 84.57,
+        "rmse": 104.495,
+        "smape": 57.242,
+        "bias": -21.569,
+        "coverage_80": 0.7852,
+        "n": 149
+      }
+    },
+    "prophet_xgb": {
+      "1-7": {
+        "mae": 69.695,
+        "rmse": 88.885,
+        "smape": 58.209,
+        "bias": -9.078,
+        "coverage_80": 0.7381,
+        "n": 84
+      },
+      "8-14": {
+        "mae": 78.564,
+        "rmse": 97.42,
+        "smape": 65.158,
+        "bias": -19.052,
+        "coverage_80": 0.7532,
+        "n": 77
+      },
+      "15-30": {
+        "mae": 85.358,
+        "rmse": 107.018,
+        "smape": 68.772,
+        "bias": -56.634,
+        "coverage_80": 0.7315,
+        "n": 149
+      }
+    },
+    "seasonal_naive": {
+      "1-7": {
+        "mae": 65.81,
+        "rmse": 89.997,
+        "smape": 50.732,
+        "bias": -1.19,
+        "coverage_80": 0.7381,
+        "n": 84
+      },
+      "8-14": {
+        "mae": 71.662,
+        "rmse": 91.357,
+        "smape": 55.768,
+        "bias": -6.623,
+        "coverage_80": 0.7273,
+        "n": 77
+      },
+      "15-30": {
+        "mae": 76.671,
+        "rmse": 101.081,
+        "smape": 54.049,
+        "bias": -10.859,
+        "coverage_80": 0.7517,
+        "n": 149
+      }
+    }
+  },
+  "benchmark_comparison": {
+    "baseline": {
+      "1-7": {
+        "beats_seasonal_naive": false,
+        "mae_ratio_vs_seasonal_naive": 1.1085,
+        "beats_moving_average_28d": true,
+        "mae_ratio_vs_moving_average_28d": 0.9468
+      },
+      "8-14": {
+        "beats_seasonal_naive": true,
+        "mae_ratio_vs_seasonal_naive": 0.9979,
+        "beats_moving_average_28d": true,
+        "mae_ratio_vs_moving_average_28d": 0.871
+      },
+      "15-30": {
+        "beats_seasonal_naive": true,
+        "mae_ratio_vs_seasonal_naive": 0.9842,
+        "beats_moving_average_28d": true,
+        "mae_ratio_vs_moving_average_28d": 0.8923
+      }
+    },
+    "prophet_xgb": {
+      "1-7": {
+        "beats_seasonal_naive": false,
+        "mae_ratio_vs_seasonal_naive": 1.059,
+        "beats_moving_average_28d": true,
+        "mae_ratio_vs_moving_average_28d": 0.9046
+      },
+      "8-14": {
+        "beats_seasonal_naive": false,
+        "mae_ratio_vs_seasonal_naive": 1.0963,
+        "beats_moving_average_28d": true,
+        "mae_ratio_vs_moving_average_28d": 0.9569
+      },
+      "15-30": {
+        "beats_seasonal_naive": false,
+        "mae_ratio_vs_seasonal_naive": 1.1133,
+        "beats_moving_average_28d": false,
+        "mae_ratio_vs_moving_average_28d": 1.0093
+      }
+    }
+  },
+  "coverage_method": "leave_one_origin_out",
+  "interval_bands": {
+    "baseline": [
+      {
+        "bucket": "1-7",
+        "q10": 0.5093,
+        "q90": 2.4158,
+        "n": 84,
+        "is_default": false
+      },
+      {
+        "bucket": "8-14",
+        "q10": 0.4605,
+        "q90": 2.5332,
+        "n": 77,
+        "is_default": false
+      },
+      {
+        "bucket": "15-30",
+        "q10": 0.4949,
+        "q90": 2.5721,
+        "n": 149,
+        "is_default": false
+      }
+    ],
+    "moving_average_28d": [
+      {
+        "bucket": "1-7",
+        "q10": 0.0784,
+        "q90": 1.7223,
+        "n": 84,
+        "is_default": false
+      },
+      {
+        "bucket": "8-14",
+        "q10": 0.0806,
+        "q90": 1.8755,
+        "n": 77,
+        "is_default": false
+      },
+      {
+        "bucket": "15-30",
+        "q10": 0.0896,
+        "q90": 2.0327,
+        "n": 149,
+        "is_default": false
+      }
+    ],
+    "prophet_xgb": [
+      {
+        "bucket": "1-7",
+        "q10": 0.2095,
+        "q90": 2.142,
+        "n": 80,
+        "is_default": false
+      },
+      {
+        "bucket": "8-14",
+        "q10": 0.2108,
+        "q90": 2.4064,
+        "n": 73,
+        "is_default": false
+      },
+      {
+        "bucket": "15-30",
+        "q10": 0.6743,
+        "q90": 2.9075,
+        "n": 141,
+        "is_default": false
+      }
+    ],
+    "seasonal_naive": [
+      {
+        "bucket": "1-7",
+        "q10": 0.5845,
+        "q90": 1.9444,
+        "n": 81,
+        "is_default": false
+      },
+      {
+        "bucket": "8-14",
+        "q10": 0.472,
+        "q90": 1.7403,
+        "n": 74,
+        "is_default": false
+      },
+      {
+        "bucket": "15-30",
+        "q10": 0.5034,
+        "q90": 1.8705,
+        "n": 143,
+        "is_default": false
+      }
+    ]
+  },
+  "hourly_profile": {
+    "lookback_days": 56,
+    "observed_days": 56,
+    "open_hours": [
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20
+    ]
+  },
+  "weather": {
+    "forecast_days": 15,
+    "climatology_days": 15,
+    "max_forecast_days": 16
+  },
+  "do_not_trust": [
+    "Horizons past 14 days: the weather is climatology and the level is frozen at the origin.",
+    "Days with programming or an event the model has never seen.",
+    "The first two weeks after a new venue or a new sensor comes online.",
+    "Periods where the ingest manifest reports a degraded source.",
+    "School holidays and midsummer, of which this dataset holds at most one observation."
+  ],
+  "warnings": [
+    "The maintained calendar does not reach 2026-09-09; those days assume no holiday."
+  ]
+}

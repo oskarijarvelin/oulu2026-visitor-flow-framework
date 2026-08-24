@@ -1,0 +1,76 @@
+---
+import '../styles/global.css';
+
+import meta from '../data/meta.json';
+import QualityBanner from './QualityBanner.astro';
+import SiteNav from './SiteNav.astro';
+import { formatUtcAsHelsinki } from '../lib/format.ts';
+import type { Meta } from '../lib/types.ts';
+
+interface Props {
+  title: string;
+  description: string;
+  /** Sivun oma otsikko, oletuksena sama kuin title. */
+  heading?: string;
+  lead?: string;
+}
+
+const { title, description, heading, lead } = Astro.props;
+const site = meta as Meta;
+const pageTitle = `${title} | Oulu2026 kävijävirrat`;
+---
+
+<!doctype html>
+<html lang="fi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex" />
+    <meta name="color-scheme" content="light" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+  </head>
+  <body class="min-h-screen">
+    <a class="skip-link" href="#sisalto">Siirry sisältöön</a>
+
+    <header class="border-b border-line bg-surface">
+      <div class="mx-auto w-full max-w-6xl px-4 py-4 sm:px-6">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+          <a href="/" class="text-base font-semibold tracking-tight text-ink no-underline">
+            Oulu2026 kävijävirrat
+          </a>
+          <p class="text-xs text-ink-muted">
+            Päivitetty {formatUtcAsHelsinki(site.ingest.generated_at)}
+          </p>
+        </div>
+        <SiteNav />
+      </div>
+    </header>
+
+    <QualityBanner />
+
+    <main id="sisalto" class="mx-auto w-full max-w-6xl px-4 pb-16 pt-6 sm:px-6">
+      <h1 class="text-2xl font-semibold tracking-tight text-ink sm:text-3xl">{heading ?? title}</h1>
+      {lead && <p class="mt-2 max-w-3xl text-sm leading-6 text-ink-muted">{lead}</p>}
+      <slot />
+    </main>
+
+    <footer class="border-t border-line bg-surface">
+      <div class="mx-auto w-full max-w-6xl px-4 py-6 text-xs leading-5 text-ink-muted sm:px-6">
+        <p>
+          Kaikki luvut ovat kävijätapahtumia: <strong class="font-medium text-ink">visitors_total</strong> on
+          sisään- ja ulosmenojen summa, ei uniikkien kävijöiden määrä. Ajat ovat Suomen aikaa.
+        </p>
+        <p class="mt-2">
+          Aineisto haettu {formatUtcAsHelsinki(site.ingest.generated_at)}, ennuste ajettu
+          {' '}{formatUtcAsHelsinki(site.forecast.generated_at)}. Sivusto on staattinen ja rakennetaan
+          uudelleen jokaisella ajolla. <a class="underline" href="/about">Mistä data tulee</a>.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

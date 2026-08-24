@@ -1,0 +1,27 @@
+---
+/**
+ * Vierityssailio taulukolle. Leveä taulukko vierii tässä säiliössä, ei koko sivu.
+ *
+ * Itse `<table>` kirjoitetaan sivulle eikä tähän komponenttiin. Taulukon osat
+ * `thead`, `tr` ja `th` ovat kelvollisia vain `<table>`-elementin sisällä, ja
+ * komponenttirajan yli kirjoitettuna HTML-jäsennin siirtää ne ulos taulukosta.
+ */
+
+interface Props {
+  /** Ruudunlukijalle. Sama teksti kuuluu myös taulukon `<caption>`-elementtiin. */
+  label: string;
+  /** Vierittyyko taulukko myos pystysuunnassa. */
+  scrollY?: boolean;
+}
+
+const { label, scrollY = true } = Astro.props;
+---
+
+<div
+  class:list={['overflow-x-auto rounded-md border border-line', scrollY && 'max-h-96 overflow-y-auto']}
+  tabindex="0"
+  role="region"
+  aria-label={label}
+>
+  <slot />
+</div>

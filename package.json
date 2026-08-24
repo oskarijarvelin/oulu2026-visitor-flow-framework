@@ -1,0 +1,21 @@
+{
+  "name": "oulu2026-visitor-flow-framework",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Oulu2026 Visitor Flow Framework: ingest, forecast ja staattinen web-kayttoliittyma",
+  "workspaces": [
+    "packages/web"
+  ],
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "dev": "npm run dev --workspace @ovf/web",
+    "data": "npm run data --workspace @ovf/web",
+    "build": "npm run build --workspace @ovf/web",
+    "preview": "npm run preview --workspace @ovf/web",
+    "check": "npm run check --workspace @ovf/web",
+    "test": "npm run test --workspace @ovf/web",
+    "test:e2e": "npm run test:e2e --workspace @ovf/web"
+  }
+}

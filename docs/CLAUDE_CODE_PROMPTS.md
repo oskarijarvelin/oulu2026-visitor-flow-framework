@@ -604,24 +604,30 @@ Tämä on apuväline, ei osa päivittäistä automaattiajoa. Sen voi toteuttaa m
 myös ennen osioita 2 ja 3. Se korvaa nykyisen manuaalisen työvaiheen, jossa
 `data/raw/tickets/venue_{id}/tickets.csv` päivitetään käsin.
 
+Lähdetiedostojen rakenne on selvitetty ja sarakekartoitus todennettu nykyistä
+lipputiedostoa vasten. Yksityiskohdat ovat promptissa. Aukiolotiimin viemät tiedostot
+ovat repossa valmiina polussa `tools/fixtures/kavijatilastot-pekuri.csv` ja
+`tools/fixtures/kavijatilastot-kaupungintalo.csv`.
+
 ````text
 Rakennat Oulu2026 Visitor Flow Frameworkiin apuvälineen: selainpohjaisen työkalun, jolla
-lipunmyyntijärjestelmän CSV-vienti muunnetaan venuekohtaisiksi lippumääriksi.
+aukiolotiimin ylläpitämä kävijätilasto-CSV muunnetaan venuekohtaisiksi lippumääriksi.
 
 # Lue ensin
 
 - docs/FRAMEWORK_PLAN.md luku 4.2, kohta tickets_daily.csv
 - config/venues.json: venuet ja niiden tickets_path
-- data/raw/tickets/venue_1/tickets.csv: kohdeformaatti johon työkalu tuottaa dataa
+- data/raw/tickets/venue_1/tickets.csv ja venue_2/tickets.csv: kohdeformaatti
 - packages/ingest/src/ovf_ingest/normalize.py: miten lippudata luetaan ja normalisoidaan
+- tools/fixtures/: aidot lähdetiedostot, joita vasten työkalu kehitetään
 
 # Tehtävä
 
 Toteuta yksi itsenäinen tiedosto: tools/tickets-parser.html
 
 Käyttäjä avaa sen selaimessa suoraan tiedostojärjestelmästä (file://), pudottaa siihen
-lipunmyynnin CSV-viennin, kartoittaa sarakkeet, tarkistaa tuloksen ja lataa
-venuekohtaiset tickets.csv-tiedostot. Käyttö on viikoittainen, noin viisi minuuttia.
+aukiolotiimin CSV-viennin, tarkistaa tunnistetun kartoituksen, katsoo varoitukset ja
+lataa venuekohtaisen tickets.csv-tiedoston. Käyttö on viikoittainen, noin viisi minuuttia.
 
 # Ehdottomat tekniset rajoitteet
 
@@ -630,172 +636,264 @@ venuekohtaiset tickets.csv-tiedostot. Käyttö on viikoittainen, noin viisi minu
    toimittava täysin offline. Kirjoita CSV-parseri itse, älä käytä kirjastoa.
 3. Ei build-vaihetta. Ei npm:ää, ei bundleria. Vanilla JS, moderni syntaksi on ok.
 4. Kaikki käsittely selaimessa. Mitään ei lähetetä mihinkään. Kerro tämä käyttäjälle
-   näkyvästi käyttöliittymässä, koska data on lipunmyyntitietoa.
+   näkyvästi käyttöliittymässä.
 5. Toimii Chromen, Safarin ja Firefoxin nykyversioilla.
+
+# Lähdetiedostojen todellinen rakenne
+
+Aukiolotiimi ylläpitää Exceliä ja vie sen CSV:ksi. Tiedostoja on kaksi, yksi per venue,
+ja niillä on ERI sarakerakenne. Molemmissa:
+
+- Merkistö windows-1252 (cp1252), EI UTF-8. Ääkköset hajoavat jos tämän ohittaa.
+- Erotin puolipiste.
+- Rivi 1 on otsikkorivi. Sarake 0 on viikonpäivän nimi suomeksi, sarake 1 päivämäärä.
+- Päivämäärä muodossa d.m.yyyy ilman etunollia.
+- Tiedosto EI sisällä venue-saraketta. Koko tiedosto kuuluu yhdelle venuelle.
+
+## Profiili A: PEKURI, venue 1
+
+Otsikkorivi:
+  ;Päivämäärä;Yleisöä;Ryhmät;Yhteensä;...
+
+| Sarake | Otsikko | Käyttö |
+| 1 | Päivämäärä | päivämäärä |
+| 2 | Yleisöä | TICKETS |
+| 3 | Ryhmät | GROUPS |
+| 4 | Yhteensä | vain ristiintarkistus |
+| 5+ | (nimetön) | muistiinpanoja ja irrallisia viikkosummia, ohitetaan |
+
+## Profiili B: KAUPUNGINTALO, venue 2
+
+Otsikkorivi:
+  ;Päivämäärä;Varaus;Verkkokauppa tilastot;Ovelta;Ktalon puh tilasto;Ryhmät ;KUTOSET;Ktalon vieraat;Yhteensä;Lisätietoa;...
+
+| Sarake | Otsikko | Käyttö |
+| 1 | Päivämäärä | päivämäärä |
+| 2 | Varaus | TICKETS, summattava |
+| 3 | Verkkokauppa tilastot | TICKETS, summattava |
+| 4 | Ovelta | TICKETS, summattava |
+| 5 | Ktalon puh tilasto | TICKETS, summattava |
+| 6 | Ryhmät  (huom. perässä välilyönti) | GROUPS, summattava |
+| 7 | KUTOSET | GROUPS, summattava |
+| 8 | Ktalon vieraat | GROUPS, summattava |
+| 9 | Yhteensä | vain ristiintarkistus |
+| 10 | Lisätietoa | muistiinpanoja, ohitetaan |
+| 11+ | (nimetön) | roskaa: #ARVO!, juoksevia summia, sarjanumeroita, ohitetaan |
+
+Eli TICKETS ja GROUPS ovat USEAN sarakkeen summia. Tämä on kartoituksen tärkein
+ominaisuus, ei erikoistapaus.
+
+## Kartoitus on todennettu
+
+Vertasin laskettuja arvoja nykyisiin lipputiedostoihin:
+- venue 1: kaikki 124 riviä täsmäävät täydellisesti
+- venue 2: ryhmäluvut täsmäävät kaikilla 125 rivillä, yksittäisliput 50 rivillä
+
+Venue 2:n yksittäislippujen erot EIVÄT ole kartoitusvirhe. Kokeilin tyhjentävästi
+kaikki sarakeyhdistelmät, eikä mikään muu tuota parempaa osumaa. Erot johtuvat siitä
+että aukiolotiimi on korjannut Excelin lukuja sen jälkeen kun nykyinen tickets.csv
+tehtiin. Uudet luvut ovat oikeat. ÄLÄ yritä korjata tätä "bugina".
+
+# Roskarivit ja poikkeamat joita lähdedatassa oikeasti on
+
+Työkalun on käsiteltävä kaikki nämä. Ne on löydetty aidosta datasta, eivät keksittyjä.
+
+Ohitettavat rivit:
+- Kuukausiotsikot: päivämääräsarakkeessa lukee Helmikuu tai Maaliskuu
+- Välisummarivit: päivämääräsarakkeessa lukee Yhteensä
+- Tyhjät rivit ja rivit joissa päivämääräsarake on tyhjä
+- Loppupään tyhjät päivärivit: venue 2:ssa on päivämääriä 18.9.2026 asti ilman dataa
+
+Tekstiarvot numerosarakkeissa, tulkitaan nollaksi ja merkitään varoitukseksi:
+- Suljettu, suljettu (venue 2, rivit 36, 108, 203)
+- ei löytynyt? (venue 2, rivi 218)
+
+Yhteensä-sarake on epäluotettava:
+- venue 1: tyhjä 18 rivillä, venue 2: tyhjä 55 rivillä
+- venue 1 rivi 142, 30.5.2026: Yhteensä 2251, vaikka komponentit ovat 35. Kuukausisumma
+  on valunut päivän riville
+- venue 2 rivi 163, 15.6.2026: Yhteensä 475, vaikka kaikki komponentit ovat tyhjiä.
+  Viikkosumma väärässä sarakkeessa
+- venue 1 rivit 79 ja 80, 30.3. ja 31.3.2026: arvot näyttävät vaihtaneen paikkaa
+  rivien välillä
+- venue 2 rivi 213, 4.8.2026: komponentit 113, Yhteensä 101
+
+TÄSTÄ SEURAA SUUNNITTELUSÄÄNTÖ: TOTAL lasketaan aina TICKETS + GROUPS. Lähteen
+Yhteensä-saraketta käytetään VAIN ristiintarkistukseen, joka tuottaa varoituksen jos
+se eroaa. Sitä ei koskaan kirjoiteta suoraan tulokseen.
+
+Päivämääräongelmat:
+- venue 2 rivi 203: 25.6.2026 sijaitsee rivien 24.7.2026 ja 26.7.2026 välissä. Kyseessä
+  on ilmeinen kirjoitusvirhe, oikea päivä on 25.7.2026. Työkalu ei saa korjata tätä
+  automaattisesti, vaan sen on havaittava epäjärjestys ja pyydettävä käyttäjää
+  päättämään: korjaa ehdotettuun päivään, pidä sellaisenaan, tai ohita rivi.
+
+Tulevat päivät:
+- venue 2 rivi 245: 5.9.2026, Ryhmät 200. Tämä on ennakkovaraus, ei toteutunut kävijä.
+  Oletuksena kaikki päivät jotka ovat tämän päivän jälkeen jätetään pois, ja ne
+  listataan erikseen. Käyttäjä voi ottaa ne mukaan, jos haluaa.
+
+Nollapäivät:
+- venue 2:ssa on 59 päivää joilla kaikki komponentit ovat nollia, pääosin maanantaita
+  jolloin kohde on kiinni. Nämä kirjoitetaan tulokseen nollina, koska nolla on aito
+  havainto. Erottele käyttöliittymässä "kiinni" ja "auki mutta ei kävijöitä" silloin
+  kun lähteessä on Suljettu-merkintä.
 
 # Käyttöliittymän kulku
 
 Vaihe 1: tiedoston valinta
-  Pudotusalue ja tiedostonvalitsin. Myös liitä leikepöydältä -vaihtoehto.
-  Tunnista automaattisesti:
-  - Merkistö: kokeile UTF-8 (TextDecoder fatal:true), varalla windows-1252. Poista BOM.
-    Suomalaiset viennit ovat usein latin-1, joten tämä ei ole teoreettinen ongelma.
-  - Erotin: pilkku, puolipiste, sarkain tai pystyviiva. Päättele riviltä jolla eniten
-    johdonmukaisia sarakkeita, älä pelkästään ensimmäiseltä riviltä.
-  - Otsikkorivi: onko ensimmäinen rivi otsikko vai data.
-  Näytä tunnistuksen tulos ja anna käyttäjän ohittaa se käsin.
+  Pudotusalue ja tiedostonvalitsin, myös liitä leikepöydältä.
+  Automaattinen tunnistus: merkistö (kokeile UTF-8 TextDecoderilla fatal:true, varalla
+  windows-1252, poista BOM), erotin (puolipiste, pilkku, sarkain, pystyviiva),
+  otsikkorivi.
+  Tunnista profiili otsikkorivin allekirjoituksesta: jos otsikoista löytyy Yleisöä,
+  valitse profiili A ja venue 1. Jos löytyy Verkkokauppa tilastot tai KUTOSET, valitse
+  profiili B ja venue 2. Näytä tunnistuksen tulos ja anna käyttäjän vaihtaa se.
+  Useamman tiedoston voi käsitellä peräkkäin samassa istunnossa, ja tulokset
+  kertyvät venueittain.
 
 Vaihe 2: esikatselu
-  Taulukko, ensimmäiset 20 riviä, sarakkeiden nimet ja pääteltävät tyypit.
-  Näytä rivimäärä ja havaitut ongelmat (eri sarakemäärä eri riveillä, tyhjät rivit).
+  Taulukko, ensimmäiset 20 riviä, sarakkeiden nimet ja indeksit. Rivimäärä ja havaitut
+  ongelmat.
 
-Vaihe 3: sarakekartoitus
-  a) Päivämääräsarake ja sen formaatti.
-     Tunnista automaattisesti: d.m.yyyy, dd.mm.yyyy, yyyy-mm-dd, d/m/yyyy, m/d/yyyy,
-     ISO 8601 aikaleima, Excelin päivämääräsarjanumero.
-     Jos sarake sisältää aikaleiman, ota siitä päivä. Älä tee aikavyöhykemuunnosta,
-     oleta Suomen aika.
-     TÄRKEÄ VAROITUS käyttöliittymään: framework tarvitsee TAPAHTUMAPÄIVÄN eli sen
-     päivän jolloin kävijät tulevat, EI ostopäivää. Lipunmyyntiviennissä on usein
-     molemmat. Jos valitun sarakkeen päivämääristä yli 20 % on menneisyydessä yli
-     30 vrk tai jakauma on selvästi eri kuin toisella päivämääräsarakkeella, näytä
-     huomautus: "Tämä näyttää ostopäivältä. Varmista että valitsit tapahtumapäivän."
-  b) Venue-sarake.
-     Listaa sarakkeen uniikit arvot esiintymismäärineen. Jokaiselle arvolle valitsin:
-     venue 1 Pekuri / venue 2 Kaupungintalo / ohita.
-     Venuet luetaan työkaluun upotetusta listasta, joka vastaa config/venues.json:ia ja
-     on muokattavissa käyttöliittymässä.
-     Jos venue-saraketta ei ole, koko tiedosto ohjataan yhdelle valitulle venuelle.
-  c) Lippumäärien laskentatapa, neljä vaihtoehtoa:
-     A. Erilliset sarakkeet: valitse yksittäislippujen sarake ja ryhmälippujen sarake
-     B. Yksi määräsarake + tyyppisarake: valitse määräsarake, tyyppisarake, ja merkitse
-        kunkin tyyppiarvon kohdalle onko se yksittäis- vai ryhmälippu
-     C. Yksi määräsarake, kaikki yksittäislippuja, ryhmät nolla
-     D. Yksi rivi = yksi lippu, lasketaan rivien lukumäärä
-     Määrä-arvoissa tuettava sekä piste- että pilkkudesimaali ja tuhaterotin
-     (välilyönti tai sitkeä välilyönti).
-  d) Valinnainen suodatus:
-     - Tilasarake ja siitä poissuljettavat arvot (esim. Peruttu, Refunded, Cancelled).
-       Näytä uniikit arvot valittavina.
-     - Päivämääräväli.
-  Kartoitus tallennetaan nimettynä profiilina localStorageen. Profiilin lataus,
-  tallennus, nimeäminen ja poisto. Jos localStorage ei ole käytettävissä
-  (yksityinen ikkuna), työkalun on toimittava normaalisti ilman profiileja:
-  kääri jokainen luku ja kirjoitus try/catchiin.
+Vaihe 3: kartoitus
+  Esitäytettynä tunnistetusta profiilista, mutta kaikki muokattavissa:
+  - päivämääräsarake ja formaatti (d.m.yyyy, dd.mm.yyyy, yyyy-mm-dd, ISO-aikaleima,
+    Excelin sarjanumero)
+  - TICKETS: monivalinta sarakkeista, arvot summataan
+  - GROUPS: monivalinta sarakkeista, arvot summataan
+  - ristiintarkistussarake, valinnainen
+  - venue, johon koko tiedosto kohdistetaan
+  Sarakkeet tunnistetaan ensisijaisesti indeksin perusteella ja otsikon nimi on
+  varmistus. Otsikoiden vertailussa poista alku- ja loppuvälilyönnit ja ohita
+  kirjainkoko, koska lähteessä on esimerkiksi "Ryhmät " perässä välilyönnillä.
+  Lukuarvoissa tuettava pilkkudesimaali ja tuhaterotin (välilyönti tai sitkeä välilyönti).
+  Kartoitus tallennetaan nimettynä profiilina localStorageen. Kaksi profiilia on
+  esiasennettuna: Pekuri ja Kaupungintalo. Jos localStorage ei ole käytettävissä
+  (yksityinen ikkuna), työkalun on toimittava normaalisti ilman tallennusta: kääri
+  jokainen luku ja kirjoitus try/catchiin.
 
 Vaihe 4: tulos ja tarkistukset
-  Aggregointi: ryhmittele (venue_id, päivä), summaa tickets_sold, groups_sold ja
-  tickets_total. tickets_total = tickets_sold + groups_sold, ellei lähteessä ole omaa
-  kokonaissaraketta, jolloin käytä sitä ja varoita jos summa ei täsmää.
-  Näytä venuekohtainen taulukko ja yhteenveto:
-  - luettuja rivejä, hyväksyttyjä, ohitettuja ja syy ohitukselle
-  - päivämääräväli ja päivien lukumäärä
-  - lippujen kokonaismäärät venueittain
-  - pieni pylväskaavio päivittäisistä määristä, piirrettynä inline-SVG:llä
-  Varoitukset, jokainen omana rivinään ja klikattavissa niin että vastaavat lähderivit
-  korostuvat esikatselussa:
+  Aggregointi: ryhmittele päivän mukaan, summaa TICKETS ja GROUPS, laske
+  TOTAL = TICKETS + GROUPS.
+  Näytä taulukko, yhteenveto ja pieni inline-SVG-pylväskaavio päivittäisistä määristä.
+  Yhteenvetoon: luettuja rivejä, hyväksyttyjä, ohitettuja ryhmiteltynä syyn mukaan,
+  päivämääräväli, päivien lukumäärä, kokonaismäärät.
+  Varoitukset omina riveinään, klikattavissa niin että lähderivi korostuu
+  esikatselussa, ja jokainen kertoo rivinumeron lähdetiedostossa:
   - päivämäärä ei jäsentynyt
-  - venue-arvo kartoittamatta
-  - negatiivinen määrä
-  - tickets_total ei ole tickets_sold + groups_sold
-  - sama päivä esiintyy lähteessä useasti (tämä on ok, ne summataan, mutta kerro se)
-  - päivämäärä yli vuoden tulevaisuudessa tai ennen vuotta 2020
-  - venue jolle ei tullut yhtään riviä
+  - päivämäärä epäjärjestyksessä, ehdota korjausta
+  - sama päivä esiintyy useasti
+  - tekstiarvo numerosarakkeessa, näytä alkuperäinen teksti
+  - ristiintarkistus ei täsmää, näytä molemmat luvut ja erotus
+  - negatiivinen arvo
+  - päivä tulevaisuudessa
+  - epäuskottavan suuri arvo: yli 5-kertainen viimeisen 28 päivän mediaaniin nähden
+  - venuelle ei tullut yhtään riviä
 
 Vaihe 5: yhdistäminen olemassa olevaan
-  Kaksi tilaa:
-  - Korvaa: tuloksena vain juuri jäsennetty data
-  - Yhdistä: käyttäjä lataa tai liittää nykyisen tickets.csv:n venuekohtaisesti,
-    työkalu yhdistää, poistaa duplikaatit päivän perusteella (uusi voittaa) ja
-    järjestää päivämäärän mukaan. Näytä erotus: montako päivää lisättiin, montako
-    muuttui ja mitkä arvot muuttuivat.
-  Yhdistä on oletus, koska käyttö on viikoittain kertyvää.
+  Kaksi tilaa, yhdistäminen oletuksena:
+  - Korvaa: vain juuri jäsennetty data
+  - Yhdistä: käyttäjä lataa tai liittää nykyisen tickets.csv:n, työkalu yhdistää,
+    poistaa duplikaatit päivän perusteella (uusi voittaa) ja järjestää päivämäärän
+    mukaan. Näytä erotus: lisätyt päivät, muuttuneet päivät vanhoine ja uusine
+    arvoineen, ja poistuneet päivät.
+  Odotettu tulos tälle aineistolle: venue 1:llä noin 98 uutta päivää ja venue 2:lla
+  noin 83 uutta päivää, minkä lisäksi venue 2:lla suuri osa vanhoista päivistä muuttuu,
+  koska aukiolotiimi on korjannut lukuja. Näytä tämä selvästi, ettei käyttäjä säikähdä.
 
 Vaihe 6: vienti
-  - Lataa venuekohtainen tickets.csv jokaiselle kartoitetulle venuelle.
-    Formaatti täsmälleen: otsikkorivi DATE,TICKETS,GROUPS,TOTAL, erotin pilkku,
-    päivämäärä muodossa d.m.yyyy ILMAN etunollia (14.1.2026, ei 14.01.2026),
-    rivinvaihto \n, merkistö UTF-8 ilman BOMia, ei desimaaleja kokonaisluvuissa.
-    Tiedostonimi tickets-venue-{id}.csv, ja näytä ohje mihin polkuun se kuuluu:
+  - Lataa venuekohtainen tickets.csv. Formaatti täsmälleen: otsikkorivi
+    DATE,TICKETS,GROUPS,TOTAL, erotin pilkku, päivämäärä muodossa d.m.yyyy ILMAN
+    etunollia (14.1.2026, ei 14.01.2026), rivinvaihto \n, merkistö UTF-8 ilman BOMia,
+    kokonaisluvut ilman desimaaleja.
+    Tiedostonimi tickets-venue-{id}.csv, ja näytä kohdepolku
     data/raw/tickets/venue_{id}/tickets.csv
   - Lataa yhdistetty tickets_daily.csv normalisoidussa muodossa
     venue_id,date,tickets_sold,groups_sold,tickets_total, päivämäärä ISO-muodossa.
     Tämä on tarkistusta varten, ingest tuottaa saman tiedoston itse.
   - Kopioi leikepöydälle -painike kummallekin.
-  - Näytä seuraavat askeleet tekstinä: mihin tiedostot kopioidaan ja mikä komento
-    ajetaan seuraavaksi (python -m ovf_ingest run).
+  - Näytä seuraavat askeleet: mihin tiedostot kopioidaan ja että sen jälkeen ajetaan
+    python -m ovf_ingest run
+
+# Sanasto ja rehellisyys
+
+Lähdetiedostot ovat nimeltään Kävijätilastot ja niiden sarakkeet ovat kanavia
+(varaus, verkkokauppa, ovelta, puhelin, ryhmät, talon vieraat). Kyse ei siis ole
+puhtaasta lipunmyynnistä vaan kävijämääristä kanavittain. Frameworkin kentät
+tickets_sold ja groups_sold tarkoittavat käytännössä yksittäiskävijöitä ja
+ryhmäkävijöitä. Kirjoita tämä näkyviin sekä käyttöliittymään että tools/README.md:hen,
+jotta lukuja ei tulkita myyntiraportiksi.
 
 # Käyttöliittymän vaatimukset
 
 - Kieli suomi
-- Vaiheet näkyvät edistymisen osoittimena, edelliseen vaiheeseen voi palata ilman että
-  tehty työ katoaa
+- Vaiheet näkyvät edistymisen osoittimena, edelliseen voi palata ilman että työ katoaa
 - Tumma ja vaalea teema prefers-color-scheme mukaan
-- Toimii 375 px leveydellä, mutta ensisijainen käyttö on työpöydällä
-- Näppäimistönavigaatio toimii kaikissa valitsimissa, näkyvä fokus
+- Toimii 375 px leveydellä, ensisijainen käyttö työpöydällä
+- Näppäimistönavigaatio kaikissa valitsimissa, näkyvä fokus
 - Kontrastit vähintään WCAG AA
-- Varoitukset eivät ole pelkästään värillä erotettuja, myös ikoni tai teksti
+- Varoitukset eivät erotu pelkällä värillä, myös ikoni tai teksti
 - Vältä pitkää ajatusviivaa leipätekstissä, käytä pistettä, pilkkua tai kaksoispistettä
-- Ei riippuvuutta localStoragesta: ilman sitä kaikki toimii, vain profiilit puuttuvat
 
 # CSV-parserin vaatimukset
 
-Kirjoita RFC 4180 -yhteensopiva parseri:
-- Lainausmerkeissä olevat kentät, joissa voi olla erotin, rivinvaihto tai
-  kaksinkertaistettu lainausmerkki
-- CRLF ja LF
-- Tyhjät rivit ohitetaan
-- Vaihteleva sarakemäärä ei kaada parsintaa, vaan kirjataan varoitukseksi
-- 50 000 rivin tiedoston on jäsennyttävä alle sekunnissa. Jos tiedosto on suurempi kuin
-  20 MB, näytä varoitus ennen jäsennystä.
+RFC 4180 -yhteensopiva: lainausmerkeissä olevat kentät joissa voi olla erotin,
+rivinvaihto tai kaksinkertaistettu lainausmerkki. CRLF ja LF. Tyhjät rivit ohitetaan.
+Vaihteleva sarakemäärä ei kaada parsintaa vaan kirjataan varoitukseksi. Riveillä on
+usein vähemmän sarakkeita kuin otsikkorivillä, joten täydennä puuttuvat tyhjillä.
+50 000 rivin tiedoston on jäsennyttävä alle sekunnissa.
 
 # Itsetestaus
 
-Koska build-vaihetta ei ole, sisällytä testit samaan tiedostoon. Kun URL-parametri
-?selftest=1 on annettu, työkalu ajaa testit ja näyttää tulokset taulukkona normaalin
-käyttöliittymän sijaan. Testattavaa vähintään:
-- CSV-parsinta: lainausmerkit, upotettu erotin, upotettu rivinvaihto, kaksinkertainen
-  lainausmerkki, CRLF, BOM
-- Erottimen tunnistus kaikilla neljällä erottimella
-- Päivämäärän jäsennys jokaisella tuetulla formaatilla, myös virheellisillä syötteillä
-- Määrien jäsennys pilkkudesimaalilla ja tuhaterottimella
-- Aggregointi: kaksi riviä samalle päivälle summautuu
-- Kaikki neljä laskentatapaa A, B, C, D
-- Yhdistäminen: duplikaattipäivä, uusi voittaa
-- Vientiformaatti: etunollattomuus, otsikkorivi, rivinvaihdot
-- Tapahtumapäivä vs. ostopäivä -heuristiikka laukeaa oikein
+Koska build-vaihetta ei ole, sisällytä testit samaan tiedostoon. URL-parametrilla
+?selftest=1 työkalu ajaa testit ja näyttää tulokset taulukkona. Testattavaa vähintään:
+- CSV-parsinta: lainausmerkit, upotettu erotin, upotettu rivinvaihto, CRLF, BOM,
+  vajaat rivit
+- cp1252-dekoodaus: merkkijono jossa on ä, ö ja å dekoodautuu oikein
+- erottimen ja profiilin tunnistus molemmilla aidoilla otsikkoriveillä
+- päivämäärän jäsennys jokaisella tuetulla formaatilla ja virheellisillä syötteillä
+- monen sarakkeen summaus TICKETS- ja GROUPS-kenttiin
+- roskarivien tunnistus: Helmikuu, Maaliskuu, Yhteensä, tyhjä
+- tekstiarvo numerosarakkeessa tulkitaan nollaksi ja tuottaa varoituksen
+- ristiintarkistuksen poikkeama havaitaan
+- epäjärjestyksessä oleva päivämäärä havaitaan
+- yhdistäminen: duplikaattipäivä, uusi voittaa
+- vientiformaatti: etunollattomuus, otsikkorivi, rivinvaihdot
 
-Luo lisäksi kolme esimerkkitiedostoa manuaalista testausta varten:
-  tools/fixtures/tickets-sample-semicolon-latin1.csv
-  tools/fixtures/tickets-sample-comma-utf8.csv
-  tools/fixtures/tickets-sample-one-row-per-ticket.csv
-Kukin sisältää molemmat venuet, muutaman viikon dataa, sekä tarkoituksellisia
-ongelmarivejä: peruttu tilaus, virheellinen päivämäärä, tuntematon venue-arvo.
+# Regressiotestit aitoa dataa vasten
+
+Nämä on ajettava käsin ja kirjattava tools/README.md:hen:
+
+1. Profiili A, PEKURI-tiedosto: tuloksen on täsmättävä nykyisen
+   data/raw/tickets/venue_1/tickets.csv:n kanssa kaikilla 124 päällekkäisellä
+   päivämäärällä, sekä TICKETS että GROUPS.
+2. Profiili B, KAUPUNGINTALO-tiedosto: GROUPS-arvojen on täsmättävä nykyisen
+   data/raw/tickets/venue_2/tickets.csv:n kanssa kaikilla 125 päällekkäisellä
+   päivämäärällä. TICKETS täsmää 50 rivillä, ja loput erot ovat odotettuja, koska
+   lähde on päivittynyt. Erojen on näyttävä yhdistämisvaiheen erotusnäkymässä.
+3. Kummastakin tiedostosta syntyy oikea määrä rivejä: venue 1 noin 221 päivää
+   (14.1. - 23.8.2026), venue 2 noin 190 päivää joilla on dataa (13.1. - 23.8.2026,
+   kun 5.9.2026 ennakkovaraus on jätetty pois).
+4. Kaikki luvussa "Roskarivit ja poikkeamat" luetellut tapaukset näkyvät varoituksina.
 
 # Dokumentaatio
 
-Kirjoita tools/README.md joka kertoo:
-- mihin ongelmaan työkalu vastaa ja miksi se on selaimessa eikä Python-skriptinä
-- käyttöohje vaiheittain
-- miten tulos viedään repoon ja mitä sen jälkeen ajetaan
-- selkeä huomautus: framework tarvitsee tapahtumapäivän, ei ostopäivää
-- miten itsetestit ajetaan
-
-Lisää maininta työkalusta myös repon juuren README.md:hen.
+Kirjoita tools/README.md: mihin ongelmaan työkalu vastaa, käyttöohje vaiheittain,
+molempien profiilien sarakekartoitus taulukkona, tunnetut lähdedatan ongelmat, miten
+tulos viedään repoon, mitä sen jälkeen ajetaan, ja miten itsetestit ajetaan. Lisää
+maininta työkalusta repon juuren README.md:hen.
 
 # Hyväksymiskriteerit
 
-1. tools/tickets-parser.html avautuu suoraan file:// -osoitteesta ja toimii ilman
-   verkkoyhteyttä. Tarkista selaimen verkkovälilehdeltä että ulkoisia pyyntöjä on nolla.
-2. Kaikki kolme esimerkkitiedostoa jäsentyvät ja tuottavat oikeat summat.
+1. tools/tickets-parser.html avautuu file:// -osoitteesta ja toimii ilman verkkoa.
+   Selaimen verkkovälilehdellä ulkoisia pyyntöjä nolla.
+2. Molemmat aidot tiedostot tools/fixtures/-hakemistosta jäsentyvät oikein, ääkköset
+   näkyvät oikein, ja profiili tunnistuu automaattisesti.
 3. ?selftest=1 ajaa testit ja kaikki menevät läpi.
-4. Ladattu tickets-venue-1.csv on tavu tavulta yhteensopiva nykyisen
-   data/raw/tickets/venue_1/tickets.csv -tiedoston formaatin kanssa: sama otsikkorivi,
-   sama päivämäärämuoto, sama erotin.
-5. Kierrätystesti: nykyinen data/raw/tickets/venue_1/tickets.csv syötetään työkaluun,
-   kartoitetaan ja viedään, ja tulos on identtinen alkuperäisen kanssa.
-6. Yhdistämistila: uuden viikon rivit lisätään olemassa olevaan tiedostoon ilman että
-   vanhat muuttuvat, ja erotusnäkymä kertoo tarkalleen mikä muuttui.
+4. Regressiotestit 1 ja 2 antavat kuvatut tulokset.
+5. Ladattu tickets-venue-1.csv on formaatiltaan yhteensopiva nykyisen tiedoston kanssa.
+6. Yhdistämistila näyttää erotuksen tarkasti eikä hukkaa vanhoja päiviä.
 7. Työkalu toimii yksityisessä selainikkunassa, jossa localStorage heittää poikkeuksen.
 8. Tiedoston koko alle 250 kB.
 
@@ -803,14 +901,15 @@ Lisää maininta työkalusta myös repon juuren README.md:hen.
 
 - Älä lisää ulkoisia riippuvuuksia tai CDN-linkkejä
 - Älä lähetä dataa mihinkään, älä myöskään virheraportointiin
-- Älä oleta lähdetiedoston sarakkeita, kaikki kartoitetaan käyttöliittymässä
-- Älä kirjoita suoraan tiedostojärjestelmään, selain ei voi eikä saa
+- Älä kirjoita lähteen Yhteensä-saraketta suoraan tulokseen, se on epäluotettava
+- Älä korjaa epäjärjestyksessä olevia päivämääriä automaattisesti, kysy käyttäjältä
 - Älä hiljaisesti pudota rivejä, jokainen ohitettu rivi näkyy varoituksissa syineen
+- Älä oleta UTF-8-merkistöä, lähde on windows-1252
+- Älä yritä saada venue 2:n vanhoja yksittäislippuja täsmäämään nykyiseen
+  tickets.csv-tiedostoon, ero on aito ja johtuu lähteen päivittymisestä
 - Älä pyöristä lippumääriä liukuluvuiksi, ne ovat kokonaislukuja
 - Älä tee tästä osaa Astro-sovellusta, se on itsenäinen tiedosto
 ````
-
----
 
 ## Yhteenveto: mitä kukin osio tuottaa
 
@@ -819,4 +918,4 @@ Lisää maininta työkalusta myös repon juuren README.md:hen.
 | 1. ingest | Python 3.12, pandas, requests | 3 ulkoista rajapintaa + tickets.csv | `data/processed/*.csv` + manifest | Päivittäin, GitHub Actions |
 | 3. forecast | Python 3.12, scikit-learn (+ Prophet valinnaisena) | `data/processed/` | `data/forecasts/latest/` | Päivittäin, ingestin jälkeen |
 | 2. web | Astro 5, TypeScript, Observable Plot | `data/processed/` + `data/forecasts/` | Staattinen sivusto | Build pushissa, Cloudflare Pages |
-| 4. lipputyökalu | Yksi HTML-tiedosto, vanilla JS | Lipunmyynnin CSV-vienti | `data/raw/tickets/venue_{id}/tickets.csv` | Käsin, viikoittain |
+| 4. lipputyökalu | Yksi HTML-tiedosto, vanilla JS | Aukiolotiimin kävijätilasto-CSV (cp1252, puolipiste) | `data/raw/tickets/venue_{id}/tickets.csv` | Käsin, viikoittain |

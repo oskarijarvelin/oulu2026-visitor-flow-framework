@@ -8,7 +8,7 @@
       "longitude": 25.4688,
       "capacity": 160,
       "location_hierarchy_id": 178,
-      "tickets_path": "data/raw/tickets/venue_1/tickets.csv"
+      "tickets_path": "data/raw/tickets/venue_1/tickets-venue-1.csv"
     },
     {
       "venue_id": 2,
@@ -18,7 +18,7 @@
       "longitude": 25.4726,
       "capacity": 20,
       "location_hierarchy_id": 183,
-      "tickets_path": "data/raw/tickets/venue_2/tickets.csv"
+      "tickets_path": "data/raw/tickets/venue_2/tickets-venue-2.csv"
     }
   ]
 }

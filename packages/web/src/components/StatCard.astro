@@ -1,0 +1,25 @@
+---
+interface Props {
+  label: string;
+  value: string;
+  unit?: string;
+  note?: string;
+  /** Muutosluku, esim. "+3,4 %". */
+  change?: string;
+  changeTone?: 'up' | 'down' | 'flat';
+}
+
+const { label, value, unit, note, change, changeTone = 'flat' } = Astro.props;
+const toneClass =
+  changeTone === 'up' ? 'text-emerald-700' : changeTone === 'down' ? 'text-orange-700' : 'text-ink-muted';
+---
+
+<div class="rounded-lg border border-line bg-surface p-4">
+  <p class="text-xs font-medium uppercase tracking-wide text-ink-muted">{label}</p>
+  <p class="mt-1.5 flex flex-wrap items-baseline gap-x-2">
+    <span class="text-2xl font-semibold tabular-nums tracking-tight text-ink">{value}</span>
+    {unit && <span class="text-sm text-ink-muted">{unit}</span>}
+    {change && <span class:list={['text-sm font-medium tabular-nums', toneClass]}>{change}</span>}
+  </p>
+  {note && <p class="mt-1.5 text-xs leading-5 text-ink-muted">{note}</p>}
+</div>

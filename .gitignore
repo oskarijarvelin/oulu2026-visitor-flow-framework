@@ -15,5 +15,13 @@ venv/
 # Rejected quality-gate output
 *.rejected
 
+# Node ja web-osion kaannokset
+node_modules/
+.astro/
+dist/
+packages/web/src/data/
+playwright-report/
+test-results/
+
 # OS
 .DS_Store

@@ -1,0 +1,42 @@
+---
+import meta from '../data/meta.json';
+import type { Meta } from '../lib/types.ts';
+
+const site = meta as Meta;
+const current = Astro.url.pathname.replace(/\/$/, '') || '/';
+
+const links: { href: string; label: string }[] = [
+  { href: '/', label: 'Yleiskuva' },
+  ...site.venues.map((venue) => ({ href: `/venue/${venue.venue_id}`, label: venue.name })),
+  { href: '/weather', label: 'Sää' },
+  { href: '/forecast', label: 'Ennuste' },
+  { href: '/quality', label: 'Laatu' },
+  { href: '/about', label: 'Tietoja' },
+];
+---
+
+<nav aria-label="Päävalikko" class="mt-3 -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+  <ul class="flex min-w-max items-center gap-1 pb-1">
+    {
+      links.map((link) => {
+        const active = current === link.href;
+        return (
+          <li>
+            <a
+              href={link.href}
+              aria-current={active ? 'page' : undefined}
+              class:list={[
+                'block rounded-md px-3 py-1.5 text-sm no-underline transition-colors',
+                active
+                  ? 'bg-series-1 font-medium text-white'
+                  : 'text-ink-muted hover:bg-canvas hover:text-ink',
+              ]}
+            >
+              {link.label}
+            </a>
+          </li>
+        );
+      })
+    }
+  </ul>
+</nav>

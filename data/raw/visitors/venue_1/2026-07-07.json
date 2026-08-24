@@ -1,0 +1,538 @@
+{
+  "in": {
+    "result": [
+      {
+        "calendarId": "20260707 000000",
+        "categoryName": "07/07/2026 00:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 010000",
+        "categoryName": "07/07/2026 01:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 020000",
+        "categoryName": "07/07/2026 02:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 030000",
+        "categoryName": "07/07/2026 03:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 040000",
+        "categoryName": "07/07/2026 04:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 050000",
+        "categoryName": "07/07/2026 05:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 060000",
+        "categoryName": "07/07/2026 06:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 070000",
+        "categoryName": "07/07/2026 07:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 3
+      },
+      {
+        "calendarId": "20260707 080000",
+        "categoryName": "07/07/2026 08:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 2
+      },
+      {
+        "calendarId": "20260707 090000",
+        "categoryName": "07/07/2026 09:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 100000",
+        "categoryName": "07/07/2026 10:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 1
+      },
+      {
+        "calendarId": "20260707 110000",
+        "categoryName": "07/07/2026 11:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 60
+      },
+      {
+        "calendarId": "20260707 120000",
+        "categoryName": "07/07/2026 12:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 55
+      },
+      {
+        "calendarId": "20260707 130000",
+        "categoryName": "07/07/2026 13:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 54
+      },
+      {
+        "calendarId": "20260707 140000",
+        "categoryName": "07/07/2026 14:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 65
+      },
+      {
+        "calendarId": "20260707 150000",
+        "categoryName": "07/07/2026 15:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 50
+      },
+      {
+        "calendarId": "20260707 160000",
+        "categoryName": "07/07/2026 16:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 29
+      },
+      {
+        "calendarId": "20260707 170000",
+        "categoryName": "07/07/2026 17:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 38
+      },
+      {
+        "calendarId": "20260707 180000",
+        "categoryName": "07/07/2026 18:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 24
+      },
+      {
+        "calendarId": "20260707 190000",
+        "categoryName": "07/07/2026 19:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 200000",
+        "categoryName": "07/07/2026 20:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 210000",
+        "categoryName": "07/07/2026 21:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 220000",
+        "categoryName": "07/07/2026 22:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 230000",
+        "categoryName": "07/07/2026 23:00:00",
+        "directionId": 4,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      }
+    ]
+  },
+  "out": {
+    "result": [
+      {
+        "calendarId": "20260707 000000",
+        "categoryName": "07/07/2026 00:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 010000",
+        "categoryName": "07/07/2026 01:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 020000",
+        "categoryName": "07/07/2026 02:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 030000",
+        "categoryName": "07/07/2026 03:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 040000",
+        "categoryName": "07/07/2026 04:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 050000",
+        "categoryName": "07/07/2026 05:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 060000",
+        "categoryName": "07/07/2026 06:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 070000",
+        "categoryName": "07/07/2026 07:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 3
+      },
+      {
+        "calendarId": "20260707 080000",
+        "categoryName": "07/07/2026 08:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 2
+      },
+      {
+        "calendarId": "20260707 090000",
+        "categoryName": "07/07/2026 09:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 100000",
+        "categoryName": "07/07/2026 10:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 1
+      },
+      {
+        "calendarId": "20260707 110000",
+        "categoryName": "07/07/2026 11:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 42
+      },
+      {
+        "calendarId": "20260707 120000",
+        "categoryName": "07/07/2026 12:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 50
+      },
+      {
+        "calendarId": "20260707 130000",
+        "categoryName": "07/07/2026 13:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 59
+      },
+      {
+        "calendarId": "20260707 140000",
+        "categoryName": "07/07/2026 14:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 56
+      },
+      {
+        "calendarId": "20260707 150000",
+        "categoryName": "07/07/2026 15:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 67
+      },
+      {
+        "calendarId": "20260707 160000",
+        "categoryName": "07/07/2026 16:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 30
+      },
+      {
+        "calendarId": "20260707 170000",
+        "categoryName": "07/07/2026 17:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 37
+      },
+      {
+        "calendarId": "20260707 180000",
+        "categoryName": "07/07/2026 18:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 37
+      },
+      {
+        "calendarId": "20260707 190000",
+        "categoryName": "07/07/2026 19:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 200000",
+        "categoryName": "07/07/2026 20:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 210000",
+        "categoryName": "07/07/2026 21:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 220000",
+        "categoryName": "07/07/2026 22:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      },
+      {
+        "calendarId": "20260707 230000",
+        "categoryName": "07/07/2026 23:00:00",
+        "directionId": 5,
+        "locationId": 178,
+        "seriesName": "Fotografiska",
+        "timezoneId": 63,
+        "timezoneName": "Europe/Helsinki",
+        "timezoneOffset": 3,
+        "visitors": 0
+      }
+    ]
+  }
+}
