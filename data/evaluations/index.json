@@ -1,0 +1,250 @@
+{
+  "schema_version": "v1",
+  "runs": [
+    {
+      "run_id": "eval_v1_2026-03-31_2026-04-01_2026-04-30_baseline",
+      "kind": "window",
+      "window": {
+        "origin": "2026-03-31",
+        "test_start": "2026-04-01",
+        "test_end": "2026-04-30",
+        "horizon_days": 30,
+        "train_window": "all"
+      },
+      "sweep": null,
+      "windows": null,
+      "models": [
+        "baseline"
+      ],
+      "reference_rule": "best",
+      "primary_weather_mode": "operational",
+      "verdicts": [
+        {
+          "venue_id": 1,
+          "model": "baseline",
+          "reference": "climatology_dow",
+          "verdict": "no_difference"
+        },
+        {
+          "venue_id": 2,
+          "model": "baseline",
+          "reference": "climatology_dow",
+          "verdict": "worse"
+        }
+      ],
+      "members": [],
+      "created_at": "2026-08-25T19:44:24Z"
+    },
+    {
+      "run_id": "eval_v1_2026-04-30_2026-05-01_2026-05-31_baseline",
+      "kind": "window",
+      "window": {
+        "origin": "2026-04-30",
+        "test_start": "2026-05-01",
+        "test_end": "2026-05-31",
+        "horizon_days": 31,
+        "train_window": "all"
+      },
+      "sweep": null,
+      "windows": null,
+      "models": [
+        "baseline"
+      ],
+      "reference_rule": "best",
+      "primary_weather_mode": "operational",
+      "verdicts": [
+        {
+          "venue_id": 1,
+          "model": "baseline",
+          "reference": "moving_average_28d",
+          "verdict": "no_difference"
+        },
+        {
+          "venue_id": 2,
+          "model": "baseline",
+          "reference": "climatology_dow",
+          "verdict": "no_difference"
+        }
+      ],
+      "members": [],
+      "created_at": "2026-08-25T19:44:24Z"
+    },
+    {
+      "run_id": "eval_v1_2026-05-31_2026-06-01_2026-06-30_baseline",
+      "kind": "window",
+      "window": {
+        "origin": "2026-05-31",
+        "test_start": "2026-06-01",
+        "test_end": "2026-06-30",
+        "horizon_days": 30,
+        "train_window": "all"
+      },
+      "sweep": null,
+      "windows": null,
+      "models": [
+        "baseline"
+      ],
+      "reference_rule": "best",
+      "primary_weather_mode": "operational",
+      "verdicts": [
+        {
+          "venue_id": 1,
+          "model": "baseline",
+          "reference": "climatology_dow",
+          "verdict": "worse"
+        },
+        {
+          "venue_id": 2,
+          "model": "baseline",
+          "reference": "climatology_dow",
+          "verdict": "no_difference"
+        }
+      ],
+      "members": [],
+      "created_at": "2026-08-25T19:44:24Z"
+    },
+    {
+      "run_id": "eval_v1_2026-06-30_2026-07-01_2026-07-31_baseline",
+      "kind": "window",
+      "window": {
+        "origin": "2026-06-30",
+        "test_start": "2026-07-01",
+        "test_end": "2026-07-31",
+        "horizon_days": 31,
+        "train_window": "all"
+      },
+      "sweep": null,
+      "windows": null,
+      "models": [
+        "baseline"
+      ],
+      "reference_rule": "best",
+      "primary_weather_mode": "operational",
+      "verdicts": [
+        {
+          "venue_id": 1,
+          "model": "baseline",
+          "reference": "climatology_dow",
+          "verdict": "no_difference"
+        },
+        {
+          "venue_id": 2,
+          "model": "baseline",
+          "reference": "climatology_dow",
+          "verdict": "worse"
+        }
+      ],
+      "members": [],
+      "created_at": "2026-08-25T19:44:24Z"
+    },
+    {
+      "run_id": "eval_v1_2026-07-31_2026-08-01_2026-08-25_baseline",
+      "kind": "window",
+      "window": {
+        "origin": "2026-07-31",
+        "test_start": "2026-08-01",
+        "test_end": "2026-08-25",
+        "horizon_days": 25,
+        "train_window": "all"
+      },
+      "sweep": null,
+      "windows": null,
+      "models": [
+        "baseline"
+      ],
+      "reference_rule": "best",
+      "primary_weather_mode": "operational",
+      "verdicts": [
+        {
+          "venue_id": 1,
+          "model": "baseline",
+          "reference": "climatology_dow",
+          "verdict": "worse"
+        },
+        {
+          "venue_id": 2,
+          "model": "baseline",
+          "reference": "climatology_dow",
+          "verdict": "no_difference"
+        }
+      ],
+      "members": [],
+      "created_at": "2026-08-25T19:44:24Z"
+    },
+    {
+      "run_id": "eval_v1_sweep_monthly_2026-04-01_2026-08-25_baseline",
+      "kind": "sweep",
+      "window": null,
+      "sweep": "monthly",
+      "windows": [
+        {
+          "run_id": "eval_v1_2026-03-31_2026-04-01_2026-04-30_baseline",
+          "origin": "2026-03-31",
+          "test_start": "2026-04-01",
+          "test_end": "2026-04-30",
+          "horizon_days": 30,
+          "train_window": "all"
+        },
+        {
+          "run_id": "eval_v1_2026-04-30_2026-05-01_2026-05-31_baseline",
+          "origin": "2026-04-30",
+          "test_start": "2026-05-01",
+          "test_end": "2026-05-31",
+          "horizon_days": 31,
+          "train_window": "all"
+        },
+        {
+          "run_id": "eval_v1_2026-05-31_2026-06-01_2026-06-30_baseline",
+          "origin": "2026-05-31",
+          "test_start": "2026-06-01",
+          "test_end": "2026-06-30",
+          "horizon_days": 30,
+          "train_window": "all"
+        },
+        {
+          "run_id": "eval_v1_2026-06-30_2026-07-01_2026-07-31_baseline",
+          "origin": "2026-06-30",
+          "test_start": "2026-07-01",
+          "test_end": "2026-07-31",
+          "horizon_days": 31,
+          "train_window": "all"
+        },
+        {
+          "run_id": "eval_v1_2026-07-31_2026-08-01_2026-08-25_baseline",
+          "origin": "2026-07-31",
+          "test_start": "2026-08-01",
+          "test_end": "2026-08-25",
+          "horizon_days": 25,
+          "train_window": "all"
+        }
+      ],
+      "models": [
+        "baseline"
+      ],
+      "reference_rule": "best",
+      "primary_weather_mode": "operational",
+      "verdicts": [
+        {
+          "venue_id": 1,
+          "model": "baseline",
+          "reference": "best-per-window",
+          "verdict": "worse"
+        },
+        {
+          "venue_id": 2,
+          "model": "baseline",
+          "reference": "climatology_dow",
+          "verdict": "worse"
+        }
+      ],
+      "members": [
+        "eval_v1_2026-03-31_2026-04-01_2026-04-30_baseline",
+        "eval_v1_2026-04-30_2026-05-01_2026-05-31_baseline",
+        "eval_v1_2026-05-31_2026-06-01_2026-06-30_baseline",
+        "eval_v1_2026-06-30_2026-07-01_2026-07-31_baseline",
+        "eval_v1_2026-07-31_2026-08-01_2026-08-25_baseline"
+      ],
+      "created_at": "2026-08-25T19:44:24Z"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 # Claude Code -promptit: Oulu2026 Visitor Flow Framework
 
-Neljä valmista promptia: kolme päälle osiolle ja yksi apuvälineelle. Kukin on itsenäinen
-ja ajetaan omassa Claude Code -istunnossaan repon juuressa.
+Viisi valmista promptia: kolme päälle osiolle ja kaksi lisäominaisuudelle. Kukin on
+itsenäinen ja ajetaan omassa Claude Code -istunnossaan repon juuressa.
 
 ## Käyttöohje
 
@@ -11,6 +11,10 @@ ja ennusteosio tarvitsee ingestin tuotokset.
 **Prompti 4 (lipputyökalu) on riippumaton** muista ja voidaan ajaa milloin tahansa, myös
 ennen osioita 2 ja 3. Se ei ole osa päivittäistä automaattiajoa vaan korvaa manuaalisen
 työvaiheen, jossa lippudata syötetään käsin.
+
+**Prompti 5 (arviointikehikko) edellyttää että osio 3 on valmis.** Se laajentaa
+forecast-pakettia komennolla, jolla ennusteita voi luoda mielivaltaisille aikaikkunoille
+ja verrata niitä automaattisesti toteumaan.
 
 **Ennen ensimmäistä promptia**, luo repo ja kopioi dokumentaatio:
 
@@ -34,7 +38,7 @@ claude
 
 ---
 
-## Prompti 1 / 3: ingest-osio (Python)
+## Prompti 1 / 5: ingest-osio (Python)
 
 ````text
 Rakennat Oulu2026 Visitor Flow Frameworkin ensimmäisen osion: datan hakevan
@@ -243,7 +247,7 @@ tests/fixtures/*.json -tiedostoiksi ja testaa niitä vasten:
 
 ---
 
-## Prompti 2 / 3: forecast-osio (Python)
+## Prompti 2 / 5: forecast-osio (Python)
 
 ````text
 Rakennat Oulu2026 Visitor Flow Frameworkin kolmannen osion: ennustepaketin. Repossa on
@@ -449,7 +453,7 @@ satunnaisuuksia. Sama syöte tuottaa saman tuloksen.
 
 ---
 
-## Prompti 3 / 3: web-osio (Astro)
+## Prompti 3 / 5: web-osio (Astro)
 
 ````text
 Rakennat Oulu2026 Visitor Flow Frameworkin toisen osion: staattisen web-käyttöliittymän.
@@ -598,7 +602,7 @@ lämpökartta) vierii omassa säiliössään eikä koko sivu vaakasuunnassa.
 
 ---
 
-## Prompti 4 / 4: lipputyökalu (itsenäinen HTML)
+## Prompti 4 / 5: lipputyökalu (itsenäinen HTML)
 
 Tämä on apuväline, ei osa päivittäistä automaattiajoa. Sen voi toteuttaa milloin tahansa,
 myös ennen osioita 2 ja 3. Se korvaa nykyisen manuaalisen työvaiheen, jossa
@@ -948,6 +952,373 @@ maininta työkalusta repon juuren README.md:hen.
 - Älä tee tästä osaa Astro-sovellusta, se on itsenäinen tiedosto
 ````
 
+---
+
+## Prompti 5 / 5: arviointikehikko (Python, laajentaa osiota 3)
+
+Edellyttää että osio 3 (`packages/forecast`) on valmis. Tämä lisää siihen komennon, jolla
+ennusteita voi luoda mille tahansa aikaikkunalle ja verrata ne automaattisesti toteumaan,
+sekä tilastollisen arvion siitä onko ero vertailukohtaan merkitsevä.
+
+Prompissa on oikeat luvut nykyisestä datasta, joten hyväksymiskriteerit ovat
+tarkistettavissa numero numerolta.
+
+````text
+Laajennat Oulu2026 Visitor Flow Frameworkin forecast-pakettia arviointikehikolla, jolla
+ennusteiden tarkkuutta voi testata systemaattisesti mielivaltaisilla aikaikkunoilla.
+
+# Lue ensin
+
+- docs/FRAMEWORK_PLAN.md luku 8: mallien rakenne, luku 8.7 validointi
+- docs/FORECAST_MODEL.md: mallien dokumentaatio ja mitatut luvut
+- packages/forecast/src/ovf_forecast/: nykyinen toteutus, erityisesti backtest.py,
+  features.py, intervals.py ja models/
+- data/processed/visitors_daily.csv: arvioinnin kohdeaineisto
+
+# Tehtävä
+
+Toteuta `python -m ovf_forecast evaluate`, jolla voi:
+
+1. Kouluttaa mallin vapaasti valitulla historiajaksolla
+2. Ennustaa vapaasti valitun testijakson
+3. Verrata ennustetta toteumaan automaattisesti
+4. Kertoa onko ero vertailukohtaan tilastollisesti merkitsevä
+5. Kerryttää tuloksia ajojen yli, jotta mallin kehitystä voi seurata
+
+Esimerkkikäyttö jota varten tämä rakennetaan: kouluta tammi-maaliskuun datalla, ennusta
+huhtikuu, saa automaattinen arvio osumatarkkuudesta.
+
+# Rakenne
+
+packages/forecast/src/ovf_forecast/evaluation/
+  __init__.py
+  windows.py      ikkunoiden määrittely ja purku
+  runner.py       yhden ikkunan ajo: koulutus, ennuste, toteuman haku
+  baselines.py    vertailukohdat
+  metrics.py      mittarit
+  significance.py bootstrap, Diebold-Mariano, voima-analyysi
+  totals.py       jakson kokonaismäärän arviointi
+  store.py        tulosten tallennus ja rekisteri
+  report.py       markdown-raportin generointi
+packages/forecast/tests/test_evaluation_*.py
+
+Uusia riippuvuuksia ei tarvita. numpy riittää bootstrapiin, älä lisää scipyä tai
+statsmodelsia pelkän t-jakauman takia: toteuta p-arvo bootstrapista.
+
+# Ikkunan määrittely
+
+Ikkuna koostuu kolmesta asiasta:
+
+- origin: viimeinen päivä jonka data on käytettävissä koulutuksessa
+- test_start, test_end: arvioitava jakso, alkaa aina origin + 1 vrk
+- train_window: `all` (koko historia origoon asti) tai päivien lukumäärä (liukuva ikkuna)
+
+Kohde on `visitors_total` päivätasolla, venuekohtaisesti. Lipputavoite on valinnainen
+lisä, toteuta se vasta jos päätavoite toimii.
+
+# Vuotokiellot, tämän ominaisuuden tärkein vaatimus
+
+Arviointi on hyödytön jos ennuste on nähnyt testijakson dataa. Kaikki alla oleva on
+pakollista:
+
+1. Malli koulutetaan ainoastaan datalla jonka päivä <= origin.
+2. Tasopiirteet (level_7d, level_28d, dow_index_28d) lasketaan origossa ja pysyvät
+   vakiona koko testijakson ajan.
+3. Tuntiprofiili johdetaan vain koulutusdatasta.
+4. MASE-nimittäjä lasketaan vain koulutusdatasta.
+5. Ennustevälien kvantiilit tulevat sisäkkäisestä backtestistä, joka ajetaan KOKONAAN
+   koulutusikkunan sisällä. Tämä on helppo tehdä väärin: normaalissa ajossa kvantiilit
+   lasketaan viimeisimmästä datasta, mutta arvioinnissa ne eivät saa nähdä testijaksoa.
+6. Kalenteritiedot (pyhät, viikonpäivät) ovat sallittuja, koska ne tiedetään etukäteen.
+7. Lippudataa ei käytetä piirteenä, koska sitä ei ole tulevaisuudelle.
+
+## Sään käsittely, kolme tilaa
+
+Sää on erikoistapaus. Tuotannossa käytettävissä on sääennuste, ei toteutunut sää.
+Toteutuneella säällä arviointi antaa liian hyvän tuloksen. Aja siksi jokainen ikkuna
+kolmella tilalla ja raportoi kaikki:
+
+| Tila | Sää testijaksolla | Tulkinta |
+| perfect | toteutunut sää koko jaksolta | Yläraja: mihin malli pystyisi jos sää tiedettäisiin |
+| operational | toteutunut vrk 1-16, klimatologia vrk 17+ | Realistisin arvio, olettaa hyvän sääennusteen |
+| climatology | klimatologia koko jaksolta | Alaraja: mihin malli pystyy ilman sääennustetta |
+
+Oletus on `operational`. Perfectin ja climatologyn välinen ero kertoo kuinka suuri osa
+mallin osumatarkkuudesta lepää sään tuntemisen varassa. Tämä on itsessään arvokas
+tulos, raportoi se erikseen.
+
+Valinnainen lisä, toteuta vain jos ehdit: Open-Meteolla on arkistoitu sääennustepalvelu,
+jolla saisi juuri sen ennusteen joka origona oli saatavilla. Tarkista ensin dokumentaatiosta
+onko se olemassa ja mitä se palauttaa, äläkä oleta rajapinnan muotoa. Jos se toimii, lisää
+neljäs tila `archived_forecast`, joka on aidosti oikea vastaus tähän ongelmaan.
+
+# Vertailukohdat
+
+Nämä lasketaan aina ja niiden määritelmät ovat sitovia. Kaikki ovat vuotamattomia,
+eli ne käyttävät vain dataa <= origin.
+
+1. `seasonal_naive`
+   Testipäivälle t otetaan havainto samalta viikonpäivältä origoa edeltävältä
+   7 päivän jaksolta (origo mukaan lukien). Sama viikko toistetaan koko horisontille.
+   HUOM: älä käytä muotoa y[t-7], koska horisontilla 8 ja siitä eteenpäin se lukisi
+   testijakson toteumia. Se on vuoto.
+
+2. `moving_average_28d`
+   Origoa edeltävien 28 päivän keskiarvo, vakio koko testijakson ajan.
+
+3. `climatology_dow`
+   Koulutusdatan viikonpäiväkohtainen keskiarvo, vakio kullekin viikonpäivälle.
+
+Oletusvertailukohta verdiktille on **paras näistä kolmesta kyseisellä ikkunalla**, ei
+seasonal_naive. Perustelu: nykyisellä aineistolla climatology_dow voittaa seasonal_naiven
+useimmilla kuukausilla, joten seasonal_naive olisi liian helppo rima. Raportoi silti
+kaikki kolme.
+
+# Mittarit
+
+Lasketaan venueittain, malleittain ja horisonttikoreittain (1-7, 8-14, 15-30):
+
+| Mittari | Huomiot |
+| MAE | Päämittari |
+| RMSE | Rankaisee suuria virheitä |
+| MASE | MAE jaettuna koulutusdatan seasonal naive -MAE:lla. Vertailukelpoinen venueiden välillä |
+| Bias | Keskivirhe etumerkillä, paljastaa systemaattisen yli- tai aliarvion |
+| Pinball-tappio | Kvantiileille 0.1, 0.5 ja 0.9. Oikea pistemäärä kvantiiliennusteelle |
+| Peittävyys 80 % | Osuus toteumista p10-p90 välillä |
+| sMAPE | Laske, mutta merkitse epäluotettavaksi jos testijaksolla on nollapäiviä |
+
+sMAPE-varoitus on tarpeen: venue 2:lla on 33 nollapäivää, ja sMAPE räjähtää niillä.
+Älä käytä sMAPEa verdiktin perustana.
+
+# Tilastollinen arvio
+
+## Perusasetelma
+
+Verrataan mallin ja vertailukohdan absoluuttisten virheiden sarjoja pareittain:
+
+    d_t = |y_t - malli_t| - |y_t - vertailu_t|
+
+Negatiivinen keskiarvo tarkoittaa että malli on parempi.
+
+## Yhden ikkunan arvio, ensisijainen menetelmä
+
+Liikkuvan lohkon bootstrap:
+- lohkon pituus 7 päivää, jotta viikkorytmin autokorrelaatio säilyy
+- 10 000 uudelleenotantaa
+- 95 % persentiilipohjainen luottamusväli keskiarvolle d
+- verdikti: parempi jos koko väli alle nollan, huonompi jos koko väli yli nollan,
+  muuten ei havaittavaa eroa
+
+Raportoi myös taitopistemäärä SS = 1 - MAE_malli / MAE_vertailu ja sen bootstrap-väli.
+
+## Diebold-Mariano toissijaisena
+
+Laske myös DM-testisuure Newey-West-varianssilla (Bartlett-ydin, viive
+ceil(1.5 * n^(1/3))) ja Harvey-Leybourne-Newbold-pienotoskorjauksella. Raportoi p-arvo,
+mutta merkitse se toissijaiseksi ja kirjoita raporttiin miksi: yhden origon 30 virhettä
+eivät ole riippumattomia havaintoja, koska ne jakavat saman koulutusjoukon ja saman
+maailmantilan. DM:n oletukset ovat siis venytettyjä.
+
+## Voima-analyysi, pakollinen osa verdiktiä
+
+Kun verdikti on "ei havaittavaa eroa", se voi tarkoittaa kahta eri asiaa: mallit ovat
+yhtä hyviä, tai otos on liian pieni. Erottele nämä laskemalla pienin havaittava ero:
+
+    MDE = 2.8 * sd(d) / sqrt(n)
+
+Raportoi MDE sekä kävijöinä per päivä että prosentteina vertailukohdan MAE:sta. Nykyisellä
+aineistolla yhden kuukauden ikkunassa MDE on suuruusluokkaa 27-30 % vertailukohdan
+MAE:sta, eli yksi kuukausi pystyy todistamaan vain suuret parannukset. Tämän on näyttävä
+raportissa selvästi, jotta kukaan ei tulkitse "ei eroa" -tulosta todisteeksi
+samanveroisuudesta.
+
+## Monen ikkunan koostearvio, tärkein tulos
+
+Yhden ikkunan verdikti on kuvaileva, ei todistava. Varsinainen näyttö syntyy usean
+ikkunan koosteesta:
+
+- bootstrap uudelleenottaa KOKONAISIA IKKUNOITA, ei yksittäisiä päiviä, koska ikkuna on
+  riippumattomuuden luonnollinen yksikkö
+- raportoi ikkunakohtaiset tulokset taulukkona ja niiden kooste yhtenä verdiktinä
+- kerro montako ikkunaa mallia puolsi ja montako vastusti
+
+Tee tämä koosteverdikti raportin pääotsikoksi. Yksittäisen ikkunan verdikti esitetään
+sen alla yksityiskohtana.
+
+## Monivertailukorjaus
+
+Kun sweep ajaa k ikkunaa ja m mallia, sattuma tuottaa merkitseviä tuloksia. Raportoi
+sekä raaka että Holm-Bonferroni-korjattu p-arvo, ja kerro perheen koko.
+
+# Muut arviot
+
+## Bias
+
+Bootstrap-luottamusväli keskivirheelle. Jos väli ei sisällä nollaa, malli yli- tai
+aliarvioi systemaattisesti. Kerro suunta ja suuruus sekä kävijöinä että prosentteina.
+
+## Kalibrointi
+
+80 % peittävyys ja sille Clopper-Pearson-eksakti binomiväli. Verdikti: kalibroitu jos
+0,80 on välin sisällä, liian kapea jos peittävyys jää alle, liian leveä jos yli.
+
+## Jakson kokonaismäärä
+
+Tuottaja kysyy "montako kävijää huhtikuussa", ei "mikä oli päivätason MAE". Raportoi
+erikseen:
+- ennustettu kokonaismäärä ja toteuma, absoluuttinen ja prosentuaalinen ero
+- 80 % väli kokonaismäärälle
+
+Kokonaismäärän väliä EI saa laskea summaamalla päivien p10- ja p90-arvoja. Se on sama
+virhe jonka vanha sovellus teki. Laske se simuloimalla: bootstrappaa koulutusikkunan
+sisäisen backtestin päivätason suhteellisia virheitä lohkoina, kerro niillä päiväennusteet,
+summaa jokainen simuloitu polku, ja ota kvantiilit summien jakaumasta.
+
+Tämä ero on aineistossa oikeasti näkyvä: huhtikuussa venue 1:n climatology_dow osuu
+kuukausisummaan 0,8 %:n tarkkuudella, vaikka sen päivätason MAE on 96 kävijää eli noin
+22 % päivän keskiarvosta. Hyvä kuukausisumma ja huono päivätarkkuus voivat esiintyä yhtä
+aikaa, eikä kumpaakaan saa päätellä toisesta.
+
+# Sweepit
+
+python -m ovf_forecast evaluate --sweep monthly --from 2026-04 --to 2026-08
+  origo on edellisen kuukauden viimeinen päivä, testijakso on kokonainen kuukausi
+
+python -m ovf_forecast evaluate --sweep rolling --step 14 --horizon 30
+  origo siirtyy 14 vrk välein, testijakso on aina horizon päivää
+
+Sweep ajaa jokaisen ikkunan, tallentaa ne erikseen ja tuottaa koosteverdiktin.
+
+# CLI
+
+python -m ovf_forecast evaluate --train-end 2026-03-31 --test 2026-04-01:2026-04-30
+python -m ovf_forecast evaluate --test 2026-04
+python -m ovf_forecast evaluate --sweep monthly --from 2026-04 --to 2026-08
+python -m ovf_forecast evaluate --sweep rolling --step 14 --horizon 30
+python -m ovf_forecast evaluate --models baseline,prophet_xgb
+python -m ovf_forecast evaluate --reference best|seasonal_naive|moving_average_28d|climatology_dow
+python -m ovf_forecast evaluate --weather perfect,operational,climatology
+python -m ovf_forecast evaluate --train-window all|120
+python -m ovf_forecast evaluate --venue 1
+python -m ovf_forecast evaluate report --id <run_id>
+python -m ovf_forecast evaluate report --pooled
+python -m ovf_forecast evaluate list
+
+`--test 2026-04` on lyhenne: origo on 31.3.2026 ja testijakso koko huhtikuu.
+
+Ajo on deterministinen: kiinteä siemen bootstrapille, sama syöte tuottaa saman tuloksen.
+Tulosta ajon lopuksi verdikti yhtenä ihmisluettavana kappaleena suomeksi, jotta komennon
+voi ajaa ilman että raporttia tarvitsee avata.
+
+# Tuotokset
+
+data/evaluations/index.json
+  luettelo ajoista: run_id, luontiaika, ikkuna, mallit, päävertailukohta, verdikti
+
+data/evaluations/{run_id}/config.json      ajon täydelliset parametrit
+data/evaluations/{run_id}/predictions.csv
+  venue_id, date, horizon_days, model, weather_mode, y_true, p10, p50, p90
+data/evaluations/{run_id}/metrics.json     kaikki mittarit
+data/evaluations/{run_id}/verdicts.json    verdiktit koneluettavassa muodossa
+data/evaluations/{run_id}/report.md        ihmisluettava raportti
+
+run_id on deterministinen ja luettava, esimerkiksi
+eval_v1_2026-03-31_2026-04-01_2026-04-30_baseline. Sama ajo samoilla parametreilla
+korvaa saman hakemiston, ei luo uutta.
+
+# Raportin rakenne
+
+1. Verdikti yhdellä kappaleella suomeksi, ilman jargonia
+2. Ikkuna ja asetelma: mitä koulutettiin, millä, mitä ennustettiin
+3. Kuukausisumma: ennuste, toteuma, ero, 80 % väli
+4. Päivätason mittarit taulukkona, mallit ja vertailukohdat rinnakkain
+5. Tilastollinen arvio: luottamusväli, taitopistemäärä, MDE, DM:n p-arvo
+6. Kalibrointi ja bias
+7. Sään kolmen tilan vertailu
+8. Rajoitteet: otoskoko, mitä tästä ei voi päätellä
+9. Pahiten menneet päivät, viisi suurinta virhettä päivämäärineen ja mahdollisine syineen
+   (pyhäpäivä, poikkeuksellinen sää, tapahtuma)
+
+Kohta 9 on käytännössä hyödyllisin: se kertoo mitä mallista puuttuu.
+
+# Testit
+
+Kriittisimmät ensin.
+
+1. Vuototesti, tärkein testi koko ominaisuudessa:
+   aja arviointi, tallenna ennusteet, korvaa sitten KAIKKI origon jälkeinen data
+   satunnaisluvuilla, aja ennustevaihe uudelleen ja varmista että ennusteet ovat
+   bittitasolla identtiset. Jos ne muuttuvat, jossain on vuoto.
+2. Vertailukohtien tarkat arvot, katso hyväksymiskriteerit.
+3. seasonal_naive ei käytä testijakson havaintoja horisontilla 8-30.
+4. Sisäkkäinen backtest ei näe testijaksoa: sama testi kuin 1, kohdistettuna
+   kvantiilien laskentaan.
+5. Bootstrapin peittävyys: synteettisellä datalla jossa ero on tunnettu, 95 %
+   luottamusväli sisältää todellisen arvon noin 95 % kerroista (Monte Carlo, 200 toistoa).
+6. Determinismi: kaksi peräkkäistä ajoa tuottaa identtiset tiedostot.
+7. Kokonaismäärän väli ei ole päivävälien summa: testi joka varmistaa että se on
+   kapeampi kuin naiivi summa.
+8. MDE:n laskenta käsin lasketulla esimerkillä.
+
+# Hyväksymiskriteerit
+
+Nämä on laskettu nykyisestä datasta (data/processed/visitors_daily.csv, 237 päivää
+per venue, 1.1. - 25.8.2026) ja niiden on täsmättävä.
+
+1. Ikkuna origo 2026-03-31, testi 2026-04-01 ... 2026-04-30, venue 1, vertailukohdat:
+
+   | Vertailukohta | MAE | RMSE | Bias | Ennustettu summa |
+   | seasonal_naive | 129.50 | 158.12 | +66.10 | 15 172 |
+   | moving_average_28d | 197.61 | 219.80 | +138.22 | 17 336 |
+   | climatology_dow | 96.20 | 122.72 | +3.44 | 13 292 |
+
+   Toteutunut summa 13 189. MASE-nimittäjä (koulutusdatan seasonal naive -MAE) 141.18.
+
+2. Sama ikkuna, venue 2, vertailukohdat:
+
+   | Vertailukohta | MAE | Ennustettu summa |
+   | seasonal_naive | 138.57 | 7 656 |
+   | moving_average_28d | 88.16 | 5 802 |
+   | climatology_dow | 75.14 | 5 346 |
+
+   Toteutunut summa 3 791. MASE-nimittäjä 128.57.
+
+3. Kuukausisweep 2026-04 ... 2026-08 tuottaa viisi ikkunaa molemmille venueille ja
+   koosteverdiktin.
+4. Vuototesti menee läpi.
+5. Verdikti nimeää aina päävertailukohdan ja kertoo MDE:n, myös silloin kun eroa ei
+   havaittu.
+6. Koko sweep ilman prophetia kestää alle viisi minuuttia.
+7. ruff, mypy ja pytest menevät läpi.
+8. Päivitä docs/FORECAST_MODEL.md arvioinnin tuloksilla ja lisää docs/EVALUATION.md,
+   joka kertoo miten arviointi ajetaan, miten tuloksia luetaan ja mitä niistä EI voi
+   päätellä.
+
+# Odotettu havainto, älä yllätys jos näin käy
+
+Nykyisellä aineistolla on todennäköistä että malli ei voita climatology_dow-vertailukohtaa
+tilastollisesti merkitsevästi yhdelläkään yksittäisellä kuukaudella. Aineistoa on vain
+noin kahdeksan kuukautta yhdeltä vuodelta, ja MDE on suuruusluokkaa 30 %. Tämä on
+oikea ja rehellinen tulos, ei epäonnistuminen. Raportoi se sellaisenaan ja kerro
+mitä lisädata tai lisäpiirteet (esimerkiksi tapahtumakalenteri) voisivat muuttaa.
+
+Jos malli häviää yksinkertaiselle vertailukohdalle useassa ikkunassa, sano se suoraan
+raportin ensimmäisessä kappaleessa.
+
+# Älä tee näitä
+
+- Älä käytä testijakson dataa missään vaiheessa koulutusta, piirteitä tai kvantiileja
+- Älä käytä muotoa y[t-7] seasonal naive -vertailukohtana yli 7 vrk horisontilla
+- Älä summaa päivien p10- ja p90-arvoja kuukausiväliksi
+- Älä perusta verdiktiä sMAPEen, venue 2:n nollapäivät rikkovat sen
+- Älä esitä yhden ikkunan tulosta todisteena, se on kuvaileva
+- Älä jätä MDE:tä pois kun verdikti on "ei eroa"
+- Älä valitse vertailukohdaksi heikointa vaihtoehtoa jotta malli näyttäisi paremmalta
+- Älä piilota huonoja tuloksia liitteisiin
+````
+
+---
+
 ## Yhteenveto: mitä kukin osio tuottaa
 
 | Osio | Teknologia | Syöte | Tuotos | Ajo |
@@ -956,3 +1327,4 @@ maininta työkalusta repon juuren README.md:hen.
 | 3. forecast | Python 3.12, scikit-learn (+ Prophet valinnaisena) | `data/processed/` | `data/forecasts/latest/` | Päivittäin, ingestin jälkeen |
 | 2. web | Astro 5, TypeScript, Observable Plot | `data/processed/` + `data/forecasts/` | Staattinen sivusto | Build pushissa, Cloudflare Pages |
 | 4. lipputyökalu | Yksi HTML-tiedosto, vanilla JS | Aukiolotiimin kävijätilasto-CSV (cp1252, puolipiste) | `data/raw/tickets/venue_{id}/tickets.csv` | Käsin, viikoittain |
+| 5. arviointi | Python, laajentaa osiota 3 | `data/processed/` + valittu aikaikkuna | `data/evaluations/{run_id}/` | Käsin, mallin kehityksen tahdissa |

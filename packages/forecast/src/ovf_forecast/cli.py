@@ -40,6 +40,30 @@ from .dataset import (
     venue_future,
     venue_history,
 )
+from .evaluation import (
+    DEFAULT_WEATHER_MODE,
+    REFERENCE_CHOICES,
+    TRAIN_WINDOW_ALL,
+    WEATHER_MODES,
+    EvaluationConfig,
+    WindowError,
+    evaluate,
+    history_bounds,
+    list_runs,
+    load_run,
+    make_window,
+    monthly_sweep,
+    pooled_report,
+    resolve_weather_modes,
+    rolling_sweep,
+    utc_now,
+)
+from .evaluation.significance import N_RESAMPLES, RANDOM_SEED
+from .evaluation.windows import (
+    DEFAULT_MAX_WINDOWS,
+    DEFAULT_ROLLING_HORIZON_DAYS,
+    DEFAULT_ROLLING_STEP_DAYS,
+)
 from .export import (
     LATEST_DIR,
     METRICS_NAME,
@@ -399,6 +423,141 @@ def command_report(data: ProcessedData, args: argparse.Namespace) -> int:
     return EXIT_OK if found else EXIT_FAILED
 
 
+def command_evaluate(data: ProcessedData, args: argparse.Namespace) -> int:
+    """Train on a chosen period, forecast another, and say whether the difference is real."""
+    try:
+        config, windows, sweep_kind = _evaluation_plan(data, args)
+    except (WindowError, KeyError, ValueError) as exc:
+        log_event("error", "evaluation", "Could not build the evaluation", error=str(exc))
+        print(f"virhe: {exc}")
+        return EXIT_FAILED
+    if not config.models:
+        log_event("error", "evaluation", "No usable model", requested=list(_evaluate_models(args)))
+        return EXIT_FAILED
+    result = evaluate(data, windows, config, sweep_kind=sweep_kind, moment=utc_now())
+    if not result.produced_anything:
+        return EXIT_FAILED
+    print()
+    print(result.summary)
+    print()
+    for run_id in result.run_ids:
+        print(f"  tallennettu: data/evaluations/{run_id}/")
+    if result.sweep_run_id:
+        print(f"  kooste:      data/evaluations/{result.sweep_run_id}/")
+    return EXIT_PARTIAL if result.failed_venues else EXIT_OK
+
+
+def command_evaluate_report(data: ProcessedData, args: argparse.Namespace) -> int:
+    """Print a stored evaluation report, or the pooled view across every stored run."""
+    if args.pooled:
+        pooled = pooled_report(data.root, _evaluation_config(data, args, TRAIN_WINDOW_ALL))
+        if pooled is None:
+            print("ei tallennettuja arviointiajoja, aja ensin 'python -m ovf_forecast evaluate'")
+            return EXIT_FAILED
+        print(pooled[0])
+        return EXIT_OK
+    if not args.id:
+        print("anna joko --id <run_id> tai --pooled")
+        return EXIT_FAILED
+    artifacts = load_run(data.root, args.id)
+    if artifacts is None:
+        print(f"tuntematon ajo: {args.id}")
+        return EXIT_FAILED
+    print(artifacts.report)
+    return EXIT_OK
+
+
+def command_evaluate_list(data: ProcessedData, args: argparse.Namespace) -> int:
+    """List the stored evaluation runs, newest first."""
+    runs = list_runs(data.root)
+    if not runs:
+        print("ei tallennettuja arviointiajoja")
+        return EXIT_FAILED
+    print(f"{'run_id':<72}{'laji':>8}{'luotu':>22}  verdikti")
+    for entry in runs[: args.limit]:
+        verdicts = ", ".join(
+            f"v{item['venue_id']}/{item['model']} vs {item['reference']}: {item['verdict']}"
+            for item in entry.get("verdicts", [])
+        )
+        print(
+            f"{entry.get('run_id', '')!s:<72}{entry.get('kind', '')!s:>8}"
+            f"{entry.get('created_at', '')!s:>22}  {verdicts}"
+        )
+    return EXIT_OK
+
+
+def _evaluation_plan(
+    data: ProcessedData, args: argparse.Namespace
+) -> tuple[EvaluationConfig, list[Any], str | None]:
+    """Turn the evaluate arguments into a configuration and a list of windows."""
+    train_window = args.train_window or TRAIN_WINDOW_ALL
+    config = _evaluation_config(data, args, train_window)
+    if args.sweep == "monthly":
+        if not (args.from_month and args.to_month):
+            raise WindowError("--sweep monthly tarvitsee sekä --from että --to (YYYY-MM).")
+        _, last_day = history_bounds(data, config.venues)
+        return config, monthly_sweep(
+            first_month=args.from_month,
+            last_month=args.to_month,
+            history_last_day=last_day,
+            train_window=train_window,
+        ), "monthly"
+    if args.sweep == "rolling":
+        first_day, last_day = history_bounds(data, config.venues)
+        return config, rolling_sweep(
+            history_first_day=first_day,
+            history_last_day=last_day,
+            step_days=args.step,
+            horizon_days=args.horizon,
+            train_window=train_window,
+            max_windows=args.max_windows,
+        ), "rolling"
+    if not args.test:
+        raise WindowError(
+            "Anna joko --test (esim. --test 2026-04) tai --sweep monthly|rolling."
+        )
+    window = make_window(test=args.test, train_end=args.train_end, train_window=train_window)
+    return config, [window], None
+
+
+def _evaluation_config(
+    data: ProcessedData, args: argparse.Namespace, train_window: str
+) -> EvaluationConfig:
+    """Build the evaluation configuration, dropping models whose extras are missing."""
+    requested = _evaluate_models(args)
+    _, skipped = resolve_models(requested)
+    usable = tuple(name for name in requested if name not in skipped)
+    modes = resolve_weather_modes(_split(getattr(args, "weather", None)))
+    primary = DEFAULT_WEATHER_MODE if DEFAULT_WEATHER_MODE in modes else modes[0]
+    venues = tuple(args.venue) if args.venue else None
+    if venues:
+        for venue_id in venues:
+            data.venue(venue_id)
+    return EvaluationConfig(
+        models=usable,
+        weather_modes=modes,
+        primary_weather_mode=primary,
+        reference=args.reference,
+        venues=venues,
+        train_window=train_window,
+        n_resamples=args.resamples,
+        seed=args.seed,
+    )
+
+
+def _evaluate_models(args: argparse.Namespace) -> tuple[str, ...]:
+    """The models the caller asked for, defaulting to every production model."""
+    requested = _split(getattr(args, "models", None))
+    return tuple(dict.fromkeys(requested)) if requested else MODEL_NAMES
+
+
+def _split(text: str | None) -> tuple[str, ...] | None:
+    """Split a comma separated CLI value."""
+    if not text:
+        return None
+    return tuple(part.strip() for part in text.split(",") if part.strip())
+
+
 def _print_metrics(
     venue: Venue,
     metrics: dict[str, dict[str, dict[str, float | int]]],
@@ -495,7 +654,63 @@ def build_parser() -> argparse.ArgumentParser:
     report_parser = subparsers.add_parser("report", help="Print the metrics of the last run")
     report_parser.add_argument("--venue", action="append", type=int, default=None, help="Limit to one venue")
     report_parser.set_defaults(handler=command_report)
+
+    _add_evaluate_parser(subparsers)
     return parser
+
+
+def _add_evaluate_parser(subparsers: Any) -> None:
+    """Wire ``evaluate``, plus its ``report`` and ``list`` sub-actions."""
+    parser = subparsers.add_parser(
+        "evaluate", help="Measure forecast accuracy on a chosen window and store the result"
+    )
+    parser.add_argument("--train-end", default=None, help="Last training day, YYYY-MM-DD")
+    parser.add_argument(
+        "--test", default=None, help="Test period: YYYY-MM, YYYY-MM-DD or YYYY-MM-DD:YYYY-MM-DD"
+    )
+    parser.add_argument("--sweep", choices=["monthly", "rolling"], default=None, help="Run many windows")
+    parser.add_argument("--from", dest="from_month", default=None, help="First month of a monthly sweep")
+    parser.add_argument("--to", dest="to_month", default=None, help="Last month of a monthly sweep")
+    parser.add_argument(
+        "--step", type=int, default=DEFAULT_ROLLING_STEP_DAYS, help="Days between rolling origins"
+    )
+    parser.add_argument(
+        "--horizon", type=int, default=DEFAULT_ROLLING_HORIZON_DAYS, help="Rolling test period length"
+    )
+    parser.add_argument(
+        "--max-windows", type=int, default=DEFAULT_MAX_WINDOWS, help="Cap on rolling windows"
+    )
+    parser.add_argument(
+        "--models", default=None, help=f"Comma separated: {', '.join(MODEL_NAMES)}"
+    )
+    parser.add_argument(
+        "--reference",
+        choices=list(REFERENCE_CHOICES),
+        default="best",
+        help="Reference for the verdict; 'best' picks the hardest baseline per window",
+    )
+    parser.add_argument(
+        "--weather", default=None, help=f"Comma separated weather modes: {', '.join(WEATHER_MODES)}"
+    )
+    parser.add_argument(
+        "--train-window", default=TRAIN_WINDOW_ALL, help="'all' or a number of days"
+    )
+    parser.add_argument("--venue", action="append", type=int, default=None, help="Limit to one venue")
+    parser.add_argument("--resamples", type=int, default=N_RESAMPLES, help="Bootstrap resamples")
+    parser.add_argument("--seed", type=int, default=RANDOM_SEED, help="Bootstrap seed")
+    parser.set_defaults(handler=command_evaluate, pooled=False, id=None, limit=20)
+
+    actions = parser.add_subparsers(dest="evaluate_action", required=False)
+    report_action = actions.add_parser("report", help="Print a stored evaluation report")
+    report_action.add_argument("--id", default=None, help="Run id to print")
+    report_action.add_argument(
+        "--pooled", action="store_true", help="Pool every stored run into one verdict"
+    )
+    report_action.set_defaults(handler=command_evaluate_report)
+
+    list_action = actions.add_parser("list", help="List the stored evaluation runs")
+    list_action.add_argument("--limit", type=int, default=20, help="How many runs to show")
+    list_action.set_defaults(handler=command_evaluate_list)
 
 
 def _add_shared_arguments(parser: argparse.ArgumentParser) -> None:

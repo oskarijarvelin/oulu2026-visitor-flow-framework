@@ -3,7 +3,8 @@ VENV := .venv
 BIN := $(VENV)/bin
 
 .PHONY: help venv install install-prophet ingest ingest-full climatology verify \
-        forecast forecast-baseline backtest report test lint typecheck check clean \
+        forecast forecast-baseline backtest report evaluate evaluate-sweep evaluate-list \
+        test lint typecheck check clean \
         web-install web-data web web-dev web-preview web-check web-test web-e2e all
 
 help:
@@ -17,6 +18,9 @@ help:
 	@echo "make forecast-baseline  Run only the baseline model"
 	@echo "make backtest     Validate the models without writing forecasts"
 	@echo "make report       Print the metrics of the last forecast run"
+	@echo "make evaluate     Evaluate one window: train to 31.3., forecast April"
+	@echo "make evaluate-sweep   Monthly sweep 2026-04..2026-08 plus the pooled verdict"
+	@echo "make evaluate-list    List the stored evaluation runs"
 	@echo "make test         pytest"
 	@echo "make lint         ruff check"
 	@echo "make typecheck    mypy"
@@ -69,6 +73,17 @@ backtest:
 
 report:
 	$(BIN)/python -m ovf_forecast report
+
+# Accuracy evaluation on a chosen window. See docs/EVALUATION.md for how to read the
+# result, and in particular for what it does not prove.
+evaluate:
+	$(BIN)/python -m ovf_forecast evaluate --test 2026-04 --models baseline
+
+evaluate-sweep:
+	$(BIN)/python -m ovf_forecast evaluate --sweep monthly --from 2026-04 --to 2026-08 --models baseline
+
+evaluate-list:
+	$(BIN)/python -m ovf_forecast evaluate list
 
 test:
 	$(BIN)/python -m pytest

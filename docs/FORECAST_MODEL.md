@@ -395,6 +395,132 @@ viikonpäivä viimeksi havaittuna" on yhtä hyvä kuin gradient boosting.
 ja venue 1:n huonoin lähihorisontilla. Kahdella venuella ja kahdeksalla origolla ei ole
 mahdollista sanoa, kumpi havainto on signaalia.
 
+### 5.5 Arviointikehikko: mielivaltaiset ikkunat ja tilastollinen verdikti
+
+Luvun 5.1 backtest mittaa mallia liukuvilla origoilla ja tuottaa tuotannon ennustevälit.
+Sen rinnalla on `python -m ovf_forecast evaluate`, joka vastaa yhteen kysymykseen
+kerrallaan: kouluta valittuun päivään asti, ennusta valittu jakso, kerro osuiko se ja
+onko ero vertailukohtaan todellinen. Täysi ohje on `docs/EVALUATION.md`; tässä on se mitä
+se mittasi.
+
+Kolme eroa luvun 5.1 backtestiin ovat oleellisia lukujen tulkinnan kannalta:
+
+1. **Kolmas vertailukohta.** `climatology_dow` — koulutusdatan viikonpäiväkohtainen
+   keskiarvo — on tässä aineistossa selvästi kovempi rima kuin `seasonal_naive`, ja
+   päävertailukohdaksi valitaan oletuksena kunkin ikkunan **paras** vertailukohta.
+2. **Aloitusnollia ei poisteta.** Arviointi lukee venuen sarjan sellaisenaan, koska
+   koulutusikkuna on se jonka käyttäjä nimesi. Venue 1:n tammi–maaliskuun ikkunassa on
+   siksi 21 nollapäivää 90:stä.
+3. **Sää ajetaan kolmella tilalla** (`perfect`, `operational`, `climatology`); verdikti
+   tulee `operational`-tilasta.
+
+#### Kuukausisweep 2026-04 … 2026-08, perusmalli, `operational`
+
+Venue 1, Pekuri. Päävertailukohta valitaan ikkunakohtaisesti:
+
+| Testijakso | Vertailukohta | Mallin MAE | Vertailun MAE | Ero d | 95 % väli | Verdikti | MDE | MDE % |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| huhtikuu | climatology_dow | 102,9 | 96,2 | +6,7 | −3,2 … +30,7 | ei eroa | 34,5 | 36 % |
+| toukokuu | moving_average_28d | 179,5 | 187,4 | −7,9 | −58,5 … +23,6 | ei eroa | 69,0 | 37 % |
+| kesäkuu | climatology_dow | 305,0 | 138,9 | +166,1 | +62,6 … +264,5 | **huonompi** | 102,0 | 73 % |
+| heinäkuu | climatology_dow | 174,3 | 156,2 | +18,1 | −15,5 … +60,9 | ei eroa | 43,5 | 28 % |
+| elokuu (25 vrk) | climatology_dow | 248,2 | 131,0 | +117,2 | +18,0 … +167,7 | **huonompi** | 84,5 | 65 % |
+
+**Kooste: huonompi.** Keskiero +60,0 kävijää päivässä (95 % väli +3,1 … +124,4),
+ikkunoita puolesta 1, vastaan 4.
+
+Venue 2, Kaupungintalo. Päävertailukohta oli `climatology_dow` kaikissa ikkunoissa:
+
+| Testijakso | Mallin MAE | Vertailun MAE | Ero d | 95 % väli | Verdikti | MDE | MDE % |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| huhtikuu | 95,5 | 75,1 | +20,4 | +11,5 … +47,7 | **huonompi** | 24,4 | 33 % |
+| toukokuu | 76,4 | 71,5 | +5,0 | −5,4 … +33,6 | ei eroa | 31,9 | 45 % |
+| kesäkuu | 61,0 | 44,5 | +16,5 | −8,4 … +42,1 | ei eroa | 36,5 | 82 % |
+| heinäkuu | 108,0 | 62,0 | +46,0 | +27,1 … +66,1 | **huonompi** | 25,3 | 41 % |
+| elokuu (25 vrk) | 30,1 | 32,3 | −2,3 | −9,6 … +9,8 | ei eroa | 10,8 | 33 % |
+
+**Kooste: huonompi.** Keskiero +17,1 kävijää päivässä (95 % väli +3,7 … +32,7),
+ikkunoita puolesta 1, vastaan 4.
+
+Monivertailuperheen koko on 10. Holm-korjattuna yksikään yksittäinen DM-p-arvo ei jää alle
+0,05: pienin korjattu on 0,18 (venue 2, heinäkuu). Yksittäiset ikkunaverdiktit lepäävät
+siis bootstrap-välillä, joka on tämän arvion ensisijainen menetelmä, eivät DM:llä.
+
+#### Mitä tästä pitää lukea
+
+**Perusmalli häviää yksinkertaiselle vertailukohdalle.** Kummallakin venuella kooste on
+mallia vastaan, neljä ikkunaa viidestä. Tämä on mitattu tulos ja se sanotaan tässä
+suoraan. Luvun 5.3 backtest-luvut eivät ole ristiriidassa: siellä vertailukohtina olivat
+`seasonal_naive` ja `moving_average_28d`, joista perusmalli voittaa lähihorisontilla.
+`climatology_dow` on kovempi vastustaja, eikä sitä ollut aiemmin mitattu.
+
+**Suurin yksittäinen epäonnistuminen on kesäkuu venue 1:llä, ja arviointi löysi sille
+syyn.** Malli ennusti kuukaudelle 2 961 kävijää ja toteuma oli 11 865, eli 75 % alle.
+Kyse ei ole vain origoon lukitusta tasosta: **malli ennusti 20 päivälle käytännössä
+nollaa.**
+
+Syy on aloitusnollien ja vuodenaikapiirteen yhdistelmä. `year_sin = sin(2π·doy/365)` on
+symmetrinen kevätpuoliskon huipun suhteen, joten tammikuun ja kesäkuun päivät saavat saman
+arvon. Venue 1:n 21 nollapäivää (1.–21.1.) ovat `year_sin`-välillä 0,017–0,354 ja
+ensimmäinen havaittu päivä 22.1. on 0,370. Puumalli oppii säännön
+"`year_sin` ≤ 0,354 → 0 kävijää". Kesäkuussa `year_sin` laskee saman rajan alle 11.6.
+(doy 162, arvo 0,3456 — täsmälleen sama kuin 21.1.), ja ennuste romahtaa nollaan.
+
+Sama origo, sama malli, eri koulutusikkuna:
+
+| Koulutusikkuna | Nollapäiviä koulutuksessa | Kesäkuun ennuste | Lähes nollan päiviä |
+| --- | --- | --- | --- |
+| `all` (151 vrk) | 21 | 2 961 | 20 |
+| `120` | 0 | 8 846 | 0 |
+| `90` | 0 | 9 056 | 0 |
+
+Toteuma oli 11 865, joten ilman nollia malli aliarvioi kesäkuun noin 25 %:lla — se on
+luvun 8.1 kohta 2, origoon lukittu taso joka ei seuraa kesän nousua. Nollien kanssa
+virhe on kolminkertainen ja luonteeltaan aivan toinen.
+
+Tämä on tuotannossa hoidettu: `venue_history` poistaa aloitusnollat (luku 3.1). Arviointi
+ei poista niitä, koska koulutusikkuna on se jonka käyttäjä nimesi, ja `--train-window`
+on siihen työkalu. Löydös on silti yleinen: **mikä tahansa nollajakso datan alussa
+peilautuu `year_sin`in kautta vastakkaiselle puolelle vuotta**, ja raportin kohta 8
+nimeää riskin automaattisesti kun koulutusikkunassa on aloitusnollia.
+
+**Kokonaismäärä ja päivätarkkuus ovat eri asioita.** Huhtikuussa venue 1:n
+`climatology_dow` osuu kuukausisummaan 0,8 %:n tarkkuudella (13 292 vs. 13 189), vaikka
+sen päivätason MAE on 96 kävijää eli noin 22 % päivän keskiarvosta. Kumpaakaan ei saa
+päätellä toisesta, ja arviointi raportoi ne erikseen.
+
+**Sään tunteminen on lähes arvotonta tälle mallille.** Sään kolme tilaa ajetaan jokaiselle
+ikkunalle, ja ero `climatology`n ja `perfect`in MAE:n välillä — se osa osumatarkkuudesta
+joka lepää sään tuntemisen varassa — on kymmenessä venue–kuukausi-parissa seuraava:
+
+| Testijakso | Venue 1 | Venue 2 |
+| --- | --- | --- |
+| huhtikuu | −0,2 (−0,2 %) | −14,0 (−16,0 %) |
+| toukokuu | +6,5 (+3,5 %) | +1,7 (+2,1 %) |
+| kesäkuu | −1,4 (−0,5 %) | +5,4 (+8,7 %) |
+| heinäkuu | +13,3 (+7,3 %) | −0,8 (−0,8 %) |
+| elokuu | +26,5 (+10,8 %) | +1,4 (+4,1 %) |
+
+Positiivinen luku tarkoittaa että sään tunteminen auttaa. Kuusi kymmenestä on
+positiivinen, neljä negatiivinen, ja suurin osa on muutaman prosentin luokkaa.
+**Neljässä tapauksessa malli ennustaa paremmin keskiarvosäällä kuin toteutuneella
+säällä.** Se ei ole mittausvirhe: mallin oppima sääriippuvuus ei yleisty näihin jaksoihin,
+vaan sääpiirteet sopivat koulutusjakson kohinaan enemmän kuin kävijöiden todelliseen
+sääkäyttäytymiseen. Tämä on suora vahvistus luvun 8.1 kohdalle 4 — sään vaikutus on
+korrelaatio, ei mekanismi — ja se tarkoittaa myös, ettei 16 vuorokauden sääennusteraja
+(luku 6) ole tällä aineistolla se pullonkaula joksi sitä on epäilty.
+
+**MDE tekee "ei eroa" -tuloksista luettavia.** Yhden kuukauden ikkunassa pienin havaittava
+ero on 28–82 % vertailukohdan MAE:sta. Kuukausi todistaa siis vain suuret parannukset, ja
+kolme viidestä venue 1:n "ei eroa" -tuloksesta tarkoittaa nimenomaan "otos on liian
+pieni", ei "yhtä hyviä".
+
+**Mikä voisi muuttaa tuloksen.** Toinen vuosi dataa tekisi vuosikausikomponentista
+mitattavan ja poistaisi kesäkuun kaltaiset tasovirheet. Tapahtumakalenteri piirteenä
+osuisi luvun 8.1 kohtaan 3, joka on tapahtumapainotteisessa kohteessa suurin yksittäinen
+virhelähde. Kumpikaan ei ole tässä aineistossa saatavilla, joten nykyinen tulos on
+nykyisen aineiston tulos eikä mallin lopullinen arvosana.
+
 ---
 
 ## 6. Sää yli 16 vuorokauden
@@ -506,6 +632,20 @@ data/forecasts/{YYYY-MM-DD}/...                     # arkistokopio samasta raken
 
 Sarakkeet on kuvattu `FRAMEWORK_PLAN.md` luvussa 4.3.
 
+Arviointi kirjoittaa omaan puuhunsa:
+
+```
+data/evaluations/index.json                    luettelo ajoista ja niiden verdikteistä
+data/evaluations/{run_id}/config.json          ajon täydelliset parametrit
+data/evaluations/{run_id}/predictions.csv      venue, päivä, horisontti, malli, sään tila, toteuma, p10/p50/p90
+data/evaluations/{run_id}/metrics.json         mittarit, kokonaismäärät, pahiten menneet päivät
+data/evaluations/{run_id}/verdicts.json        verdiktit koneluettavina
+data/evaluations/{run_id}/report.md            ihmisluettava raportti
+```
+
+`run_id` on deterministinen ja luettava, ja sama ajo samoilla parametreilla korvaa saman
+hakemiston. Ks. `docs/EVALUATION.md`.
+
 **Determinismi.** Kaikilla malleilla on kiinteä `random_state`, mikään ei sample'aa, ja
 ainoa kahden ajon välillä muuttuva arvo on `generated_at`. Tämä on testattu
 (`test_cli.py::test_two_runs_differ_only_in_the_timestamp`). `--as-of`-lippu lukitsee
@@ -521,6 +661,19 @@ python -m ovf_forecast run --model baseline     # vain perusmalli
 python -m ovf_forecast run --venue 1 --horizon-days 30
 python -m ovf_forecast backtest --origins 12    # pelkkä validointi, ei kirjoiteta mitään
 python -m ovf_forecast report                   # tulostaa metrics.json luettavana
+```
+
+Arviointi (`docs/EVALUATION.md`):
+
+```bash
+python -m ovf_forecast evaluate --test 2026-04                       # kouluta 31.3. asti, ennusta huhtikuu
+python -m ovf_forecast evaluate --train-end 2026-03-31 --test 2026-04-01:2026-04-30
+python -m ovf_forecast evaluate --sweep monthly --from 2026-04 --to 2026-08
+python -m ovf_forecast evaluate --sweep rolling --step 14 --horizon 30
+python -m ovf_forecast evaluate --models baseline --reference climatology_dow --train-window 120
+python -m ovf_forecast evaluate report --id <run_id>                 # tallennettu raportti
+python -m ovf_forecast evaluate report --pooled                      # kaikkien ajojen kooste
+python -m ovf_forecast evaluate list                                 # tallennetut ajot
 ```
 
 Paluuarvo 0 kun kaikki ok, 1 kun jokin venue epäonnistui, 2 kun mitään ei syntynyt.

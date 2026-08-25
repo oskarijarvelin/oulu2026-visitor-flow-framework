@@ -86,9 +86,25 @@ python -m ovf_forecast backtest --origins 12    # validate, write nothing
 python -m ovf_forecast report                   # print the last run's metrics
 ```
 
+Accuracy evaluation trains on a window you choose, forecasts another, and says whether
+the difference from the best simple baseline is real. Results accumulate under
+`data/evaluations/`; see [docs/EVALUATION.md](docs/EVALUATION.md) for how to read one and,
+more importantly, for what it does not prove.
+
+```bash
+python -m ovf_forecast evaluate --test 2026-04                    # train to 31 March, forecast April
+python -m ovf_forecast evaluate --train-end 2026-03-31 --test 2026-04-01:2026-04-30
+python -m ovf_forecast evaluate --sweep monthly --from 2026-04 --to 2026-08
+python -m ovf_forecast evaluate --sweep rolling --step 14 --horizon 30
+python -m ovf_forecast evaluate report --id <run_id>              # a stored report
+python -m ovf_forecast evaluate report --pooled                   # every stored run, pooled
+python -m ovf_forecast evaluate list                              # what has been evaluated
+```
+
 Or through the Makefile: `make ingest`, `make ingest-full`, `make climatology`,
 `make verify`, `make forecast`, `make forecast-baseline`, `make backtest`,
-`make report`, `make test`, `make lint`, `make typecheck`, `make check`.
+`make report`, `make evaluate`, `make evaluate-sweep`, `make evaluate-list`,
+`make test`, `make lint`, `make typecheck`, `make check`.
 
 | Flag | Meaning |
 | --- | --- |
@@ -609,6 +625,9 @@ packages/forecast/src/ovf_forecast/
   intervals.py   empirical prediction intervals from measured backtest error
   export.py      writes data/forecasts deterministically
   models/        base.py (protocol + registry), baseline.py, prophet_xgb.py
+  evaluation/    windows.py (what is evaluated), runner.py (leak-free forecasting),
+                 baselines.py, metrics.py, significance.py (bootstrap, DM, power),
+                 totals.py (period total, simulated not summed), store.py, report.py
 packages/forecast/tests/
 packages/web/
   astro.config.mjs               static output, Tailwind, the vanilla island renderer

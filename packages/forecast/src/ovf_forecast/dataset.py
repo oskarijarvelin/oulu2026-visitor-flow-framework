@@ -331,18 +331,26 @@ def climatology_row(data: ProcessedData, venue_id: int, day: date) -> dict[str, 
 # --------------------------------------------------------------------------------------
 
 
-def venue_history(data: ProcessedData, venue_id: int) -> pd.DataFrame:
+def venue_history(
+    data: ProcessedData, venue_id: int, *, trim_leading_zeros: bool = True
+) -> pd.DataFrame:
     """Observed daily rows for one venue, joined with weather and calendar covariates.
 
     The leading run of all-zero days is dropped. Venue 1 reports nothing before
     2026-01-22 and venue 2 nothing before 2026-01-08: that is a sensor that was not
     installed yet, not a museum nobody visited, and training on it would drag every
     level feature down.
+
+    ``trim_leading_zeros=False`` keeps them. The evaluation package asks for that,
+    because there the training window is whatever the caller named and the series has
+    to start where the file starts; see ``docs/EVALUATION.md``.
     """
     visitors = data.visitors_daily.loc[data.visitors_daily["venue_id"] == venue_id].copy()
     if visitors.empty:
         return visitors
     visitors = visitors.sort_values("date").reset_index(drop=True)
+    if not trim_leading_zeros:
+        return _as_float_targets(_join_covariates(data, visitors, venue_id))
     nonzero = visitors.index[visitors["visitors_total"] > 0]
     if len(nonzero) == 0:
         log_event("warning", "dataset", "Venue has no non-zero day", venue_id=venue_id)
@@ -358,10 +366,13 @@ def venue_history(data: ProcessedData, venue_id: int) -> pd.DataFrame:
             first_observed=str(as_timestamp(visitors.loc[trimmed, "date"]).date()),
         )
     visitors = visitors.iloc[trimmed:].reset_index(drop=True)
-    frame = _join_covariates(data, visitors, venue_id)
-    frame["visitors_total"] = pd.to_numeric(frame["visitors_total"], errors="coerce").astype("float64")
-    frame["visitors_in"] = pd.to_numeric(frame["visitors_in"], errors="coerce").astype("float64")
-    frame["visitors_out"] = pd.to_numeric(frame["visitors_out"], errors="coerce").astype("float64")
+    return _as_float_targets(_join_covariates(data, visitors, venue_id))
+
+
+def _as_float_targets(frame: pd.DataFrame) -> pd.DataFrame:
+    """Force the three target columns to float, whatever the CSV made of them."""
+    for column in ("visitors_total", "visitors_in", "visitors_out"):
+        frame[column] = pd.to_numeric(frame[column], errors="coerce").astype("float64")
     return frame
 
 
