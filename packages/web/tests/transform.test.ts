@@ -23,7 +23,7 @@ import {
   sumForecast,
   summarisePeriod,
 } from '../scripts/lib/transform.ts';
-import { toBacktestRows, toDailyRows } from '../src/lib/series.ts';
+import { toBacktestRows, toDailyRows, weekdayWeatherSplit } from '../src/lib/series.ts';
 import type {
   BacktestRow,
   DailyColumns,
@@ -324,5 +324,73 @@ describe('sarakemuodon purku', () => {
   it('palauttaa tyhjan taulukon kun sarakkeita ei ole', () => {
     expect(toDailyRows(undefined, [])).toEqual([]);
     expect(toBacktestRows(undefined)).toEqual([]);
+  });
+});
+
+describe('viikonpaiva x sae -jako', () => {
+  // 2026-01-05 on maanantai, joten indeksit osuvat suoraan viikonpaiviin.
+  const rows: DailyRow[] = [
+    { ...daily('2026-01-05', 0), tickets_total: 10, precip_sum: 0 },
+    { ...daily('2026-01-12', 0), tickets_total: 30, precip_sum: 0.4 },
+    { ...daily('2026-01-19', 0), tickets_total: 50, precip_sum: 5 },
+    { ...daily('2026-01-06', 0), tickets_total: 8, precip_sum: 2 },
+  ];
+
+  it('palauttaa aina seitseman rivia maanantaista sunnuntaihin', () => {
+    const split = weekdayWeatherSplit(rows, (row) => row.tickets_total, 1);
+    expect(split).toHaveLength(7);
+    expect(split.map((entry) => entry.dow)).toEqual([0, 1, 2, 3, 4, 5, 6]);
+  });
+
+  it('jakaa paivat sadekynnyksen mukaan', () => {
+    const split = weekdayWeatherSplit(rows, (row) => row.tickets_total, 1);
+    const monday = split[0]!;
+    expect(monday.dry.days).toBe(2);
+    expect(monday.dry.mean).toBe(20);
+    expect(monday.dry.median).toBe(20);
+    expect(monday.rainy.days).toBe(1);
+    expect(monday.rainy.mean).toBe(50);
+    expect(split[1]!.rainy.days).toBe(1);
+    expect(split[1]!.dry.days).toBe(0);
+  });
+
+  it('lukee kynnyksen mukaan ottavaksi', () => {
+    const split = weekdayWeatherSplit(
+      [{ ...daily('2026-01-05', 0), tickets_total: 7, precip_sum: 1 }],
+      (row) => row.tickets_total,
+      1,
+    );
+    expect(split[0]!.rainy.days).toBe(1);
+    expect(split[0]!.dry.days).toBe(0);
+  });
+
+  it('jattaa pois paivat joilta puuttuu arvo tai sademaara', () => {
+    const split = weekdayWeatherSplit(
+      [
+        { ...daily('2026-01-05', 0), precip_sum: 0 },
+        { ...daily('2026-01-12', 0), tickets_total: 40 },
+        { ...daily('2026-01-19', 0), tickets_total: 20, precip_sum: 0 },
+      ],
+      (row) => row.tickets_total,
+      1,
+    );
+    expect(split[0]!.dry.days).toBe(1);
+    expect(split[0]!.dry.mean).toBe(20);
+    expect(split[0]!.rainy.days).toBe(0);
+  });
+
+  it('ei lue aitoa nollaa puuttuvaksi', () => {
+    const split = weekdayWeatherSplit(
+      [{ ...daily('2026-01-05', 0), tickets_total: 0, precip_sum: 0 }],
+      (row) => row.tickets_total,
+      1,
+    );
+    expect(split[0]!.dry.days).toBe(1);
+    expect(split[0]!.dry.mean).toBe(0);
+  });
+
+  it('palauttaa tyhjat lokerot kun rivejä ei ole', () => {
+    const split = weekdayWeatherSplit([], (row) => row.tickets_total, 1);
+    expect(split.every((entry) => entry.dry.days === 0 && entry.rainy.days === 0)).toBe(true);
   });
 });

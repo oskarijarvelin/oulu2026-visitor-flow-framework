@@ -221,6 +221,26 @@ export const fi = {
       `${venue}: liput ja kävijätapahtumat, viimeiset 30 lipullista vuorokautta`,
     ticketsTableLabel: (venue: string) => `${venue}: liput ja kävijätapahtumat`,
 
+    ticketWeekdayTitle: 'Lipunmyynti viikonpäivittäin, sateiset ja poutaiset päivät',
+    ticketWeekdayDescription: (rainMm: string, days: string) =>
+      `Keskimääräinen lippumäärä vuorokaudessa viikonpäivän mukaan, erikseen poutaisille ja sateisille päiville. Päivä on sateinen kun sademäärä on vähintään ${rainMm} mm. Mukana ${days} vuorokautta, joilla on sekä lippu- että säähavainto.`,
+    ticketWeekdayFootnote:
+      'Havaintoja on viikonpäivää kohti vain kymmeniä, joten yksittäisen pylvään ero on helposti sattumaa. Lue kuvaa suuntana, älä sään vaikutuksen mittarina: kesälomakausi, pyhät ja tapahtumat osuvat samoihin päiviin kuin sää, eikä tämä erottele niitä toisistaan.',
+    ticketWeekdayAria: (venue: string) =>
+      `Ryhmitelty pylväskaavio: ${venue}, keskimääräinen lippumäärä viikonpäivittäin, poutaiset ja sateiset päivät vierekkäin.`,
+    ticketWeekdayDry: 'Poutaa',
+    ticketWeekdayRainy: 'Sadetta',
+    ticketWeekdayMeanColumn: 'Keskiarvo',
+    ticketWeekdayMedianColumn: 'Mediaani',
+    ticketWeekdayDaysColumn: 'Päiviä',
+    ticketWeekdayDiffColumn: 'Ero',
+    ticketWeekdayTooFew: (min: string) => `alle ${min} havaintoa, ei piirretä`,
+    ticketWeekdayAlternative: (dry: string, rainy: string, diff: string) =>
+      `Poutaisina päivinä keskiarvo on ${dry} ja sateisina ${rainy} lippua vuorokaudessa, eli ero on ${diff}. Taulukossa on sama jaottelu viikonpäivittäin.`,
+    ticketWeekdayTableCaption: (venue: string) =>
+      `${venue}: keskimääräinen lippumäärä viikonpäivän ja sään mukaan`,
+    ticketWeekdayTableLabel: (venue: string) => `${venue}: liput viikonpäivittäin, sade ja pouta`,
+
     meaningTitle: 'Mitä luvut tarkoittavat',
     meaningBody1:
       'visitors_total on sisään- ja ulosmenojen summa. Yksi käynti tuottaa tyypillisesti kaksi tapahtumaa, joten luku ei ole uniikkien kävijöiden määrä eikä sitä voi puolittaa suoraan käyntimääräksi: ovella kääntyminen, henkilökunta ja useampi käynti samalla henkilöllä sekoittuvat samaan lukuun.',

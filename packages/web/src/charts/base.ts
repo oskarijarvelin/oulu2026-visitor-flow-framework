@@ -203,6 +203,8 @@ export interface LegendEntry {
   dash?: string | null;
   /** Pintaselite viivan sijaan. */
   swatch?: boolean;
+  /** Viivoitettu pinta. Sama kuvio kuin kaaviossa, jotta pelkka vari ei kanna tietoa. */
+  hatch?: boolean;
   note?: string;
 }
 
@@ -226,6 +228,28 @@ export function createLegend(entries: LegendEntry[]): HTMLElement {
       rect.setAttribute('fill', entry.color);
       rect.setAttribute('stroke', NEUTRAL.line);
       mark.append(rect);
+      if (entry.hatch) {
+        // Sama viivoitus kuin pylvaassa, jotta selite vastaa kaaviota myos
+        // harmaasavyisena ja varisokealle.
+        for (let x = -6; x < 22; x += 4) {
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', String(x));
+          line.setAttribute('y1', '10');
+          line.setAttribute('x2', String(x + 8));
+          line.setAttribute('y2', '2');
+          line.setAttribute('stroke', HATCH_STROKE);
+          line.setAttribute('stroke-width', '1.4');
+          mark.append(line);
+        }
+        const frame = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        frame.setAttribute('x', '1');
+        frame.setAttribute('y', '2');
+        frame.setAttribute('width', '20');
+        frame.setAttribute('height', '8');
+        frame.setAttribute('fill', 'none');
+        frame.setAttribute('stroke', NEUTRAL.line);
+        mark.append(frame);
+      }
     } else {
       const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       line.setAttribute('x1', '1');
@@ -262,4 +286,43 @@ export function createChartFrame(element: HTMLElement): {
 
   element.append(controls, plot, legend);
   return { controls, plot, legend };
+}
+
+/** Viivoituksen vari. Riittavan tumma erottumaan jokaisen sarjavarin paalta. */
+export const HATCH_STROKE = 'rgba(20, 23, 31, 0.55)';
+
+let hatchSeq = 0;
+
+/** Yksilollinen tunnus kuviolle. Samalla sivulla voi olla useita kaavioita. */
+export function nextHatchId(): string {
+  hatchSeq += 1;
+  return `ovf-hatch-${hatchSeq}`;
+}
+
+/**
+ * Lisaa vinoviivakuvion kaavion `<defs>`-lohkoon ja palauttaa sen `fill`-arvon.
+ * Kuvio piirretaan pylvaan paalle, joten se ei korvaa varia vaan taydentaa sita:
+ * ryhma erottuu myos tulostettuna ja varisokealle.
+ */
+export function appendHatchPattern(figure: SVGSVGElement | HTMLElement, id: string): void {
+  const svg = figure instanceof SVGSVGElement ? figure : figure.querySelector('svg');
+  if (!svg) return;
+  const ns = 'http://www.w3.org/2000/svg';
+  const defs = document.createElementNS(ns, 'defs');
+  const pattern = document.createElementNS(ns, 'pattern');
+  pattern.setAttribute('id', id);
+  pattern.setAttribute('width', '6');
+  pattern.setAttribute('height', '6');
+  pattern.setAttribute('patternUnits', 'userSpaceOnUse');
+  pattern.setAttribute('patternTransform', 'rotate(45)');
+  const line = document.createElementNS(ns, 'line');
+  line.setAttribute('x1', '0');
+  line.setAttribute('y1', '0');
+  line.setAttribute('x2', '0');
+  line.setAttribute('y2', '6');
+  line.setAttribute('stroke', HATCH_STROKE);
+  line.setAttribute('stroke-width', '2');
+  pattern.append(line);
+  defs.append(pattern);
+  svg.insertBefore(defs, svg.firstChild);
 }

@@ -3,9 +3,13 @@
   "configurations": [
     {
       "name": "ovf-web",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "preview", "--workspace", "@ovf/web", "--", "--port", "4321"],
-      "port": 4321
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "npm run preview --workspace @ovf/web -- --port \"${PORT:-4321}\""
+      ],
+      "port": 4321,
+      "autoPort": true
     }
   ]
 }

@@ -1,4 +1,5 @@
 ---
+import Bars from '../charts/bars.ts';
 import Heatmap from '../charts/heatmap.ts';
 import Lines from '../charts/lines.ts';
 import Timeseries from '../charts/timeseries.ts';
@@ -18,7 +19,7 @@ import { SERIES } from '../lib/colors.ts';
 import { localDate, localHour } from '../lib/dates.ts';
 import { formatters } from '../lib/format.ts';
 import { modelLabel } from '../lib/labels.ts';
-import { meanOf, quantileOf, toDailyRows } from '../lib/series.ts';
+import { meanOf, quantileOf, toDailyRows, weekdayWeatherSplit } from '../lib/series.ts';
 import { RAINY_DAY_MM } from '../lib/weather.ts';
 import type { DailyData, ForecastData, HourlyData, Meta, ProfileData, VenueSummary } from '../lib/types.ts';
 
@@ -104,6 +105,47 @@ const ticketRows = rows.filter((row) => typeof row.tickets_total === 'number');
 const ticketSum = ticketRows.reduce((acc, row) => acc + (row.tickets_total ?? 0), 0);
 const ticketVisitorSum = ticketRows.reduce((acc, row) => acc + row.visitors_total, 0);
 const eventsPerTicket = ticketSum === 0 ? null : ticketVisitorSum / ticketSum;
+
+// Lipunmyynti viikonpaivittain, sateiset ja poutaiset paivat erikseen.
+// Mukaan vain paivat joilla on seka lippurivi etta saahavainto: ilman sademaaraa
+// paivaa ei voi luokitella, eika puuttuvaa lippulukua saa lukea nollaksi.
+const TICKET_WEEKDAY_MIN_DAYS = 5;
+const ticketWeatherRows = ticketRows.filter((row) => row.precip_sum !== undefined);
+const ticketWeekday = weekdayWeatherSplit(
+  ticketWeatherRows,
+  (row) => row.tickets_total,
+  RAINY_DAY_MM,
+);
+const ticketWeekdayDryMean = meanOf(
+  ticketWeatherRows
+    .filter((row) => (row.precip_sum ?? 0) < RAINY_DAY_MM)
+    .map((row) => row.tickets_total ?? 0),
+);
+const ticketWeekdayRainyMean = meanOf(
+  ticketWeatherRows
+    .filter((row) => (row.precip_sum ?? 0) >= RAINY_DAY_MM)
+    .map((row) => row.tickets_total ?? 0),
+);
+const ticketWeekdayGroups = [
+  { key: 'dry', label: t.venue.ticketWeekdayDry, color: SERIES.history },
+  { key: 'rain', label: t.venue.ticketWeekdayRainy, color: SERIES.light, hatch: true },
+];
+const ticketWeekdayBars = ticketWeekday.flatMap((row) =>
+  (
+    [
+      ['dry', row.dry] as const,
+      ['rain', row.rainy] as const,
+    ]
+  )
+    .filter(([, bucket]) => bucket.days >= TICKET_WEEKDAY_MIN_DAYS)
+    .map(([group, bucket]) => ({
+      label: f.weekdayShort(row.dow),
+      group,
+      value: Math.round(bucket.mean * 10) / 10,
+      n: bucket.days,
+      nLabel: t.common.observationCount(f.int(bucket.days)),
+    })),
+);
 
 const bestCell = [...cells].sort((a, b) => (b.mean ?? 0) - (a.mean ?? 0))[0];
 const bestCellLabel = bestCell
@@ -493,6 +535,107 @@ const rainMm = f.decimal(RAINY_DAY_MM);
                 </tbody>
               </table>
             </TableScroll>
+          </div>
+        </Figure>
+      )
+    }
+
+    {
+      ticketWeekdayBars.length > 0 && (
+        <Figure
+          lang={lang}
+          title={t.venue.ticketWeekdayTitle}
+          description={t.venue.ticketWeekdayDescription(rainMm, f.int(ticketWeatherRows.length))}
+          footnote={t.venue.ticketWeekdayFootnote}
+        >
+          <Bars
+            client:visible
+            lang={lang}
+            ariaLabel={t.venue.ticketWeekdayAria(venue.name)}
+            data={ticketWeekdayBars}
+            groups={ticketWeekdayGroups}
+            unit={t.venue.ticketsUnit}
+          />
+          <div slot="alternative">
+            <p class="mb-3 text-xs leading-5 text-ink-muted">
+              {t.venue.ticketWeekdayAlternative(
+                f.decimal(ticketWeekdayDryMean),
+                f.decimal(ticketWeekdayRainyMean),
+                f.signedPct(
+                  ticketWeekdayDryMean === 0
+                    ? 0
+                    : ((ticketWeekdayRainyMean - ticketWeekdayDryMean) / ticketWeekdayDryMean) * 100,
+                ),
+              )}
+            </p>
+            <TableScroll label={t.venue.ticketWeekdayTableLabel(venue.name)} scrollY={false}>
+              <table class="data-table">
+                <caption>{t.venue.ticketWeekdayTableCaption(venue.name)}</caption>
+                <thead class="is-sticky">
+                  <tr>
+                    <th scope="col">{t.common.day}</th>
+                    <th scope="col" class="num">
+                      {t.venue.ticketWeekdayDry}: {t.venue.ticketWeekdayMeanColumn}
+                    </th>
+                    <th scope="col" class="num">
+                      {t.venue.ticketWeekdayDry}: {t.venue.ticketWeekdayMedianColumn}
+                    </th>
+                    <th scope="col" class="num">
+                      {t.venue.ticketWeekdayDry}: {t.venue.ticketWeekdayDaysColumn}
+                    </th>
+                    <th scope="col" class="num">
+                      {t.venue.ticketWeekdayRainy}: {t.venue.ticketWeekdayMeanColumn}
+                    </th>
+                    <th scope="col" class="num">
+                      {t.venue.ticketWeekdayRainy}: {t.venue.ticketWeekdayMedianColumn}
+                    </th>
+                    <th scope="col" class="num">
+                      {t.venue.ticketWeekdayRainy}: {t.venue.ticketWeekdayDaysColumn}
+                    </th>
+                    <th scope="col" class="num">{t.venue.ticketWeekdayDiffColumn}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {
+                    ticketWeekday.map((row) => (
+                      <tr>
+                        <th scope="row" class="nowrap">{f.weekdayLong(row.dow)}</th>
+                        <td class="num">
+                          {row.dry.days === 0 ? f.missing() : f.decimal(row.dry.mean)}
+                        </td>
+                        <td class="num muted">
+                          {row.dry.days === 0 ? f.missing() : f.decimal(row.dry.median)}
+                        </td>
+                        <td class="num muted">{f.int(row.dry.days)}</td>
+                        <td class="num">
+                          {row.rainy.days === 0 ? f.missing() : f.decimal(row.rainy.mean)}
+                        </td>
+                        <td class="num muted">
+                          {row.rainy.days === 0 ? f.missing() : f.decimal(row.rainy.median)}
+                        </td>
+                        <td class="num muted">{f.int(row.rainy.days)}</td>
+                        <td class="num muted">
+                          {row.dry.days === 0 || row.rainy.days === 0
+                            ? f.missing()
+                            : f.decimal(row.rainy.mean - row.dry.mean)}
+                        </td>
+                      </tr>
+                    ))
+                  }
+                </tbody>
+              </table>
+            </TableScroll>
+            {
+              ticketWeekday.some(
+                (row) =>
+                  (row.dry.days > 0 && row.dry.days < TICKET_WEEKDAY_MIN_DAYS) ||
+                  (row.rainy.days > 0 && row.rainy.days < TICKET_WEEKDAY_MIN_DAYS),
+              ) && (
+                <p class="mt-3 text-xs leading-5 text-ink-muted">
+                  {t.venue.ticketWeekdayTooFew(f.int(TICKET_WEEKDAY_MIN_DAYS))}
+                </p>
+              )
+            }
           </div>
         </Figure>
       )

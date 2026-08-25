@@ -3,12 +3,13 @@
  * muuttavat sen rivimuotoon jota Observable Plot odottaa.
  */
 
-import { addDays, localDate, plotDate, plotDay } from './dates.ts';
+import { addDays, dowOf, localDate, plotDate, plotDay } from './dates.ts';
 import type {
   BacktestColumns,
   BacktestRow,
   DailyColumns,
   DailyRow,
+  Dow,
   ForecastDailyRow,
   HourlySeries,
   WeatherGroup,
@@ -229,4 +230,62 @@ export function quantileOf(values: number[], q: number): number {
   const upper = Math.ceil(position);
   if (lower === upper) return sorted[lower]!;
   return sorted[lower]! + (sorted[upper]! - sorted[lower]!) * (position - lower);
+}
+
+/** Yhden solun tunnusluvut: keskiarvo, mediaani ja havaintojen maara. */
+export interface WeekdayBucket {
+  days: number;
+  mean: number;
+  median: number;
+}
+
+/** Yksi viikonpaiva jaettuna poutaisiin ja sateisiin paiviin. */
+export interface WeekdayWeatherRow {
+  /** 0 = maanantai. */
+  dow: Dow;
+  dry: WeekdayBucket;
+  rainy: WeekdayBucket;
+}
+
+const EMPTY_BUCKET: WeekdayBucket = { days: 0, mean: 0, median: 0 };
+
+/**
+ * Jakaa paivat viikonpaivan ja sateen mukaan ja laskee kummallekin puolelle
+ * keskiarvon ja mediaanin.
+ *
+ * Paiva jatetaan pois kokonaan jos siita puuttuu joko mitattava arvo tai sademaara:
+ * ilman sademaaraa paivaa ei voi luokitella, ja tuntematonta arvoa ei saa lukea
+ * nollaksi. Palauttaa aina seitseman rivia maanantaista sunnuntaihin, myos tyhjat,
+ * jotta kutsuja nakee mista havainnot puuttuvat.
+ */
+export function weekdayWeatherSplit(
+  rows: DailyRow[],
+  value: (row: DailyRow) => number | undefined,
+  threshold: number,
+): WeekdayWeatherRow[] {
+  const dry = new Map<Dow, number[]>();
+  const rainy = new Map<Dow, number[]>();
+
+  for (const row of rows) {
+    const amount = value(row);
+    if (amount === undefined || !Number.isFinite(amount)) continue;
+    const precip = row.precip_sum;
+    if (precip === undefined || !Number.isFinite(precip)) continue;
+    const target = precip >= threshold ? rainy : dry;
+    const dow = dowOf(row.date);
+    const bucket = target.get(dow) ?? [];
+    bucket.push(amount);
+    target.set(dow, bucket);
+  }
+
+  const summarise = (values: number[] | undefined): WeekdayBucket => {
+    if (values === undefined || values.length === 0) return { ...EMPTY_BUCKET };
+    return { days: values.length, mean: meanOf(values), median: medianOf(values) };
+  };
+
+  const out: WeekdayWeatherRow[] = [];
+  for (let dow = 0 as Dow; dow < 7; dow = (dow + 1) as Dow) {
+    out.push({ dow, dry: summarise(dry.get(dow)), rainy: summarise(rainy.get(dow)) });
+  }
+  return out;
 }

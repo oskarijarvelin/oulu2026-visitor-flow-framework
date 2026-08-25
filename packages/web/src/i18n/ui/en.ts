@@ -217,6 +217,26 @@ export const en: Translation = {
       `${venue}: tickets and visitor events, the last 30 days with ticket data`,
     ticketsTableLabel: (venue: string) => `${venue}: tickets and visitor events`,
 
+    ticketWeekdayTitle: 'Tickets by weekday, rainy and dry days',
+    ticketWeekdayDescription: (rainMm: string, days: string) =>
+      `Mean tickets per day by weekday, split into dry and rainy days. A day counts as rainy when precipitation reaches ${rainMm} mm. Based on ${days} days that have both a ticket row and a weather observation.`,
+    ticketWeekdayFootnote:
+      'Each weekday holds only a few dozen observations, so the gap in any single pair is easily noise. Read this as a direction rather than a measure of what weather does: the summer season, public holidays and events fall on the same days as the weather, and this chart does not separate them.',
+    ticketWeekdayAria: (venue: string) =>
+      `Grouped bar chart: ${venue}, mean tickets per weekday with dry and rainy days side by side.`,
+    ticketWeekdayDry: 'Dry',
+    ticketWeekdayRainy: 'Rain',
+    ticketWeekdayMeanColumn: 'Mean',
+    ticketWeekdayMedianColumn: 'Median',
+    ticketWeekdayDaysColumn: 'Days',
+    ticketWeekdayDiffColumn: 'Difference',
+    ticketWeekdayTooFew: (min: string) => `fewer than ${min} observations, not drawn`,
+    ticketWeekdayAlternative: (dry: string, rainy: string, diff: string) =>
+      `Dry days average ${dry} and rainy days ${rainy} tickets per day, a difference of ${diff}. The table below breaks the same split down by weekday.`,
+    ticketWeekdayTableCaption: (venue: string) =>
+      `${venue}: mean tickets by weekday and weather`,
+    ticketWeekdayTableLabel: (venue: string) => `${venue}: tickets by weekday, rain and dry`,
+
     meaningTitle: 'What the figures mean',
     meaningBody1:
       'visitors_total is the sum of entries and exits. One visit typically produces two events, so the figure is not a count of unique visitors and it cannot simply be halved into visits: someone turning around at the door, staff walking through and the same person visiting twice all land in the same number.',
