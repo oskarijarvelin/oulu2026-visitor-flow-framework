@@ -234,7 +234,8 @@ venue_id,date,visitors_in,visitors_out,visitors_total,observed_hours,is_complete
 1,2026-08-21,134,134,268,24,True
 1,2026-08-22,143,144,287,24,True
 1,2026-08-23,96,97,193,24,True
-1,2026-08-24,71,55,126,24,True
+1,2026-08-24,157,156,313,24,True
+1,2026-08-25,216,214,430,24,True
 2,2026-01-01,0,0,0,24,True
 2,2026-01-02,0,0,0,24,True
 2,2026-01-03,0,0,0,24,True
@@ -470,4 +471,5 @@ venue_id,date,visitors_in,visitors_out,visitors_total,observed_hours,is_complete
 2,2026-08-21,76,79,155,24,True
 2,2026-08-22,72,63,135,24,True
 2,2026-08-23,70,58,128,24,True
-2,2026-08-24,2,6,8,24,True
+2,2026-08-24,11,16,27,24,True
+2,2026-08-25,94,89,183,24,True
