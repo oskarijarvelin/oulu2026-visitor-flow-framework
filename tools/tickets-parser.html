@@ -1,0 +1,3196 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Kävijätilastojen muunnin | Oulu2026 Visitor Flow Framework</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --surface-2: #eef1f6;
+  --text: #14171d;
+  --muted: #545b6b;
+  --border: #ccd2dd;
+  --border-strong: #9aa3b4;
+  --accent: #14509c;
+  --accent-text: #ffffff;
+  --accent-soft: #e3ecfa;
+  --ok: #14603a;
+  --ok-soft: #e0f2e8;
+  --warn: #7a4a00;
+  --warn-soft: #fdf0d9;
+  --err: #97202a;
+  --err-soft: #fbe6e8;
+  --info: #34406b;
+  --info-soft: #e8eaf5;
+  --focus: #0a3d7d;
+  --radius: 10px;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101318;
+    --surface: #191d24;
+    --surface-2: #212630;
+    --text: #e9ecf3;
+    --muted: #a8b0c0;
+    --border: #333a46;
+    --border-strong: #59626f;
+    --accent: #7fb0ff;
+    --accent-text: #0b1220;
+    --accent-soft: #1b2739;
+    --ok: #79d3a3;
+    --ok-soft: #16281f;
+    --warn: #f0bd6a;
+    --warn-soft: #2d2313;
+    --err: #ff9aa2;
+    --err-soft: #301619;
+    --info: #b3bce6;
+    --info-soft: #1d2130;
+    --focus: #9cc4ff;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.55 var(--sans);
+  padding: 0 0 4rem;
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 1rem; }
+a { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; margin: 0 0 .5rem; }
+h1 { font-size: 1.45rem; }
+h2 { font-size: 1.2rem; }
+h3 { font-size: 1rem; }
+p { margin: 0 0 .75rem; }
+code, kbd, .mono { font-family: var(--mono); font-size: .875em; }
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---------- header ---------- */
+header.top {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 0 .75rem;
+  margin-bottom: 1rem;
+}
+.privacy {
+  display: flex;
+  gap: .5rem;
+  align-items: flex-start;
+  background: var(--ok-soft);
+  color: var(--ok);
+  border: 1px solid currentColor;
+  border-radius: var(--radius);
+  padding: .55rem .75rem;
+  font-size: .875rem;
+  font-weight: 600;
+  margin-top: .5rem;
+}
+.privacy span:first-child { flex: none; }
+.subtitle { color: var(--muted); font-size: .9rem; margin: 0; }
+
+/* ---------- stepper ---------- */
+nav.steps { margin: 0 0 1.25rem; }
+nav.steps ol {
+  display: flex; flex-wrap: wrap; gap: .35rem;
+  list-style: none; margin: 0; padding: 0;
+  counter-reset: step;
+}
+nav.steps li { flex: 1 1 8.5rem; }
+nav.steps button {
+  width: 100%;
+  display: flex; align-items: center; gap: .45rem;
+  font: inherit; font-size: .8125rem; font-weight: 600;
+  text-align: left;
+  padding: .45rem .55rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+nav.steps button:hover:not(:disabled) { border-color: var(--border-strong); }
+nav.steps button:disabled { opacity: .5; cursor: not-allowed; }
+nav.steps button[aria-current="step"] {
+  background: var(--accent); color: var(--accent-text); border-color: var(--accent);
+}
+nav.steps .num {
+  flex: none;
+  width: 1.4rem; height: 1.4rem; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--surface-2); color: var(--text);
+  font-size: .75rem;
+}
+nav.steps button[aria-current="step"] .num { background: rgba(255,255,255,.25); color: var(--accent-text); }
+nav.steps .done .num::after { content: "✓"; }
+nav.steps .done .num .n { display: none; }
+
+/* ---------- panels ---------- */
+section.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+section.panel > h2 { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+.hint { color: var(--muted); font-size: .875rem; }
+[hidden] { display: none !important; }
+
+/* ---------- controls ---------- */
+button, .btn {
+  font: inherit; font-weight: 600; font-size: .9375rem;
+  padding: .5rem .9rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+}
+button:hover:not(:disabled) { border-color: var(--text); }
+button:disabled { opacity: .55; cursor: not-allowed; }
+button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+button.small { font-size: .8125rem; padding: .3rem .6rem; }
+.btnrow { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
+select, input[type="text"], input[type="number"], textarea {
+  font: inherit; font-size: .9375rem;
+  padding: .4rem .5rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  max-width: 100%;
+}
+textarea { width: 100%; font-family: var(--mono); font-size: .8125rem; min-height: 6rem; }
+label { font-size: .875rem; }
+fieldset { border: 1px solid var(--border); border-radius: var(--radius); padding: .75rem; margin: 0 0 .75rem; }
+legend { font-weight: 700; font-size: .875rem; padding: 0 .35rem; }
+.field { display: flex; flex-direction: column; gap: .25rem; margin-bottom: .75rem; }
+.field > label { font-weight: 600; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0 1rem; }
+.colpick {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: .25rem; max-height: 15rem; overflow: auto;
+  border: 1px solid var(--border); border-radius: 8px; padding: .4rem;
+  background: var(--surface-2);
+}
+.colpick label {
+  display: flex; gap: .4rem; align-items: baseline;
+  padding: .25rem .35rem; border-radius: 6px; cursor: pointer;
+}
+.colpick label:hover { background: var(--surface); }
+.colpick input { margin: 0; flex: none; }
+.colpick .ix { font-family: var(--mono); font-size: .75rem; color: var(--muted); flex: none; }
+.colpick .nm { overflow-wrap: anywhere; }
+.checkline { display: flex; gap: .45rem; align-items: flex-start; margin: .4rem 0; }
+.checkline input { margin-top: .25rem; flex: none; }
+
+/* ---------- drop zone ---------- */
+.drop {
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  padding: 1.5rem 1rem;
+  text-align: center;
+}
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop p { margin: .35rem 0; }
+
+/* ---------- tables ---------- */
+.tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: .8125rem; }
+th, td { padding: .3rem .5rem; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { background: var(--surface-2); position: sticky; top: 0; font-weight: 700; }
+tbody tr:nth-child(even) { background: color-mix(in srgb, var(--surface-2) 45%, transparent); }
+td.num, th.num { text-align: right; font-family: var(--mono); }
+tr.hl > td { background: var(--warn-soft) !important; box-shadow: inset 3px 0 0 var(--warn); }
+.colix { font-family: var(--mono); font-size: .6875rem; color: var(--muted); display: block; font-weight: 400; }
+
+/* ---------- summary cards ---------- */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .5rem; margin: .75rem 0; }
+.card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: .55rem .7rem; }
+.card .k { font-size: .75rem; color: var(--muted); display: block; }
+.card .v { font-size: 1.25rem; font-weight: 700; font-family: var(--mono); overflow-wrap: anywhere; }
+.card .v.long { font-size: .9375rem; line-height: 1.35; }
+
+/* ---------- messages ---------- */
+.msg {
+  display: flex; gap: .5rem; align-items: flex-start;
+  border: 1px solid currentColor; border-radius: 8px;
+  padding: .5rem .65rem; margin: .4rem 0; font-size: .875rem;
+}
+.msg .ico { flex: none; font-weight: 700; }
+.msg .body { flex: 1; min-width: 0; }
+.msg.ok { background: var(--ok-soft); color: var(--ok); }
+.msg.warn { background: var(--warn-soft); color: var(--warn); }
+.msg.err { background: var(--err-soft); color: var(--err); }
+.msg.info { background: var(--info-soft); color: var(--info); }
+.msg strong { font-weight: 700; }
+.msg .tag {
+  font-size: .6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  border: 1px solid currentColor; border-radius: 4px; padding: 0 .3rem; margin-right: .35rem;
+}
+button.jump {
+  font-size: .75rem; padding: .15rem .45rem; margin-left: .4rem;
+  background: transparent; border-color: currentColor; color: inherit;
+}
+.decision { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .35rem; }
+.decision button { font-size: .75rem; padding: .2rem .5rem; background: var(--surface); }
+.decision button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+
+/* ---------- chart ---------- */
+.chart { width: 100%; height: auto; display: block; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; }
+.chart .bar-t { fill: var(--accent); }
+.chart .bar-g { fill: var(--border-strong); }
+.chart text { fill: var(--muted); font-size: 9px; font-family: var(--sans); }
+.chart .grid { stroke: var(--border); stroke-width: .5; }
+.legend { display: flex; gap: 1rem; font-size: .8125rem; color: var(--muted); margin-top: .35rem; flex-wrap: wrap; }
+.swatch { display: inline-block; width: .7rem; height: .7rem; border-radius: 2px; margin-right: .3rem; vertical-align: baseline; }
+
+/* ---------- misc ---------- */
+.filelist { list-style: none; margin: .75rem 0 0; padding: 0; }
+.filelist li {
+  display: flex; flex-wrap: wrap; gap: .5rem; align-items: center;
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: .45rem .6rem; margin-bottom: .4rem; background: var(--surface-2);
+  font-size: .875rem;
+}
+.filelist li[aria-current="true"] { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.filelist .nm { font-weight: 700; overflow-wrap: anywhere; }
+.filelist .meta { color: var(--muted); font-size: .8125rem; }
+.spacer { flex: 1; }
+details { border: 1px solid var(--border); border-radius: 8px; padding: .5rem .65rem; margin: .5rem 0; background: var(--surface-2); }
+summary { cursor: pointer; font-weight: 600; font-size: .875rem; }
+.pathbox {
+  font-family: var(--mono); font-size: .8125rem;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 6px; padding: .35rem .5rem; display: inline-block; overflow-wrap: anywhere;
+}
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.pass { color: var(--ok); font-weight: 700; }
+.fail { color: var(--err); font-weight: 700; }
+footer.foot { color: var(--muted); font-size: .8125rem; margin-top: 1.5rem; }
+@media (max-width: 480px) {
+  body { font-size: 15px; }
+  .wrap { padding: 0 .6rem; }
+  nav.steps li { flex: 1 1 100%; }
+  section.panel { padding: .75rem; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <h1>Kävijätilastojen muunnin</h1>
+    <p class="subtitle">
+      Muuntaa aukiolotiimin kävijätilasto-CSV:n venuekohtaiseksi tickets-tiedostoksi.
+      Oulu2026 Visitor Flow Framework.
+    </p>
+    <p class="privacy" role="note">
+      <span aria-hidden="true">🔒</span>
+      <span>
+        Kaikki käsittely tapahtuu tässä selaimessa. Tiedostoja ei lähetetä mihinkään,
+        eikä työkalu tee yhtään verkkopyyntöä. Toimii ilman verkkoyhteyttä.
+      </span>
+    </p>
+  </div>
+</header>
+
+<div class="wrap">
+
+<nav class="steps" aria-label="Vaiheet">
+  <ol id="stepper"></ol>
+</nav>
+
+<div id="globalmsg" aria-live="polite"></div>
+
+<!-- ============ STEP 1 ============ -->
+<section class="panel" id="step-1" hidden>
+  <h2>1. Valitse tiedosto</h2>
+  <p class="hint">
+    Pudota tähän aukiolotiimin CSV-vienti, valitse tiedosto tai liitä sisältö
+    leikepöydältä. Merkistö, erotin ja profiili tunnistetaan automaattisesti.
+    Useamman tiedoston voi käsitellä peräkkäin, tulokset kertyvät venueittain.
+  </p>
+
+  <div class="drop" id="dropzone">
+    <p><strong>Pudota CSV-tiedosto tähän</strong></p>
+    <p class="hint">tai</p>
+    <p>
+      <button type="button" class="primary" id="pickbtn">Valitse tiedosto</button>
+      <input type="file" id="fileinput" accept=".csv,.txt,text/csv,text/plain" multiple class="sr-only" tabindex="-1" aria-hidden="true">
+    </p>
+    <p class="hint">Voit myös painaa <kbd>Ctrl</kbd>+<kbd>V</kbd> ja liittää sisällön leikepöydältä.</p>
+  </div>
+
+  <details>
+    <summary>Liitä sisältö tekstinä</summary>
+    <p class="hint">
+      Liittäminen tuottaa aina UTF-8-tekstiä, joten ääkköset ovat oikein vain jos
+      kopioit ne oikein näkyvästä lähteestä. Tiedoston pudottaminen on luotettavampi tapa.
+    </p>
+    <label for="pastebox">CSV-sisältö</label>
+    <textarea id="pastebox" placeholder=";Päivämäärä;Yleisöä;Ryhmät;Yhteensä"></textarea>
+    <div class="btnrow">
+      <button type="button" id="pastebtn">Käsittele liitetty sisältö</button>
+    </div>
+  </details>
+
+  <h3>Luetut tiedostot</h3>
+  <ul class="filelist" id="filelist"></ul>
+  <p class="hint" id="nofiles">Ei vielä yhtään tiedostoa.</p>
+</section>
+
+<!-- ============ STEP 2 ============ -->
+<section class="panel" id="step-2" hidden>
+  <h2>2. Esikatselu</h2>
+  <div id="detectinfo"></div>
+  <div class="cards" id="previewcards"></div>
+
+  <div class="btnrow" style="margin-bottom:.5rem">
+    <button type="button" class="small" id="prevpage">&#8592; Edelliset 20</button>
+    <button type="button" class="small" id="nextpage">Seuraavat 20 &#8594;</button>
+    <span class="hint" id="pageinfo" style="align-self:center"></span>
+  </div>
+  <div class="tablewrap"><table id="previewtable"><thead></thead><tbody></tbody></table></div>
+  <p class="hint">
+    Sarakkeen numero on sen indeksi, jota kartoitus käyttää. Otsikon nimeä käytetään
+    vain varmistuksena.
+  </p>
+  <div class="btnrow">
+    <button type="button" class="primary" data-goto="3">Jatka kartoitukseen</button>
+  </div>
+</section>
+
+<!-- ============ STEP 3 ============ -->
+<section class="panel" id="step-3" hidden>
+  <h2>3. Kartoitus</h2>
+  <p class="hint">
+    Esitäytetty tunnistetusta profiilista. Kaikki on muokattavissa.
+    TICKETS ja GROUPS voivat koostua useasta sarakkeesta, jotka lasketaan yhteen.
+  </p>
+
+  <fieldset>
+    <legend>Profiili</legend>
+    <div class="grid2">
+      <div class="field">
+        <label for="profilesel">Tallennettu profiili</label>
+        <select id="profilesel"></select>
+      </div>
+      <div class="field">
+        <label for="venuesel">Venue, johon koko tiedosto kohdistetaan</label>
+        <select id="venuesel"></select>
+      </div>
+    </div>
+    <div class="btnrow">
+      <button type="button" class="small" id="saveprofile">Tallenna kartoitus profiiliksi</button>
+      <button type="button" class="small" id="delprofile">Poista valittu profiili</button>
+    </div>
+    <p class="hint" id="storagehint"></p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Päivämäärä</legend>
+    <div class="grid2">
+      <div class="field">
+        <label for="datecol">Päivämääräsarake</label>
+        <select id="datecol"></select>
+      </div>
+      <div class="field">
+        <label for="datefmt">Päivämäärän muoto</label>
+        <select id="datefmt">
+          <option value="auto">Tunnista automaattisesti</option>
+          <option value="dmy">d.m.yyyy (myös dd.mm.yyyy)</option>
+          <option value="dmy2">dd.mm.yyyy, aina etunollilla</option>
+          <option value="ymd">yyyy-mm-dd</option>
+          <option value="isots">ISO-aikaleima</option>
+          <option value="excel">Excelin sarjanumero</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="labelcol">Otsikkosarake, esimerkiksi viikonpäivä</label>
+        <select id="labelcol"></select>
+      </div>
+      <div class="field">
+        <label for="crosscol">Ristiintarkistussarake, valinnainen</label>
+        <select id="crosscol"></select>
+      </div>
+    </div>
+    <p class="hint">
+      Ristiintarkistussaraketta ei koskaan kirjoiteta tulokseen. Sitä verrataan vain
+      laskettuun summaan, ja poikkeamasta tulee varoitus.
+    </p>
+  </fieldset>
+
+  <fieldset>
+    <legend>TICKETS: yksittäiskävijöiden sarakkeet, summataan</legend>
+    <div class="colpick" id="ticketcols" role="group" aria-label="TICKETS-sarakkeet"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>GROUPS: ryhmäkävijöiden sarakkeet, summataan</legend>
+    <div class="colpick" id="groupcols" role="group" aria-label="GROUPS-sarakkeet"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Rajaukset</legend>
+    <div class="field">
+      <label for="cutoff">Rajapäivä</label>
+      <input type="date" id="cutoff">
+      <span class="hint">
+        Tätä päivää ja sitä myöhempiä ei oteta mukaan, koska rajapäivä on vielä kesken.
+        Oletuksena tämä päivä. Aseta tähän muunnoksen ajopäivä, jos haluat toistaa
+        aiemman ajon tuloksen täsmälleen.
+      </span>
+    </div>
+    <div class="checkline">
+      <input type="checkbox" id="includefuture">
+      <label for="includefuture">
+        Ota mukaan rajapäivä ja sen jälkeiset päivät.
+        Oletuksena pois, koska nämä rivit ovat ennakkovarauksia tai kesken olevia
+        päiviä, eivät toteutuneita kävijöitä.
+      </label>
+    </div>
+    <div class="checkline">
+      <input type="checkbox" id="keeptail">
+      <label for="keeptail">
+        Ota mukaan myös loppupään tyhjät päivärivit.
+        Oletuksena pois: tiedoston lopussa on valmiiksi kalenteroituja päiviä, joilla
+        ei ole yhtään merkintää.
+      </label>
+    </div>
+  </fieldset>
+
+  <div id="mapmsg"></div>
+  <div class="btnrow">
+    <button type="button" class="primary" data-goto="4">Laske tulos</button>
+  </div>
+</section>
+
+<!-- ============ STEP 4 ============ -->
+<section class="panel" id="step-4" hidden>
+  <h2>4. Tulos ja tarkistukset</h2>
+  <p class="hint">
+    TOTAL lasketaan aina TICKETS + GROUPS. Lähteen Yhteensä-saraketta ei kirjoiteta
+    tulokseen, koska se on epäluotettava.
+  </p>
+  <div class="cards" id="resultcards"></div>
+
+  <h3>Varoitukset <span class="hint" id="warncount"></span></h3>
+  <div id="warnings"></div>
+
+  <h3>Ohitetut rivit <span class="hint" id="skipcount"></span></h3>
+  <div id="skips"></div>
+
+  <h3>Päivittäiset määrät</h3>
+  <div id="chartbox"></div>
+
+  <details>
+    <summary>Näytä kaikki päivät taulukkona</summary>
+    <div class="tablewrap" style="max-height:22rem;overflow-y:auto">
+      <table id="daytable"><thead></thead><tbody></tbody></table>
+    </div>
+  </details>
+
+  <div class="btnrow">
+    <button type="button" class="primary" data-goto="5">Jatka yhdistämiseen</button>
+  </div>
+</section>
+
+<!-- ============ STEP 5 ============ -->
+<section class="panel" id="step-5" hidden>
+  <h2>5. Yhdistäminen olemassa olevaan</h2>
+  <fieldset>
+    <legend>Tila</legend>
+    <div class="checkline">
+      <input type="radio" name="mergemode" id="mode-merge" value="merge" checked>
+      <label for="mode-merge">
+        <strong>Yhdistä.</strong> Lataa repossa oleva tickets-tiedosto, jolloin vanhat
+        päivät säilyvät ja juuri jäsennetty data voittaa päällekkäisillä päivillä.
+      </label>
+    </div>
+    <div class="checkline">
+      <input type="radio" name="mergemode" id="mode-replace" value="replace">
+      <label for="mode-replace">
+        <strong>Korvaa.</strong> Vain juuri jäsennetty data. Vertailutiedosto näytetään
+        silti erotuksena, jos sellainen on ladattu.
+      </label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Nykyinen tickets-tiedosto</legend>
+    <div class="field">
+      <label for="mergevenue">Venue</label>
+      <select id="mergevenue"></select>
+    </div>
+    <p>
+      <button type="button" id="mergepick">Valitse tiedosto</button>
+      <input type="file" id="mergefile" accept=".csv,.txt,text/csv,text/plain" class="sr-only" tabindex="-1" aria-hidden="true">
+      <button type="button" id="mergeclear">Tyhjennä vertailu</button>
+    </p>
+    <details>
+      <summary>Liitä sisältö tekstinä</summary>
+      <label for="mergepaste">Nykyinen tickets.csv</label>
+      <textarea id="mergepaste" placeholder="DATE,TICKETS,GROUPS,TOTAL"></textarea>
+      <div class="btnrow"><button type="button" id="mergepastebtn">Käytä liitettyä sisältöä</button></div>
+    </details>
+    <div id="mergestatus"></div>
+  </fieldset>
+
+  <h3>Erotus</h3>
+  <div id="diffbox"></div>
+
+  <div class="btnrow">
+    <button type="button" class="primary" data-goto="6">Jatka vientiin</button>
+  </div>
+</section>
+
+<!-- ============ STEP 6 ============ -->
+<section class="panel" id="step-6" hidden>
+  <h2>6. Vienti</h2>
+  <div id="exportbox"></div>
+
+  <h3>Seuraavat askeleet</h3>
+  <ol id="nextsteps"></ol>
+</section>
+
+<!-- ============ SELF TEST ============ -->
+<section class="panel" id="selftest" hidden>
+  <h2>Itsetestit</h2>
+  <div id="testsummary"></div>
+  <div class="tablewrap" style="max-height:38rem;overflow-y:auto">
+    <table id="testtable"><thead></thead><tbody></tbody></table>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Mitä luvut tarkoittavat</h2>
+  <p>
+    Lähdetiedostot ovat nimeltään <strong>Kävijätilastot</strong>, ja niiden sarakkeet
+    ovat kanavia: varaus, verkkokauppa, ovelta, puhelin, ryhmät ja talon vieraat.
+    Kyse ei siis ole puhtaasta lipunmyynnistä vaan kävijämääristä kanavittain.
+  </p>
+  <p>
+    Frameworkin kentät <code>tickets_sold</code> ja <code>groups_sold</code> tarkoittavat
+    tässä aineistossa käytännössä <strong>yksittäiskävijöitä</strong> ja
+    <strong>ryhmäkävijöitä</strong>. Näitä lukuja ei pidä tulkita myyntiraportiksi
+    eikä euromääräiseksi tuotoksi.
+  </p>
+  <p class="hint">
+    Nolla on aito havainto. Työkalu erottelee päivät, joilla lähteessä lukee
+    "Suljettu", niistä päivistä joilla kohde oli auki mutta kävijöitä ei kirjattu.
+  </p>
+</section>
+
+<footer class="foot">
+  <p>
+    Yksi tiedosto, ei riippuvuuksia, ei verkkopyyntöjä.
+    Itsetestit ajetaan lisäämällä osoitteen perään <code>?selftest=1</code>.
+  </p>
+</footer>
+
+</div>
+<script>
+"use strict";
+/* =========================================================================
+   Oulu2026 Visitor Flow Framework: kävijätilastojen muunnin.
+   Yksi tiedosto, ei ulkoisia riippuvuuksia, ei verkkopyyntöjä.
+   Kaikki käsittely tapahtuu selaimessa.
+   ========================================================================= */
+
+/* ---------------------------------------------------------------- core: encoding */
+
+/* windows-1252 -> Unicode, vain alue 0x80..0x9F poikkeaa latin-1:stä. */
+var CP1252_HIGH = [
+  0x20AC, 0x0081, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021,
+  0x02C6, 0x2030, 0x0160, 0x2039, 0x0152, 0x008D, 0x017D, 0x008F,
+  0x0090, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014,
+  0x02DC, 0x2122, 0x0161, 0x203A, 0x0153, 0x009D, 0x017E, 0x0178
+];
+
+function decodeCp1252(bytes) {
+  var out = "";
+  var chunk = [];
+  for (var i = 0; i < bytes.length; i++) {
+    var b = bytes[i];
+    chunk.push(b >= 0x80 && b <= 0x9F ? CP1252_HIGH[b - 0x80] : b);
+    if (chunk.length >= 8192) { out += String.fromCharCode.apply(null, chunk); chunk = []; }
+  }
+  if (chunk.length) out += String.fromCharCode.apply(null, chunk);
+  return out;
+}
+
+function stripBom(text) {
+  return text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+}
+
+/* Palauttaa { text, encoding, bomStripped }. UTF-8 kokeillaan ensin tiukasti,
+   varalla windows-1252, koska aukiolotiimin Excel-vienti on cp1252. */
+function decodeBytes(bytes) {
+  var hadBom = bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF;
+  try {
+    var dec = new TextDecoder("utf-8", { fatal: true });
+    var text = dec.decode(bytes);
+    return { text: stripBom(text), encoding: "utf-8", bomStripped: hadBom };
+  } catch (e) {
+    /* ei kelvollista UTF-8:aa, siirrytään windows-1252:een */
+  }
+  var t;
+  try {
+    t = new TextDecoder("windows-1252").decode(bytes);
+  } catch (e2) {
+    t = decodeCp1252(bytes);
+  }
+  return { text: stripBom(t), encoding: "windows-1252", bomStripped: false };
+}
+
+/* ---------------------------------------------------------------- core: CSV */
+
+var DELIMITERS = [
+  { value: ";", label: "puolipiste ;" },
+  { value: ",", label: "pilkku ," },
+  { value: "\t", label: "sarkain" },
+  { value: "|", label: "pystyviiva |" }
+];
+
+/* RFC 4180 -yhteensopiva jäsennin. Lainausmerkit, upotettu erotin,
+   upotettu rivinvaihto, kaksinkertaistettu lainausmerkki, CRLF ja LF. */
+function parseCSV(text, delim) {
+  var rows = [];
+  var row = [];
+  var field = "";
+  var inQuotes = false;
+  var started = false;
+  var n = text.length;
+  var i = 0;
+  var d = delim.charCodeAt(0);
+  function endField() { row.push(field); field = ""; started = false; }
+  function endRow() {
+    endField();
+    var empty = row.length === 1 && row[0] === "";
+    if (!empty) rows.push(row);
+    row = [];
+  }
+  while (i < n) {
+    var c = text.charCodeAt(i);
+    if (inQuotes) {
+      if (c === 34) {
+        if (i + 1 < n && text.charCodeAt(i + 1) === 34) { field += '"'; i += 2; continue; }
+        inQuotes = false; i++; continue;
+      }
+      field += text[i]; i++; continue;
+    }
+    if (c === 34 && !started) { inQuotes = true; started = true; i++; continue; }
+    if (c === d) { endField(); i++; continue; }
+    if (c === 13) { if (i + 1 < n && text.charCodeAt(i + 1) === 10) i++; endRow(); i++; continue; }
+    if (c === 10) { endRow(); i++; continue; }
+    field += text[i]; started = true; i++;
+  }
+  if (field !== "" || row.length > 0) endRow();
+  return rows;
+}
+
+/* Yleisin erotin otsikkorivillä ja muutamalla ensimmäisellä rivillä.
+   Lainausmerkkien ulkopuoliset esiintymät lasketaan. */
+function detectDelimiter(text) {
+  var sample = text.slice(0, 65536);
+  var lines = sample.split(/\r\n|\n|\r/).filter(function (l) { return l.trim() !== ""; }).slice(0, 12);
+  var best = ";", bestScore = -1;
+  for (var k = 0; k < DELIMITERS.length; k++) {
+    var d = DELIMITERS[k].value;
+    var counts = [];
+    for (var j = 0; j < lines.length; j++) {
+      var inQ = false, c = 0, line = lines[j];
+      for (var p = 0; p < line.length; p++) {
+        var ch = line[p];
+        if (ch === '"') inQ = !inQ;
+        else if (ch === d && !inQ) c++;
+      }
+      counts.push(c);
+    }
+    if (!counts.length || counts[0] === 0) continue;
+    var consistent = 0;
+    for (var m = 1; m < counts.length; m++) if (counts[m] === counts[0]) consistent++;
+    var score = counts[0] * 10 + consistent;
+    if (score > bestScore) { bestScore = score; best = d; }
+  }
+  return best;
+}
+
+/* ---------------------------------------------------------------- core: values */
+
+/* Otsikoiden vertailu: alku- ja loppuvälilyönnit pois, kirjainkoko ohitetaan.
+   Lähteessä on esimerkiksi "Ryhmät " perässä välilyönnillä. */
+function normHeader(s) {
+  return String(s == null ? "" : s)
+    .replace(/[\u00A0\u202F\u2007]/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+var NUM_RE = /^-?\d+(?:\.\d+)?$/;
+
+/* Palauttaa { value, kind } jossa kind on "empty" | "number" | "text".
+   Tukee pilkkudesimaalia ja tuhaterotinta: välilyönti, sitkeä välilyönti,
+   kapea sitkeä välilyönti. */
+function parseNumber(raw) {
+  var s = String(raw == null ? "" : raw);
+  var t = s.replace(/[\s\u00A0\u202F\u2007]/g, "");
+  if (t === "") return { value: 0, kind: "empty", raw: s };
+  t = t.replace(/,/g, ".");
+  if (NUM_RE.test(t)) {
+    var v = parseFloat(t);
+    if (isFinite(v)) return { value: v, kind: "number", raw: s };
+  }
+  return { value: 0, kind: "text", raw: s.trim() };
+}
+
+/* ---------------------------------------------------------------- core: dates */
+
+var DATE_FORMATS = ["dmy", "dmy2", "ymd", "isots", "excel"];
+var AUTO_ORDER = ["dmy", "ymd", "isots", "excel"];
+
+function isValidYmd(y, m, d) {
+  if (!(y >= 1900 && y <= 2200)) return false;
+  if (!(m >= 1 && m <= 12)) return false;
+  if (!(d >= 1 && d <= 31)) return false;
+  var dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
+}
+
+/* ISO-päivä merkkijonona, aikavyöhykkeetön. Sisäinen esitys on aina "YYYY-MM-DD". */
+function ymd(y, m, d) {
+  return String(y) + "-" + (m < 10 ? "0" : "") + m + "-" + (d < 10 ? "0" : "") + d;
+}
+
+function parseDateWith(raw, fmt) {
+  var s = String(raw == null ? "" : raw).replace(/[\u00A0\u202F\u2007]/g, " ").trim();
+  if (s === "") return null;
+  var m;
+  if (fmt === "dmy") {
+    m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})\.?$/.exec(s);
+    if (!m) return null;
+    var d1 = +m[1], m1 = +m[2], y1 = +m[3];
+    return isValidYmd(y1, m1, d1) ? ymd(y1, m1, d1) : null;
+  }
+  if (fmt === "dmy2") {
+    m = /^(\d{2})\.(\d{2})\.(\d{4})\.?$/.exec(s);
+    if (!m) return null;
+    var d2 = +m[1], m2 = +m[2], y2 = +m[3];
+    return isValidYmd(y2, m2, d2) ? ymd(y2, m2, d2) : null;
+  }
+  if (fmt === "ymd") {
+    m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s);
+    if (!m) return null;
+    return isValidYmd(+m[1], +m[2], +m[3]) ? ymd(+m[1], +m[2], +m[3]) : null;
+  }
+  if (fmt === "isots") {
+    m = /^(\d{4})-(\d{2})-(\d{2})[T ]\d{2}:\d{2}/.exec(s);
+    if (!m) return null;
+    return isValidYmd(+m[1], +m[2], +m[3]) ? ymd(+m[1], +m[2], +m[3]) : null;
+  }
+  if (fmt === "excel") {
+    if (!/^\d{1,6}(?:[.,]\d+)?$/.test(s)) return null;
+    var serial = parseFloat(s.replace(",", "."));
+    if (!isFinite(serial) || serial < 1 || serial > 400000) return null;
+    /* Excelin nollapäivä on 1899-12-30, mikä kattaa myös 1900-vuoden karkausvirheen. */
+    var ms = Date.UTC(1899, 11, 30) + Math.floor(serial) * 86400000;
+    var dt = new Date(ms);
+    return ymd(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate());
+  }
+  return null;
+}
+
+function parseDate(raw, fmt) {
+  if (fmt && fmt !== "auto") return parseDateWith(raw, fmt);
+  for (var i = 0; i < AUTO_ORDER.length; i++) {
+    var r = parseDateWith(raw, AUTO_ORDER[i]);
+    if (r) return r;
+  }
+  return null;
+}
+
+/* Vientimuoto: d.m.yyyy ilman etunollia. */
+function formatFi(iso) {
+  var p = iso.split("-");
+  return String(+p[2]) + "." + String(+p[1]) + "." + p[0];
+}
+
+function isoAddDays(iso, days) {
+  var p = iso.split("-");
+  var dt = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + days));
+  return ymd(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate());
+}
+
+function isoDiffDays(a, b) {
+  var pa = a.split("-"), pb = b.split("-");
+  return Math.round((Date.UTC(+pa[0], +pa[1] - 1, +pa[2]) - Date.UTC(+pb[0], +pb[1] - 1, +pb[2])) / 86400000);
+}
+
+var FI_WEEKDAYS = ["sunnuntai", "maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai"];
+
+function weekdayOf(iso) {
+  var p = iso.split("-");
+  return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])).getUTCDay();
+}
+
+function weekdayNameFi(iso) {
+  var n = FI_WEEKDAYS[weekdayOf(iso)];
+  return n.charAt(0).toUpperCase() + n.slice(1);
+}
+
+function todayIso() {
+  var d = new Date();
+  return ymd(d.getFullYear(), d.getMonth() + 1, d.getDate());
+}
+
+/* ---------------------------------------------------------------- venues & profiles */
+
+var VENUES = [
+  { id: 1, name: "Pekuri" },
+  { id: 2, name: "Kaupungintalo" }
+];
+
+function venueName(id) {
+  for (var i = 0; i < VENUES.length; i++) if (VENUES[i].id === id) return VENUES[i].name;
+  return "venue " + id;
+}
+
+/* Esiasennetut profiilit. Sarakkeet tunnistetaan ensisijaisesti indeksin
+   perusteella, otsikon nimi on varmistus. */
+var BUILTIN_PROFILES = [
+  {
+    id: "pekuri",
+    name: "Pekuri (profiili A)",
+    builtin: true,
+    venueId: 1,
+    labelCol: 0,
+    dateCol: 1,
+    dateFormat: "dmy",
+    ticketCols: [2],
+    groupCols: [3],
+    crossCol: 4,
+    expect: { 1: "päivämäärä", 2: "yleisöä", 3: "ryhmät", 4: "yhteensä" },
+    signature: ["yleisöä"]
+  },
+  {
+    id: "kaupungintalo",
+    name: "Kaupungintalo (profiili B)",
+    builtin: true,
+    venueId: 2,
+    labelCol: 0,
+    dateCol: 1,
+    dateFormat: "dmy",
+    ticketCols: [2, 3, 4, 5],
+    groupCols: [6, 7, 8],
+    crossCol: 9,
+    expect: {
+      1: "päivämäärä", 2: "varaus", 3: "verkkokauppa tilastot", 4: "ovelta",
+      5: "ktalon puh tilasto", 6: "ryhmät", 7: "kutoset", 8: "ktalon vieraat",
+      9: "yhteensä"
+    },
+    signature: ["verkkokauppa tilastot", "kutoset"]
+  }
+];
+
+function detectProfile(headers) {
+  var norm = headers.map(normHeader);
+  for (var i = 0; i < BUILTIN_PROFILES.length; i++) {
+    var p = BUILTIN_PROFILES[i];
+    for (var j = 0; j < p.signature.length; j++) {
+      if (norm.indexOf(p.signature[j]) !== -1) return p;
+    }
+  }
+  return null;
+}
+
+/* Otsikkovarmistus: kertoo mitkä kartoituksen sarakkeet eivät vastaa odotusta. */
+function verifyHeaders(profile, headers) {
+  var out = [];
+  if (!profile || !profile.expect) return out;
+  var norm = headers.map(normHeader);
+  Object.keys(profile.expect).forEach(function (k) {
+    var ix = +k;
+    var want = profile.expect[k];
+    var got = norm[ix] == null ? "" : norm[ix];
+    if (got !== want) out.push({ index: ix, expected: want, actual: headers[ix] == null ? "" : headers[ix] });
+  });
+  return out;
+}
+
+function cloneMapping(p) {
+  return {
+    profileId: p.id,
+    venueId: p.venueId,
+    labelCol: p.labelCol,
+    dateCol: p.dateCol,
+    dateFormat: p.dateFormat,
+    ticketCols: p.ticketCols.slice(),
+    groupCols: p.groupCols.slice(),
+    crossCol: p.crossCol,
+    includeFuture: false,
+    keepTail: false
+  };
+}
+
+function defaultMapping(headers) {
+  var n = headers.length;
+  return {
+    profileId: "",
+    venueId: VENUES[0].id,
+    labelCol: n > 1 ? 0 : -1,
+    dateCol: n > 1 ? 1 : 0,
+    dateFormat: "auto",
+    ticketCols: n > 2 ? [2] : [],
+    groupCols: n > 3 ? [3] : [],
+    crossCol: -1,
+    includeFuture: false,
+    keepTail: false
+  };
+}
+
+/* ---------------------------------------------------------------- analysis */
+
+var SKIP_LABELS = {
+  nodate: "päivämääräsarake tyhjä",
+  baddate: "päivämäärä ei jäsentynyt",
+  tail: "loppupään tyhjä päivärivi",
+  future: "kuluva tai tuleva päivä",
+  decision: "käyttäjä ohitti rivin"
+};
+
+var WARN_LABELS = {
+  baddate: "Päivämäärä ei jäsentynyt",
+  order: "Päivämäärä epäjärjestyksessä",
+  duplicate: "Sama päivä useasti",
+  text: "Tekstiarvo numerosarakkeessa",
+  cross: "Ristiintarkistus ei täsmää",
+  negative: "Negatiivinen arvo",
+  future: "Päivä tulevaisuudessa",
+  outlier: "Epäuskottavan suuri arvo",
+  ragged: "Rivillä eri määrä sarakkeita kuin otsikossa",
+  novenue: "Venuelle ei tullut yhtään riviä"
+};
+
+/* Ehdotus epäjärjestyksessä olevalle päivälle. Käytetään edellisen hyväksytyn
+   päivän kuukautta ja vuotta sekä rivin omaa päivänumeroa, ja varmistetaan
+   viikonpäivän nimellä jos sellainen on. */
+function suggestDate(rawDate, prevIso, nextIso, weekdayLabel) {
+  var m = /^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})/.exec(String(rawDate).trim());
+  var cands = [];
+  if (m && prevIso) {
+    var day = +m[1];
+    var pp = prevIso.split("-");
+    var py = +pp[0], pm = +pp[1];
+    for (var k = 0; k < 3; k++) {
+      var mm = pm + k, yy = py;
+      while (mm > 12) { mm -= 12; yy += 1; }
+      if (isValidYmd(yy, mm, day)) cands.push(ymd(yy, mm, day));
+    }
+  }
+  if (prevIso) cands.push(isoAddDays(prevIso, 1));
+  var wanted = weekdayLabel ? normHeader(weekdayLabel) : "";
+  var wantedIx = FI_WEEKDAYS.indexOf(wanted);
+  var fallback = null;
+  for (var i = 0; i < cands.length; i++) {
+    var c = cands[i];
+    if (prevIso && isoDiffDays(c, prevIso) <= 0) continue;
+    if (nextIso && isoDiffDays(c, nextIso) >= 0) continue;
+    if (wantedIx !== -1 && weekdayOf(c) !== wantedIx) { if (!fallback) fallback = c; continue; }
+    return c;
+  }
+  return fallback;
+}
+
+function median(sorted) {
+  var n = sorted.length;
+  if (!n) return 0;
+  var mid = n >> 1;
+  return n % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+/*
+  Analysoi yhden luetun tiedoston.
+  file: { headers, rows, name }
+  mapping: katso defaultMapping
+  decisions: { <lähdeRivinumero>: { action: "keep"|"fix"|"skip", date } }
+
+  Palauttaa rakenteen, jossa on hyväksytyt rivit, päiväaggregaatti,
+  varoitukset, ohitetut rivit ja rajatut päivät.
+*/
+function analyze(file, mapping, decisions, cutoffIso) {
+  decisions = decisions || {};
+  cutoffIso = cutoffIso || todayIso();
+
+  var headers = file.headers;
+  var rows = file.rows;
+  var dateCol = mapping.dateCol;
+  var labelCol = mapping.labelCol;
+  var tCols = mapping.ticketCols;
+  var gCols = mapping.groupCols;
+  var xCol = mapping.crossCol;
+
+  var warnings = [];
+  var skipped = [];
+  var records = [];
+  var raggedCount = 0;
+
+  function cell(row, ix) {
+    if (ix == null || ix < 0 || ix >= row.length) return "";
+    var v = row[ix];
+    return v == null ? "" : String(v).trim();
+  }
+  function colName(ix) {
+    var h = headers[ix];
+    var nm = h == null ? "" : String(h).trim();
+    return nm === "" ? "sarake " + ix : nm + " (sarake " + ix + ")";
+  }
+
+  /* vaihe 1: rivit ehdokkaiksi, roskarivit pois */
+  var cand = [];
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    var line = i + 2; /* rivi 1 on otsikkorivi */
+    if (row.length !== headers.length) raggedCount++;
+
+    var rawDate = cell(row, dateCol);
+    var dec = decisions[line];
+    var iso = null;
+
+    if (dec && dec.action === "skip") {
+      skipped.push({ line: line, reason: "decision", raw: rawDate });
+      continue;
+    }
+    if (dec && dec.action === "fix" && dec.date) iso = dec.date;
+    else iso = parseDate(rawDate, mapping.dateFormat);
+
+    if (!iso) {
+      if (rawDate === "") {
+        skipped.push({ line: line, reason: "nodate", raw: "" });
+      } else if (/\d/.test(rawDate)) {
+        skipped.push({ line: line, reason: "baddate", raw: rawDate });
+        warnings.push({
+          kind: "baddate", line: line, severity: "err",
+          text: "Rivi " + line + ": päivämäärää " + JSON.stringify(rawDate) + " ei voitu jäsentää, rivi ohitettiin."
+        });
+      } else {
+        skipped.push({ line: line, reason: "nodate", raw: rawDate });
+      }
+      continue;
+    }
+
+    /* onko rivillä yhtään merkintää muualla kuin otsikko- ja päivämääräsarakkeessa */
+    var blank = true;
+    for (var c = 0; c < row.length; c++) {
+      if (c === dateCol || c === labelCol) continue;
+      if (cell(row, c) !== "") { blank = false; break; }
+    }
+    cand.push({ line: line, iso: iso, rawDate: rawDate, row: row, blank: blank, fixed: !!(dec && dec.action === "fix") });
+  }
+
+  /* vaihe 2: loppupään tyhjät päivärivit pois. Nämä ovat valmiiksi kalenteroituja
+     päiviä, joilla ei ole yhtään merkintää. Keskellä tiedostoa oleva tyhjä
+     päivärivi on aito nollapäivä ja se säilytetään. */
+  var end = cand.length;
+  if (!mapping.keepTail) {
+    while (end > 0 && cand[end - 1].blank) end--;
+  }
+  for (var t = end; t < cand.length; t++) {
+    skipped.push({ line: cand[t].line, reason: "tail", raw: cand[t].rawDate });
+  }
+  cand = cand.slice(0, end);
+
+  /* vaihe 3: arvot */
+  for (var q = 0; q < cand.length; q++) {
+    var cd = cand[q];
+    var sums = { tickets: 0, groups: 0 };
+    var texts = [];
+    var closed = false;
+    var pairs = [["tickets", tCols], ["groups", gCols]];
+    for (var pi = 0; pi < pairs.length; pi++) {
+      var key = pairs[pi][0], cols = pairs[pi][1];
+      for (var ci = 0; ci < cols.length; ci++) {
+        var ix = cols[ci];
+        var pr = parseNumber(cell(cd.row, ix));
+        if (pr.kind === "text") {
+          texts.push({ col: ix, raw: pr.raw });
+          if (/sulj/i.test(pr.raw)) closed = true;
+          warnings.push({
+            kind: "text", line: cd.line, severity: "warn",
+            text: "Rivi " + cd.line + " (" + formatFi(cd.iso) + "): " + colName(ix) +
+                  " sisältää tekstin " + JSON.stringify(pr.raw) + ", tulkittiin nollaksi."
+          });
+        } else if (pr.kind === "number") {
+          if (pr.value < 0) {
+            warnings.push({
+              kind: "negative", line: cd.line, severity: "err",
+              text: "Rivi " + cd.line + " (" + formatFi(cd.iso) + "): " + colName(ix) +
+                    " on negatiivinen (" + pr.value + ")."
+            });
+          }
+          sums[key] += pr.value;
+        }
+      }
+    }
+    var cross = null;
+    if (xCol != null && xCol >= 0) {
+      var xr = parseNumber(cell(cd.row, xCol));
+      if (xr.kind === "number") cross = xr.value;
+    }
+    records.push({
+      line: cd.line, iso: cd.iso, rawDate: cd.rawDate,
+      tickets: sums.tickets, groups: sums.groups, cross: cross,
+      texts: texts, closed: closed, blank: cd.blank, fixed: cd.fixed,
+      label: labelCol >= 0 ? cell(cd.row, labelCol) : ""
+    });
+  }
+
+  /* vaihe 4: ristiintarkistus */
+  for (var r1 = 0; r1 < records.length; r1++) {
+    var rec = records[r1];
+    if (rec.cross === null) continue;
+    var calc = rec.tickets + rec.groups;
+    if (Math.abs(rec.cross - calc) > 1e-9) {
+      warnings.push({
+        kind: "cross", line: rec.line, severity: "warn",
+        text: "Rivi " + rec.line + " (" + formatFi(rec.iso) + "): lähteen Yhteensä on " +
+              fmtInt(rec.cross) + ", laskettu summa on " + fmtInt(calc) +
+              ", erotus " + fmtInt(rec.cross - calc) +
+              ". Tulokseen kirjoitetaan laskettu summa."
+      });
+    }
+  }
+
+  /* vaihe 5: järjestys ja duplikaatit */
+  var prevIso = null;
+  var seen = {};
+  for (var r2 = 0; r2 < records.length; r2++) {
+    var r = records[r2];
+    if (prevIso && isoDiffDays(r.iso, prevIso) < 0) {
+      var nextIso = null;
+      for (var f = r2 + 1; f < records.length; f++) {
+        if (isoDiffDays(records[f].iso, prevIso) > 0) { nextIso = records[f].iso; break; }
+      }
+      var sugg = suggestDate(r.rawDate, prevIso, nextIso, r.label);
+      warnings.push({
+        kind: "order", line: r.line, severity: "err", decision: true,
+        suggest: sugg, current: r.iso,
+        text: "Rivi " + r.line + ": päivämäärä " + formatFi(r.iso) +
+              " on epäjärjestyksessä, edellinen rivi on " + formatFi(prevIso) +
+              (nextIso ? " ja seuraava " + formatFi(nextIso) : "") +
+              (sugg ? ". Ehdotus: " + formatFi(sugg) +
+                      (r.label ? " (" + r.label + ", ja " + formatFi(sugg) + " on " + weekdayNameFi(sugg) + ")" : "")
+                    : ".")
+      });
+    }
+    if (seen[r.iso]) {
+      warnings.push({
+        kind: "duplicate", line: r.line, severity: "warn",
+        text: "Rivi " + r.line + ": päivä " + formatFi(r.iso) +
+              " esiintyy useasti (myös rivillä " + seen[r.iso] + "). Arvot lasketaan yhteen."
+      });
+    } else {
+      seen[r.iso] = r.line;
+    }
+    if (!prevIso || isoDiffDays(r.iso, prevIso) > 0) prevIso = r.iso;
+  }
+
+  /* vaihe 6: kuluva ja tulevat päivät */
+  var futureRecords = [];
+  var accepted = [];
+  for (var r3 = 0; r3 < records.length; r3++) {
+    var rr = records[r3];
+    if (isoDiffDays(rr.iso, cutoffIso) >= 0) {
+      futureRecords.push(rr);
+      if (!mapping.includeFuture) {
+        skipped.push({ line: rr.line, reason: "future", raw: rr.rawDate });
+        continue;
+      }
+      warnings.push({
+        kind: "future", line: rr.line, severity: "warn",
+        text: "Rivi " + rr.line + ": " + formatFi(rr.iso) +
+              " on kuluva tai tuleva päivä ja otettiin mukaan käyttäjän valinnalla."
+      });
+    }
+    accepted.push(rr);
+  }
+
+  /* vaihe 7: aggregointi päivittäin */
+  var byDate = {};
+  for (var a = 0; a < accepted.length; a++) {
+    var ac = accepted[a];
+    if (!byDate[ac.iso]) {
+      byDate[ac.iso] = { date: ac.iso, tickets: 0, groups: 0, total: 0, lines: [], closed: false, blank: true };
+    }
+    var day = byDate[ac.iso];
+    day.tickets += ac.tickets;
+    day.groups += ac.groups;
+    day.lines.push(ac.line);
+    if (ac.closed) day.closed = true;
+    if (!ac.blank) day.blank = false;
+  }
+  var days = Object.keys(byDate).sort().map(function (k) {
+    var d = byDate[k];
+    d.tickets = Math.round(d.tickets);
+    d.groups = Math.round(d.groups);
+    d.total = d.tickets + d.groups;
+    return d;
+  });
+
+  /* vaihe 8: epäuskottavan suuret arvot.
+     Verrataan päivän kokonaismäärää edeltävän 28 vuorokauden mediaaniin.
+     Suljetut ja nollapäivät jätetään mediaanista pois, koska ne painaisivat
+     vertailukohdan keinotekoisen matalaksi. */
+  var hist = [];
+  for (var di = 0; di < days.length; di++) {
+    var dy = days[di];
+    var win = [];
+    for (var h = 0; h < hist.length; h++) {
+      var gap = isoDiffDays(dy.date, hist[h].date);
+      if (gap > 0 && gap <= 28 && hist[h].total > 0) win.push(hist[h].total);
+    }
+    if (win.length >= 5) {
+      win.sort(function (x, y) { return x - y; });
+      var med = median(win);
+      if (med > 0 && dy.total > 5 * med) {
+        warnings.push({
+          kind: "outlier", line: dy.lines[0], severity: "info", date: dy.date,
+          text: "Päivä " + formatFi(dy.date) + " (rivi " + dy.lines[0] + "): yhteensä " +
+                fmtInt(dy.total) + " on yli viisinkertainen edeltävän 28 vuorokauden " +
+                "mediaaniin (" + fmtInt(med) + ") nähden. Tarkista onko luku oikein."
+        });
+      }
+    }
+    hist.push(dy);
+  }
+
+  if (raggedCount > 0) {
+    warnings.push({
+      kind: "ragged", line: 0, severity: "info",
+      text: raggedCount + " rivillä on eri määrä sarakkeita kuin otsikkorivillä. " +
+            "Puuttuvat sarakkeet täydennettiin tyhjillä, jäsennys ei keskeytynyt."
+    });
+  }
+  if (days.length === 0) {
+    warnings.push({
+      kind: "novenue", line: 0, severity: "err",
+      text: "Venuelle " + mapping.venueId + " (" + venueName(mapping.venueId) +
+            ") ei tullut yhtään hyväksyttyä riviä. Tarkista kartoitus."
+    });
+  }
+
+  var order = { err: 0, warn: 1, info: 2 };
+  warnings.sort(function (x, y) {
+    var so = order[x.severity] - order[y.severity];
+    if (so !== 0) return so;
+    return x.line - y.line;
+  });
+
+  var skipByReason = {};
+  for (var s = 0; s < skipped.length; s++) {
+    var rsn = skipped[s].reason;
+    if (!skipByReason[rsn]) skipByReason[rsn] = [];
+    skipByReason[rsn].push(skipped[s]);
+  }
+
+  var sumT = 0, sumG = 0, zeroDays = 0, closedDays = 0;
+  for (var z = 0; z < days.length; z++) {
+    sumT += days[z].tickets; sumG += days[z].groups;
+    if (days[z].total === 0) { zeroDays++; if (days[z].closed) closedDays++; }
+  }
+
+  return {
+    days: days,
+    records: accepted,
+    allRecords: records,
+    warnings: warnings,
+    skipped: skipped,
+    skipByReason: skipByReason,
+    futureRecords: futureRecords,
+    headerIssues: [],
+    summary: {
+      readRows: rows.length,
+      acceptedRows: accepted.length,
+      skippedRows: skipped.length,
+      dayCount: days.length,
+      first: days.length ? days[0].date : null,
+      last: days.length ? days[days.length - 1].date : null,
+      tickets: sumT,
+      groups: sumG,
+      total: sumT + sumG,
+      zeroDays: zeroDays,
+      closedDays: closedDays,
+      openNoVisitors: zeroDays - closedDays,
+      gaps: countGaps(days)
+    }
+  };
+}
+
+function countGaps(days) {
+  if (days.length < 2) return 0;
+  var expected = isoDiffDays(days[days.length - 1].date, days[0].date) + 1;
+  return expected - days.length;
+}
+
+/* ---------------------------------------------------------------- merge & export */
+
+/* Yhdistää nykyisen ja uuden päiväsarjan. Uusi voittaa päällekkäisillä päivillä.
+   Palauttaa yhdistetyn sarjan ja erotuksen. */
+function mergeDays(existing, incoming, mode) {
+  var oldMap = {}, newMap = {};
+  var i;
+  for (i = 0; i < existing.length; i++) oldMap[existing[i].date] = existing[i];
+  for (i = 0; i < incoming.length; i++) newMap[incoming[i].date] = incoming[i];
+
+  var resultMap = {};
+  if (mode === "merge") {
+    for (var k in oldMap) if (oldMap.hasOwnProperty(k)) resultMap[k] = oldMap[k];
+  }
+  for (var k2 in newMap) if (newMap.hasOwnProperty(k2)) resultMap[k2] = newMap[k2];
+
+  var merged = Object.keys(resultMap).sort().map(function (k3) { return resultMap[k3]; });
+
+  var added = [], changed = [], removed = [], unchanged = 0;
+  for (var m = 0; m < merged.length; m++) {
+    var d = merged[m];
+    var o = oldMap[d.date];
+    if (!o) { added.push(d); continue; }
+    if (o.tickets !== d.tickets || o.groups !== d.groups || o.total !== d.total) {
+      changed.push({ date: d.date, from: o, to: d });
+    } else unchanged++;
+  }
+  for (var k4 in oldMap) {
+    if (oldMap.hasOwnProperty(k4) && !resultMap[k4]) removed.push(oldMap[k4]);
+  }
+  added.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+  removed.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+
+  return { days: merged, added: added, changed: changed, removed: removed, unchanged: unchanged };
+}
+
+/* Lukee olemassa olevan tickets.csv:n. Otsikkorivi DATE,TICKETS,GROUPS,TOTAL. */
+function parseTicketsCsv(text) {
+  var delim = detectDelimiter(text);
+  var rows = parseCSV(stripBom(text), delim);
+  if (!rows.length) return { days: [], errors: ["Tiedosto on tyhjä."] };
+  var head = rows[0].map(normHeader);
+  var ix = { date: head.indexOf("date"), tickets: head.indexOf("tickets"), groups: head.indexOf("groups") };
+  var errors = [];
+  var start = 1;
+  if (ix.date === -1) {
+    /* ei tunnistettavaa otsikkoa, oletetaan sarakejärjestys ja luetaan alusta */
+    ix = { date: 0, tickets: 1, groups: 2 };
+    if (parseDate(rows[0][0], "auto")) start = 0;
+    else errors.push("Otsikkoriviä ei tunnistettu, oletettiin järjestys DATE, TICKETS, GROUPS, TOTAL.");
+  }
+  var days = [];
+  for (var i = start; i < rows.length; i++) {
+    var row = rows[i];
+    var iso = parseDate(row[ix.date], "auto");
+    if (!iso) { errors.push("Rivi " + (i + 1) + ": päivämäärää ei voitu jäsentää."); continue; }
+    var t = parseNumber(row[ix.tickets]);
+    var g = parseNumber(row[ix.groups]);
+    days.push({
+      date: iso,
+      tickets: Math.round(t.value),
+      groups: Math.round(g.value),
+      total: Math.round(t.value) + Math.round(g.value),
+      lines: [i + 1], closed: false, blank: false
+    });
+  }
+  days.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+  return { days: days, errors: errors };
+}
+
+/* Vientimuoto tarkalleen: otsikkorivi DATE,TICKETS,GROUPS,TOTAL, erotin pilkku,
+   päivämäärä d.m.yyyy ilman etunollia, rivinvaihto \n, kokonaisluvut. */
+function toTicketsCsv(days) {
+  var out = "DATE,TICKETS,GROUPS,TOTAL\n";
+  for (var i = 0; i < days.length; i++) {
+    var d = days[i];
+    out += formatFi(d.date) + "," + d.tickets + "," + d.groups + "," + (d.tickets + d.groups) + "\n";
+  }
+  return out;
+}
+
+/* Normalisoitu muoto, sama jonka ingest tuottaa itse. */
+function toDailyCsv(perVenue) {
+  var out = "venue_id,date,tickets_sold,groups_sold,tickets_total\n";
+  var ids = Object.keys(perVenue).map(Number).sort(function (a, b) { return a - b; });
+  for (var v = 0; v < ids.length; v++) {
+    var days = perVenue[ids[v]];
+    for (var i = 0; i < days.length; i++) {
+      var d = days[i];
+      out += ids[v] + "," + d.date + "," + d.tickets + "," + d.groups + "," + (d.tickets + d.groups) + "\n";
+    }
+  }
+  return out;
+}
+
+/* ---------------------------------------------------------------- formatting */
+
+function fmtInt(n) {
+  var neg = n < 0;
+  var s = String(Math.abs(Math.round(n)));
+  var out = "";
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 === 0) out += "\u00A0";
+    out += s[i];
+  }
+  return (neg ? "−" : "") + out;
+}
+
+function fmtSigned(n) {
+  if (n > 0) return "+" + fmtInt(n);
+  return fmtInt(n);
+}
+
+/* ---------------------------------------------------------------- storage */
+
+var STORE_KEY = "ovf.tickets-parser.profiles.v1";
+var storageWorks = true;
+
+function loadProfiles() {
+  var custom = [];
+  try {
+    var raw = window.localStorage.getItem(STORE_KEY);
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) custom = parsed;
+    }
+  } catch (e) {
+    storageWorks = false;
+  }
+  return BUILTIN_PROFILES.concat(custom.filter(function (p) { return p && p.id && !p.builtin; }));
+}
+
+function saveCustomProfiles(list) {
+  try {
+    window.localStorage.setItem(STORE_KEY, JSON.stringify(list));
+    return true;
+  } catch (e) {
+    storageWorks = false;
+    return false;
+  }
+}
+
+function customProfiles(all) {
+  return all.filter(function (p) { return !p.builtin; });
+}
+
+/* ================================================================= UI ==== */
+
+function $(id) { return document.getElementById(id); }
+
+function el(tag, attrs, kids) {
+  var n = document.createElement(tag);
+  if (attrs) {
+    for (var k in attrs) {
+      if (!attrs.hasOwnProperty(k)) continue;
+      var v = attrs[k];
+      if (v == null || v === false) continue;
+      if (k === "text") n.textContent = v;
+      else if (k === "class") n.className = v;
+      else if (k === "onclick") n.addEventListener("click", v);
+      else if (k === "onchange") n.addEventListener("change", v);
+      else n.setAttribute(k, v === true ? "" : v);
+    }
+  }
+  if (kids) {
+    for (var i = 0; i < kids.length; i++) {
+      if (kids[i] == null) continue;
+      n.appendChild(typeof kids[i] === "string" ? document.createTextNode(kids[i]) : kids[i]);
+    }
+  }
+  return n;
+}
+
+function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+
+function msg(severity, body, extra) {
+  var icons = { ok: "✓", warn: "▲", err: "✕", info: "i" };
+  var kids = [
+    el("span", { class: "ico", "aria-hidden": "true", text: icons[severity] || "i" }),
+    el("span", { class: "body" }, [body])
+  ];
+  var box = el("div", { class: "msg " + severity, role: severity === "err" ? "alert" : null }, kids);
+  if (extra) kids[1].appendChild(extra);
+  return box;
+}
+
+var STEP_TITLES = ["Tiedosto", "Esikatselu", "Kartoitus", "Tulos", "Yhdistäminen", "Vienti"];
+
+var state = {
+  step: 1,
+  files: [],
+  activeId: null,
+  seq: 0,
+  profiles: [],
+  previewStart: 0,
+  highlightLine: null,
+  mergeMode: "merge",
+  mergeVenue: VENUES[0].id,
+  existing: {},
+  cutoff: todayIso()
+};
+
+function activeFile() {
+  for (var i = 0; i < state.files.length; i++) if (state.files[i].id === state.activeId) return state.files[i];
+  return null;
+}
+
+function reanalyze(f) {
+  f.analysis = analyze(f, f.mapping, f.decisions, state.cutoff);
+  var prof = null;
+  for (var i = 0; i < state.profiles.length; i++) if (state.profiles[i].id === f.mapping.profileId) prof = state.profiles[i];
+  f.headerIssues = prof ? verifyHeaders(prof, f.headers) : [];
+}
+
+/* Kaikkien tiedostojen tulokset venueittain. Myöhemmin luettu tiedosto voittaa
+   päällekkäisillä päivillä. */
+function venueDays(venueId) {
+  var map = {};
+  for (var i = 0; i < state.files.length; i++) {
+    var f = state.files[i];
+    if (!f.analysis || f.mapping.venueId !== venueId) continue;
+    for (var d = 0; d < f.analysis.days.length; d++) {
+      map[f.analysis.days[d].date] = f.analysis.days[d];
+    }
+  }
+  return Object.keys(map).sort().map(function (k) { return map[k]; });
+}
+
+function venuesWithData() {
+  var ids = {};
+  for (var i = 0; i < state.files.length; i++) {
+    if (state.files[i].analysis && state.files[i].analysis.days.length) ids[state.files[i].mapping.venueId] = true;
+  }
+  return Object.keys(ids).map(Number).sort(function (a, b) { return a - b; });
+}
+
+/* Lopullinen sarja venuelle: valittu tila ja mahdollinen vertailutiedosto. */
+function finalDays(venueId) {
+  var incoming = venueDays(venueId);
+  var ex = state.existing[venueId];
+  if (!ex) return { days: incoming, diff: null };
+  var res = mergeDays(ex.days, incoming, state.mergeMode);
+  return { days: res.days, diff: res };
+}
+
+/* ---------------------------------------------------------------- stepper */
+
+function stepEnabled(n) {
+  if (n === 1) return true;
+  var f = activeFile();
+  if (!f) return false;
+  if (n === 2 || n === 3) return true;
+  if (!f.analysis) return false;
+  return true;
+}
+
+function renderStepper() {
+  var ol = $("stepper");
+  clear(ol);
+  for (var i = 1; i <= 6; i++) {
+    (function (n) {
+      var enabled = stepEnabled(n);
+      var done = n < state.step && enabled;
+      var b = el("button", {
+        type: "button",
+        class: done ? "done" : "",
+        "aria-current": state.step === n ? "step" : null,
+        disabled: !enabled ? true : null,
+        onclick: function () { goto(n); }
+      }, [
+        el("span", { class: "num", "aria-hidden": "true" }, [el("span", { class: "n", text: String(n) })]),
+        el("span", { text: STEP_TITLES[n - 1] })
+      ]);
+      ol.appendChild(el("li", null, [b]));
+    })(i);
+  }
+}
+
+function goto(n) {
+  if (!stepEnabled(n)) return;
+  if (n === 4) {
+    var f = activeFile();
+    if (f) reanalyze(f);
+  }
+  state.step = n;
+  render();
+  var panel = $("step-" + n);
+  if (panel) {
+    var h = panel.querySelector("h2");
+    if (h) { h.setAttribute("tabindex", "-1"); h.focus(); }
+    panel.scrollIntoView({ block: "start" });
+  }
+}
+
+function render() {
+  for (var i = 1; i <= 6; i++) $("step-" + i).hidden = state.step !== i;
+  renderStepper();
+  if (state.step === 1) renderStep1();
+  if (state.step === 2) renderStep2();
+  if (state.step === 3) renderStep3();
+  if (state.step === 4) renderStep4();
+  if (state.step === 5) renderStep5();
+  if (state.step === 6) renderStep6();
+}
+
+/* ---------------------------------------------------------------- step 1 */
+
+function addFile(name, bytesOrText) {
+  var dec;
+  if (typeof bytesOrText === "string") {
+    dec = { text: stripBom(bytesOrText), encoding: "utf-8 (liitetty)", bomStripped: false };
+  } else {
+    dec = decodeBytes(bytesOrText);
+  }
+  var delim = detectDelimiter(dec.text);
+  var rows = parseCSV(dec.text, delim);
+  if (!rows.length) {
+    showGlobal("err", "Tiedostosta " + name + " ei löytynyt yhtään riviä.");
+    return null;
+  }
+  var headers = rows[0];
+  var prof = detectProfile(headers);
+  var f = {
+    id: ++state.seq,
+    name: name,
+    encoding: dec.encoding,
+    delimiter: delim,
+    headers: headers,
+    rows: rows.slice(1),
+    detectedProfile: prof ? prof.id : null,
+    mapping: prof ? cloneMapping(prof) : defaultMapping(headers),
+    decisions: {},
+    analysis: null,
+    headerIssues: []
+  };
+  reanalyze(f);
+  state.files.push(f);
+  state.activeId = f.id;
+  state.previewStart = 0;
+  return f;
+}
+
+function showGlobal(sev, text) {
+  var box = $("globalmsg");
+  clear(box);
+  box.appendChild(msg(sev, text));
+  window.setTimeout(function () { if (box.firstChild) clear(box); }, 9000);
+}
+
+function renderStep1() {
+  var list = $("filelist");
+  clear(list);
+  $("nofiles").hidden = state.files.length > 0;
+  for (var i = 0; i < state.files.length; i++) {
+    (function (f) {
+      var prof = f.detectedProfile ? profileById(f.detectedProfile) : null;
+      var li = el("li", { "aria-current": f.id === state.activeId ? "true" : null }, [
+        el("span", { class: "nm", text: f.name }),
+        el("span", { class: "meta", text:
+          f.encoding + ", erotin " + delimLabel(f.delimiter) + ", " + f.rows.length + " riviä, " +
+          (prof ? prof.name : "profiilia ei tunnistettu") + ", " + venueName(f.mapping.venueId) +
+          (f.analysis ? ", " + f.analysis.days.length + " päivää" : "")
+        }),
+        el("span", { class: "spacer" }),
+        el("button", {
+          type: "button", class: "small",
+          onclick: function () { state.activeId = f.id; state.previewStart = 0; goto(2); },
+          text: "Avaa"
+        }),
+        el("button", {
+          type: "button", class: "small",
+          onclick: function () { removeFile(f.id); },
+          text: "Poista"
+        })
+      ]);
+      list.appendChild(li);
+    })(state.files[i]);
+  }
+}
+
+function delimLabel(d) {
+  for (var i = 0; i < DELIMITERS.length; i++) if (DELIMITERS[i].value === d) return DELIMITERS[i].label;
+  return JSON.stringify(d);
+}
+
+function profileById(id) {
+  for (var i = 0; i < state.profiles.length; i++) if (state.profiles[i].id === id) return state.profiles[i];
+  return null;
+}
+
+function removeFile(id) {
+  state.files = state.files.filter(function (f) { return f.id !== id; });
+  if (state.activeId === id) state.activeId = state.files.length ? state.files[state.files.length - 1].id : null;
+  render();
+}
+
+function readFiles(fileList) {
+  var arr = Array.prototype.slice.call(fileList);
+  var pending = arr.length;
+  if (!pending) return;
+  arr.forEach(function (file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      addFile(file.name, new Uint8Array(reader.result));
+      pending--;
+      if (pending === 0) goto(2);
+      else render();
+    };
+    reader.onerror = function () {
+      showGlobal("err", "Tiedostoa " + file.name + " ei voitu lukea.");
+      pending--;
+      if (pending === 0) render();
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+/* ---------------------------------------------------------------- step 2 */
+
+function renderStep2() {
+  var f = activeFile();
+  if (!f) return;
+  var info = $("detectinfo");
+  clear(info);
+
+  var prof = f.detectedProfile ? profileById(f.detectedProfile) : null;
+  var detectLine = el("span", null, [
+    "Merkistö ", el("strong", { text: f.encoding }),
+    ", erotin ", el("strong", { text: delimLabel(f.delimiter) }),
+    ", otsikkorivi 1, ", el("strong", { text: String(f.headers.length) }), " saraketta. ",
+    prof ? el("span", null, ["Tunnistettu profiili: ", el("strong", { text: prof.name }),
+      ", venue ", el("strong", { text: venueName(f.mapping.venueId) }), "."])
+         : el("span", { text: "Profiilia ei tunnistettu otsikkorivistä, valitse kartoitus itse." })
+  ]);
+  info.appendChild(msg(prof ? "ok" : "warn", detectLine,
+    el("button", { type: "button", class: "jump", onclick: function () { goto(3); }, text: "Vaihda" })));
+
+  if (f.headerIssues && f.headerIssues.length) {
+    var lines = f.headerIssues.map(function (h) {
+      return "sarake " + h.index + ": odotettiin " + JSON.stringify(h.expected) +
+             ", löytyi " + JSON.stringify(h.actual);
+    }).join("; ");
+    info.appendChild(msg("warn", "Otsikkovarmistus: " + lines +
+      ". Kartoitus perustuu sarakkeen indeksiin, joten tarkista kartoitus vaiheessa 3."));
+  }
+
+  var a = f.analysis;
+  var cards = $("previewcards");
+  clear(cards);
+  card(cards, "Rivejä otsikon jälkeen", fmtInt(f.rows.length));
+  card(cards, "Hyväksyttyjä rivejä", fmtInt(a.summary.acceptedRows));
+  card(cards, "Ohitettuja rivejä", fmtInt(a.summary.skippedRows));
+  card(cards, "Varoituksia", fmtInt(a.warnings.length));
+
+  renderPreviewTable();
+}
+
+function card(parent, k, v, long) {
+  parent.appendChild(el("div", { class: "card" }, [
+    el("span", { class: "k", text: k }),
+    el("span", { class: "v" + (long ? " long" : ""), text: v })
+  ]));
+}
+
+var PREVIEW_SIZE = 20;
+
+function renderPreviewTable() {
+  var f = activeFile();
+  if (!f) return;
+  var thead = $("previewtable").tHead;
+  var tbody = $("previewtable").tBodies[0];
+  clear(thead); clear(tbody);
+
+  var hr = el("tr", null, [el("th", { scope: "col", text: "Rivi" })]);
+  for (var c = 0; c < f.headers.length; c++) {
+    var role = [];
+    if (c === f.mapping.dateCol) role.push("DATE");
+    if (f.mapping.ticketCols.indexOf(c) !== -1) role.push("TICKETS");
+    if (f.mapping.groupCols.indexOf(c) !== -1) role.push("GROUPS");
+    if (c === f.mapping.crossCol) role.push("tarkistus");
+    hr.appendChild(el("th", { scope: "col" }, [
+      el("span", { text: String(f.headers[c] || "").trim() || "(nimetön)" }),
+      el("span", { class: "colix", text: "[" + c + "]" + (role.length ? " " + role.join(" ") : "") })
+    ]));
+  }
+  thead.appendChild(hr);
+
+  var start = Math.max(0, Math.min(state.previewStart, Math.max(0, f.rows.length - 1)));
+  var end = Math.min(f.rows.length, start + PREVIEW_SIZE);
+  for (var i = start; i < end; i++) {
+    var line = i + 2;
+    var tr = el("tr", { id: "src-row-" + line, class: state.highlightLine === line ? "hl" : "" }, [
+      el("td", { class: "num", text: String(line) })
+    ]);
+    for (var j = 0; j < f.headers.length; j++) {
+      var v = f.rows[i][j];
+      tr.appendChild(el("td", { text: v == null ? "" : String(v) }));
+    }
+    tbody.appendChild(tr);
+  }
+  $("pageinfo").textContent = "Lähderivit " + (start + 2) + " ... " + (end + 1) + ", yhteensä " + (f.rows.length + 1) + " riviä.";
+  $("prevpage").disabled = start === 0;
+  $("nextpage").disabled = end >= f.rows.length;
+}
+
+function jumpToLine(line) {
+  var f = activeFile();
+  if (!f || !line) return;
+  state.previewStart = Math.max(0, line - 2 - 5);
+  state.highlightLine = line;
+  state.step = 2;
+  render();
+  var row = $("src-row-" + line);
+  if (row) {
+    row.scrollIntoView({ block: "center" });
+    row.setAttribute("tabindex", "-1");
+    row.focus();
+  }
+}
+
+/* ---------------------------------------------------------------- step 3 */
+
+function renderStep3() {
+  var f = activeFile();
+  if (!f) return;
+
+  var psel = $("profilesel");
+  clear(psel);
+  psel.appendChild(el("option", { value: "", text: "(oma kartoitus)" }));
+  for (var i = 0; i < state.profiles.length; i++) {
+    var p = state.profiles[i];
+    psel.appendChild(el("option", { value: p.id, text: p.name + (p.builtin ? " · esiasennettu" : "") }));
+  }
+  psel.value = f.mapping.profileId || "";
+  $("delprofile").disabled = !f.mapping.profileId || !!(profileById(f.mapping.profileId) || {}).builtin;
+
+  var vsel = $("venuesel");
+  clear(vsel);
+  for (var v = 0; v < VENUES.length; v++) {
+    vsel.appendChild(el("option", { value: String(VENUES[v].id), text: VENUES[v].id + ": " + VENUES[v].name }));
+  }
+  vsel.value = String(f.mapping.venueId);
+
+  fillColSelect($("datecol"), f, f.mapping.dateCol, false);
+  fillColSelect($("labelcol"), f, f.mapping.labelCol, true);
+  fillColSelect($("crosscol"), f, f.mapping.crossCol, true);
+  $("datefmt").value = f.mapping.dateFormat;
+
+  fillColChecks($("ticketcols"), f, f.mapping.ticketCols, "t");
+  fillColChecks($("groupcols"), f, f.mapping.groupCols, "g");
+
+  $("includefuture").checked = !!f.mapping.includeFuture;
+  $("keeptail").checked = !!f.mapping.keepTail;
+  $("cutoff").value = state.cutoff;
+
+  $("storagehint").textContent = storageWorks
+    ? "Profiilit tallennetaan tämän selaimen localStorageen. Mitään ei lähetetä mihinkään."
+    : "Selain ei salli localStoragea, esimerkiksi yksityisessä ikkunassa. Työkalu toimii normaalisti, mutta profiileja ei voi tallentaa.";
+
+  var mm = $("mapmsg");
+  clear(mm);
+  if (!f.mapping.ticketCols.length && !f.mapping.groupCols.length) {
+    mm.appendChild(msg("err", "Valitse vähintään yksi sarake TICKETS- tai GROUPS-kenttään."));
+  }
+  if (f.headerIssues && f.headerIssues.length) {
+    mm.appendChild(msg("warn", "Otsikot eivät täysin vastaa profiilia. Tarkista sarakevalinnat, kartoitus perustuu indeksiin."));
+  }
+  var preview = analyze(f, f.mapping, f.decisions, state.cutoff);
+  mm.appendChild(msg("info",
+    "Tällä kartoituksella tulos on " + preview.days.length + " päivää, yksittäiskävijöitä " +
+    fmtInt(preview.summary.tickets) + ", ryhmäkävijöitä " + fmtInt(preview.summary.groups) + "."));
+}
+
+function fillColSelect(sel, f, current, allowNone) {
+  clear(sel);
+  if (allowNone) sel.appendChild(el("option", { value: "-1", text: "(ei käytössä)" }));
+  for (var c = 0; c < f.headers.length; c++) {
+    var nm = String(f.headers[c] || "").trim();
+    sel.appendChild(el("option", { value: String(c), text: "[" + c + "] " + (nm || "(nimetön)") }));
+  }
+  sel.value = String(current == null ? -1 : current);
+}
+
+function fillColChecks(box, f, selected, kind) {
+  clear(box);
+  for (var c = 0; c < f.headers.length; c++) {
+    (function (ix) {
+      var nm = String(f.headers[ix] || "").trim();
+      var id = "col-" + kind + "-" + ix;
+      var input = el("input", {
+        type: "checkbox", id: id,
+        checked: selected.indexOf(ix) !== -1 ? true : null
+      });
+      input.addEventListener("change", function () {
+        var f2 = activeFile();
+        var list = kind === "t" ? f2.mapping.ticketCols : f2.mapping.groupCols;
+        var at = list.indexOf(ix);
+        if (input.checked && at === -1) list.push(ix);
+        if (!input.checked && at !== -1) list.splice(at, 1);
+        list.sort(function (a, b) { return a - b; });
+        f2.mapping.profileId = "";
+        reanalyze(f2);
+        renderStep3();
+      });
+      box.appendChild(el("label", { for: id }, [
+        input,
+        el("span", { class: "ix", text: "[" + ix + "]" }),
+        el("span", { class: "nm", text: nm || "(nimetön)" })
+      ]));
+    })(c);
+  }
+}
+
+/* ---------------------------------------------------------------- step 4 */
+
+function renderStep4() {
+  var f = activeFile();
+  if (!f) return;
+  var a = f.analysis;
+  var s = a.summary;
+
+  var cards = $("resultcards");
+  clear(cards);
+  card(cards, "Luettuja rivejä", fmtInt(s.readRows));
+  card(cards, "Hyväksyttyjä rivejä", fmtInt(s.acceptedRows));
+  card(cards, "Ohitettuja rivejä", fmtInt(s.skippedRows));
+  card(cards, "Päiviä", fmtInt(s.dayCount));
+  card(cards, "Päivämääräväli", s.first ? formatFi(s.first) + " ... " + formatFi(s.last) : "ei dataa", true);
+  card(cards, "Yksittäiskävijät", fmtInt(s.tickets));
+  card(cards, "Ryhmäkävijät", fmtInt(s.groups));
+  card(cards, "Yhteensä", fmtInt(s.total));
+  card(cards, "Kiinni (suljettu)", fmtInt(s.closedDays));
+  card(cards, "Auki, ei kävijöitä", fmtInt(s.openNoVisitors));
+  card(cards, "Aukkoja sarjassa", fmtInt(s.gaps));
+  card(cards, "Rajapäivä", formatFi(state.cutoff));
+
+  /* varoitukset */
+  var wbox = $("warnings");
+  clear(wbox);
+  $("warncount").textContent = "(" + a.warnings.length + ")";
+  if (!a.warnings.length) {
+    wbox.appendChild(msg("ok", "Ei varoituksia."));
+  }
+  for (var i = 0; i < a.warnings.length; i++) {
+    (function (w) {
+      var body = el("span", null, [
+        el("span", { class: "tag", text: WARN_LABELS[w.kind] || w.kind }),
+        el("span", { text: w.text })
+      ]);
+      var box = msg(w.severity, body);
+      if (w.line) {
+        box.querySelector(".body").appendChild(el("button", {
+          type: "button", class: "jump",
+          onclick: function () { jumpToLine(w.line); },
+          text: "Näytä rivi " + w.line
+        }));
+      }
+      if (w.decision) {
+        var f2 = activeFile();
+        var cur = (f2.decisions[w.line] || {}).action || "keep";
+        var dec = el("div", { class: "decision", role: "group", "aria-label": "Päätös rivistä " + w.line });
+        if (w.suggest) {
+          dec.appendChild(el("button", {
+            type: "button", "aria-pressed": cur === "fix" ? "true" : "false",
+            onclick: function () { setDecision(w.line, "fix", w.suggest); },
+            text: "Korjaa päiväksi " + formatFi(w.suggest)
+          }));
+        }
+        dec.appendChild(el("button", {
+          type: "button", "aria-pressed": cur === "keep" ? "true" : "false",
+          onclick: function () { setDecision(w.line, "keep", null); },
+          text: "Pidä sellaisenaan"
+        }));
+        dec.appendChild(el("button", {
+          type: "button", "aria-pressed": cur === "skip" ? "true" : "false",
+          onclick: function () { setDecision(w.line, "skip", null); },
+          text: "Ohita rivi"
+        }));
+        box.querySelector(".body").appendChild(dec);
+        box.querySelector(".body").appendChild(el("p", { class: "hint", text:
+          "Työkalu ei korjaa päivämäärää automaattisesti. Oletus on pitää rivi sellaisenaan." }));
+      }
+      wbox.appendChild(box);
+    })(a.warnings[i]);
+  }
+
+  /* ohitetut rivit */
+  var sbox = $("skips");
+  clear(sbox);
+  $("skipcount").textContent = "(" + a.skipped.length + ")";
+  var reasons = Object.keys(a.skipByReason);
+  if (!reasons.length) sbox.appendChild(msg("ok", "Ei ohitettuja rivejä."));
+  reasons.forEach(function (rsn) {
+    var list = a.skipByReason[rsn];
+    var body = el("span", null, [
+      el("span", { class: "tag", text: SKIP_LABELS[rsn] || rsn }),
+      el("span", { text: list.length + " riviä: " + list.slice(0, 12).map(function (x) {
+        return x.line + (x.raw ? " (" + x.raw + ")" : "");
+      }).join(", ") + (list.length > 12 ? " ..." : "") })
+    ]);
+    var box = msg("info", body);
+    box.querySelector(".body").appendChild(el("button", {
+      type: "button", class: "jump",
+      onclick: function () { jumpToLine(list[0].line); },
+      text: "Näytä ensimmäinen"
+    }));
+    sbox.appendChild(box);
+  });
+
+  if (a.futureRecords.length) {
+    var dates = a.futureRecords.map(function (r) { return formatFi(r.iso) + " (rivi " + r.line + ")"; });
+    sbox.appendChild(msg("info", el("span", null, [
+      el("span", { class: "tag", text: "Kuluva ja tulevat päivät" }),
+      el("span", { text: (f.mapping.includeFuture ? "Mukana tuloksessa: " : "Rajattu pois: ") +
+        dates.slice(0, 20).join(", ") + (dates.length > 20 ? " ..." : "") +
+        ". Nämä ovat ennakkovarauksia tai kesken olevia päiviä, eivät toteutuneita kävijöitä." })
+    ])));
+  }
+
+  renderChart(a.days);
+  renderDayTable(a.days);
+}
+
+function setDecision(line, action, date) {
+  var f = activeFile();
+  if (!f) return;
+  f.decisions[line] = { action: action, date: date };
+  reanalyze(f);
+  renderStep4();
+}
+
+function renderChart(days) {
+  var box = $("chartbox");
+  clear(box);
+  if (!days.length) { box.appendChild(msg("info", "Ei päiviä piirrettäväksi.")); return; }
+
+  var W = 960, H = 220, padL = 42, padR = 8, padT = 10, padB = 24;
+  var iw = W - padL - padR, ih = H - padT - padB;
+  var max = 0;
+  for (var i = 0; i < days.length; i++) max = Math.max(max, days[i].total);
+  if (max <= 0) max = 1;
+  var bw = iw / days.length;
+
+  var NS = "http://www.w3.org/2000/svg";
+  var svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  svg.setAttribute("class", "chart");
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label",
+    "Pylväskaavio päivittäisistä kävijämääristä " + formatFi(days[0].date) + " ... " +
+    formatFi(days[days.length - 1].date) + ", suurin päiväarvo " + max + ".");
+
+  function svgEl(tag, attrs) {
+    var n = document.createElementNS(NS, tag);
+    for (var k in attrs) if (attrs.hasOwnProperty(k)) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+
+  var ticks = 4;
+  for (var g = 0; g <= ticks; g++) {
+    var val = Math.round(max * g / ticks);
+    var y = padT + ih - (ih * g / ticks);
+    svg.appendChild(svgEl("line", { x1: padL, y1: y, x2: W - padR, y2: y, class: "grid" }));
+    var tx = svgEl("text", { x: padL - 5, y: y + 3, "text-anchor": "end" });
+    tx.textContent = fmtInt(val);
+    svg.appendChild(tx);
+  }
+
+  for (var d = 0; d < days.length; d++) {
+    var day = days[d];
+    var x = padL + d * bw;
+    var w = Math.max(0.6, bw - (bw > 3 ? 0.6 : 0));
+    var ht = ih * day.tickets / max;
+    var hg = ih * day.groups / max;
+    if (hg > 0) svg.appendChild(svgEl("rect", { x: x, y: padT + ih - hg, width: w, height: hg, class: "bar-g" }));
+    if (ht > 0) svg.appendChild(svgEl("rect", { x: x, y: padT + ih - hg - ht, width: w, height: ht, class: "bar-t" }));
+    var title = document.createElementNS(NS, "title");
+    title.textContent = formatFi(day.date) + ": yksittäiset " + day.tickets + ", ryhmät " + day.groups + ", yhteensä " + day.total;
+    var hit = svgEl("rect", { x: x, y: padT, width: w, height: ih, fill: "transparent" });
+    hit.appendChild(title);
+    svg.appendChild(hit);
+  }
+
+  var labelEvery = Math.max(1, Math.ceil(days.length / 12));
+  for (var L = 0; L < days.length; L += labelEvery) {
+    var lt = svgEl("text", { x: padL + L * bw + bw / 2, y: H - 8, "text-anchor": "middle" });
+    lt.textContent = formatFi(days[L].date).replace(/\.\d{4}$/, ".");
+    svg.appendChild(lt);
+  }
+
+  box.appendChild(svg);
+  box.appendChild(el("div", { class: "legend" }, [
+    el("span", null, [el("span", { class: "swatch", style: "background:var(--accent)", "aria-hidden": "true" }), "Yksittäiskävijät (TICKETS)"]),
+    el("span", null, [el("span", { class: "swatch", style: "background:var(--border-strong)", "aria-hidden": "true" }), "Ryhmäkävijät (GROUPS)"]),
+    el("span", { text: "Pylvään korkeus on TOTAL. Osoittamalla saat päivän tarkat luvut." })
+  ]));
+}
+
+function renderDayTable(days) {
+  var tbl = $("daytable");
+  clear(tbl.tHead); clear(tbl.tBodies[0]);
+  tbl.tHead.appendChild(el("tr", null, [
+    el("th", { scope: "col", text: "DATE" }),
+    el("th", { scope: "col", class: "num", text: "TICKETS" }),
+    el("th", { scope: "col", class: "num", text: "GROUPS" }),
+    el("th", { scope: "col", class: "num", text: "TOTAL" }),
+    el("th", { scope: "col", text: "Huomio" }),
+    el("th", { scope: "col", class: "num", text: "Lähderivi" })
+  ]));
+  for (var i = 0; i < days.length; i++) {
+    var d = days[i];
+    var note = d.total === 0 ? (d.closed ? "kiinni (Suljettu)" : "auki, ei kävijöitä") : "";
+    tbl.tBodies[0].appendChild(el("tr", null, [
+      el("td", { text: formatFi(d.date) }),
+      el("td", { class: "num", text: String(d.tickets) }),
+      el("td", { class: "num", text: String(d.groups) }),
+      el("td", { class: "num", text: String(d.total) }),
+      el("td", { text: note }),
+      el("td", { class: "num", text: d.lines.join(", ") })
+    ]));
+  }
+}
+
+/* ---------------------------------------------------------------- step 5 */
+
+function renderStep5() {
+  var mv = $("mergevenue");
+  clear(mv);
+  var ids = venuesWithData();
+  if (!ids.length) ids = VENUES.map(function (v) { return v.id; });
+  for (var i = 0; i < ids.length; i++) {
+    mv.appendChild(el("option", { value: String(ids[i]), text: ids[i] + ": " + venueName(ids[i]) }));
+  }
+  if (ids.indexOf(state.mergeVenue) === -1) state.mergeVenue = ids[0];
+  mv.value = String(state.mergeVenue);
+  $("mode-merge").checked = state.mergeMode === "merge";
+  $("mode-replace").checked = state.mergeMode === "replace";
+
+  var st = $("mergestatus");
+  clear(st);
+  var ex = state.existing[state.mergeVenue];
+  if (ex) {
+    st.appendChild(msg("ok", "Vertailutiedosto " + ex.name + ": " + ex.days.length + " päivää, " +
+      (ex.days.length ? formatFi(ex.days[0].date) + " ... " + formatFi(ex.days[ex.days.length - 1].date) : "")));
+    if (ex.errors && ex.errors.length) {
+      st.appendChild(msg("warn", "Vertailutiedostossa huomioitavaa: " + ex.errors.slice(0, 5).join(" ")));
+    }
+  } else {
+    st.appendChild(msg("info", "Ei vertailutiedostoa venuelle " + venueName(state.mergeVenue) +
+      ". Lataa repossa oleva data/raw/tickets/venue_" + state.mergeVenue + "/tickets-venue-" +
+      state.mergeVenue + ".csv, niin näet erotuksen."));
+  }
+
+  renderDiff();
+}
+
+function renderDiff() {
+  var box = $("diffbox");
+  clear(box);
+  var ids = venuesWithData();
+  if (!ids.length) { box.appendChild(msg("warn", "Ei jäsennettyä dataa yhdellekään venuelle.")); return; }
+
+  for (var i = 0; i < ids.length; i++) {
+    var id = ids[i];
+    var fin = finalDays(id);
+    var h = el("h4", { text: "Venue " + id + ": " + venueName(id) });
+    h.style.margin = "1rem 0 .35rem";
+    box.appendChild(h);
+
+    if (!fin.diff) {
+      box.appendChild(msg("info", "Ei vertailutiedostoa. Tulos on " + fin.days.length + " päivää."));
+      continue;
+    }
+    var d = fin.diff;
+    var cards = el("div", { class: "cards" });
+    card(cards, "Lisättyjä päiviä", fmtInt(d.added.length));
+    card(cards, "Muuttuneita päiviä", fmtInt(d.changed.length));
+    card(cards, "Poistuneita päiviä", fmtInt(d.removed.length));
+    card(cards, "Ennallaan", fmtInt(d.unchanged));
+    card(cards, "Tulos yhteensä", fmtInt(d.days.length) + " pv", true);
+    box.appendChild(cards);
+
+    if (!d.added.length && !d.changed.length && !d.removed.length) {
+      box.appendChild(msg("ok",
+        "Erotus on tyhjä. Repon tiedosto vastaa täsmälleen tästä lähteestä laskettua tulosta. " +
+        "Tyhjä erotus on onnistumisen merkki, ei virhe."));
+    } else {
+      box.appendChild(diffTable(d));
+    }
+  }
+}
+
+function diffTable(d) {
+  var wrap = el("div", { class: "tablewrap", style: "max-height:20rem;overflow-y:auto" });
+  var tbl = el("table");
+  var thead = el("thead", null, [el("tr", null, [
+    el("th", { scope: "col", text: "Muutos" }),
+    el("th", { scope: "col", text: "DATE" }),
+    el("th", { scope: "col", class: "num", text: "TICKETS" }),
+    el("th", { scope: "col", class: "num", text: "GROUPS" }),
+    el("th", { scope: "col", class: "num", text: "TOTAL" })
+  ])]);
+  var tbody = el("tbody");
+  var i;
+  for (i = 0; i < d.added.length; i++) {
+    var a = d.added[i];
+    tbody.appendChild(el("tr", null, [
+      el("td", { text: "+ lisätty" }),
+      el("td", { text: formatFi(a.date) }),
+      el("td", { class: "num", text: String(a.tickets) }),
+      el("td", { class: "num", text: String(a.groups) }),
+      el("td", { class: "num", text: String(a.total) })
+    ]));
+  }
+  for (i = 0; i < d.changed.length; i++) {
+    var c = d.changed[i];
+    tbody.appendChild(el("tr", null, [
+      el("td", { text: "~ muuttunut" }),
+      el("td", { text: formatFi(c.date) }),
+      el("td", { class: "num", text: c.from.tickets + " → " + c.to.tickets }),
+      el("td", { class: "num", text: c.from.groups + " → " + c.to.groups }),
+      el("td", { class: "num", text: c.from.total + " → " + c.to.total + " (" + fmtSigned(c.to.total - c.from.total) + ")" })
+    ]));
+  }
+  for (i = 0; i < d.removed.length; i++) {
+    var r = d.removed[i];
+    tbody.appendChild(el("tr", null, [
+      el("td", { text: "− poistunut" }),
+      el("td", { text: formatFi(r.date) }),
+      el("td", { class: "num", text: String(r.tickets) }),
+      el("td", { class: "num", text: String(r.groups) }),
+      el("td", { class: "num", text: String(r.total) })
+    ]));
+  }
+  tbl.appendChild(thead); tbl.appendChild(tbody);
+  wrap.appendChild(tbl);
+  return wrap;
+}
+
+/* ---------------------------------------------------------------- step 6 */
+
+function download(filename, text) {
+  var blob = new Blob([text], { type: "text/csv;charset=utf-8" });
+  var url = URL.createObjectURL(blob);
+  var a = el("a", { href: url, download: filename });
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  window.setTimeout(function () {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 1500);
+}
+
+function copyText(text, done) {
+  function fallback() {
+    var ta = el("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    done(ok);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+  } else fallback();
+}
+
+function renderStep6() {
+  var box = $("exportbox");
+  clear(box);
+  var ids = venuesWithData();
+  if (!ids.length) { box.appendChild(msg("warn", "Ei vietävää dataa.")); return; }
+
+  var perVenue = {};
+  for (var i = 0; i < ids.length; i++) {
+    (function (id) {
+      var fin = finalDays(id);
+      perVenue[id] = fin.days;
+      var text = toTicketsCsv(fin.days);
+      var fname = "tickets-venue-" + id + ".csv";
+      var target = "data/raw/tickets/venue_" + id + "/tickets-venue-" + id + ".csv";
+
+      var sumT = 0, sumG = 0;
+      for (var k = 0; k < fin.days.length; k++) { sumT += fin.days[k].tickets; sumG += fin.days[k].groups; }
+
+      var sec = el("div", { class: "card", style: "margin-bottom:.75rem" }, [
+        el("h3", { text: "Venue " + id + ": " + venueName(id) }),
+        el("p", { class: "hint", text:
+          fin.days.length + " päivää" +
+          (fin.days.length ? ", " + formatFi(fin.days[0].date) + " ... " + formatFi(fin.days[fin.days.length - 1].date) : "") +
+          ". Yksittäiskävijät " + fmtInt(sumT) + ", ryhmäkävijät " + fmtInt(sumG) +
+          ", yhteensä " + fmtInt(sumT + sumG) + "." }),
+        el("p", null, ["Kohdepolku: ", el("span", { class: "pathbox", text: target })]),
+        el("div", { class: "btnrow" }, [
+          el("button", {
+            type: "button", class: "primary",
+            onclick: function () { download(fname, text); },
+            text: "Lataa " + fname
+          }),
+          el("button", {
+            type: "button",
+            onclick: function (ev) { copyFeedback(ev.currentTarget, text, "Kopioi leikepöydälle"); },
+            text: "Kopioi leikepöydälle"
+          })
+        ])
+      ]);
+      box.appendChild(sec);
+    })(ids[i]);
+  }
+
+  var daily = toDailyCsv(perVenue);
+  var rowCount = daily.split("\n").length - 2;
+  box.appendChild(el("div", { class: "card" }, [
+    el("h3", { text: "Yhdistetty tickets_daily.csv, normalisoitu muoto" }),
+    el("p", { class: "hint", text:
+      "Sarakkeet venue_id, date, tickets_sold, groups_sold, tickets_total. Päivämäärä ISO-muodossa. " +
+      rowCount + " riviä. Tämä on tarkistusta varten, ingest tuottaa saman tiedoston itse." }),
+    el("div", { class: "btnrow" }, [
+      el("button", {
+        type: "button", class: "primary",
+        onclick: function () { download("tickets_daily.csv", daily); },
+        text: "Lataa tickets_daily.csv"
+      }),
+      el("button", {
+        type: "button",
+        onclick: function (ev) { copyFeedback(ev.currentTarget, daily, "Kopioi leikepöydälle"); },
+        text: "Kopioi leikepöydälle"
+      })
+    ])
+  ]));
+
+  var ns = $("nextsteps");
+  clear(ns);
+  var steps = [
+    "Lataa venuekohtaiset tiedostot yllä olevista painikkeista.",
+    "Kopioi jokainen tiedosto sen omaan kohdepolkuun repossa, esimerkiksi data/raw/tickets/venue_1/tickets-venue-1.csv. Polut on määritelty tiedostossa config/venues.json kentässä tickets_path.",
+    "Tarkista muutos komennolla git diff data/raw/tickets ennen kuin viet sen eteenpäin.",
+    "Aja ingest komennolla python -m ovf_ingest run. Se tuottaa tiedoston data/processed/tickets_daily.csv.",
+    "Yllä ladattavan tickets_daily.csv:n voi verrata ingestin tuotokseen, jos haluat varmistaa että normalisointi menee odotetusti."
+  ];
+  for (var s = 0; s < steps.length; s++) ns.appendChild(el("li", { text: steps[s] }));
+  ns.appendChild(el("li", null, [
+    "Ajokomento: ", el("code", { text: "python -m ovf_ingest run" })
+  ]));
+}
+
+function copyFeedback(btn, text, label) {
+  copyText(text, function (ok) {
+    btn.textContent = ok ? "Kopioitu ✓" : "Kopiointi ei onnistunut";
+    window.setTimeout(function () { btn.textContent = label; }, 2500);
+  });
+}
+
+/* ---------------------------------------------------------------- wiring */
+
+function wire() {
+  $("pickbtn").addEventListener("click", function () { $("fileinput").click(); });
+  $("fileinput").addEventListener("change", function (e) {
+    readFiles(e.target.files);
+    e.target.value = "";
+  });
+
+  var dz = $("dropzone");
+  ["dragenter", "dragover"].forEach(function (t) {
+    dz.addEventListener(t, function (e) { e.preventDefault(); dz.classList.add("over"); });
+  });
+  ["dragleave", "drop"].forEach(function (t) {
+    dz.addEventListener(t, function (e) { e.preventDefault(); dz.classList.remove("over"); });
+  });
+  dz.addEventListener("drop", function (e) {
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) readFiles(e.dataTransfer.files);
+  });
+  window.addEventListener("dragover", function (e) { e.preventDefault(); });
+  window.addEventListener("drop", function (e) { e.preventDefault(); });
+
+  document.addEventListener("paste", function (e) {
+    if (state.step !== 1) return;
+    var target = e.target;
+    if (target && (target.tagName === "TEXTAREA" || target.tagName === "INPUT")) return;
+    var text = e.clipboardData && e.clipboardData.getData("text/plain");
+    if (!text || text.indexOf("\n") === -1) return;
+    e.preventDefault();
+    if (addFile("leikepöydältä liitetty", text)) goto(2);
+  });
+
+  $("pastebtn").addEventListener("click", function () {
+    var text = $("pastebox").value;
+    if (!text.trim()) { showGlobal("warn", "Liitä ensin CSV-sisältö tekstikenttään."); return; }
+    if (addFile("liitetty sisältö", text)) goto(2);
+  });
+
+  $("prevpage").addEventListener("click", function () {
+    state.previewStart = Math.max(0, state.previewStart - PREVIEW_SIZE);
+    renderPreviewTable();
+  });
+  $("nextpage").addEventListener("click", function () {
+    state.previewStart += PREVIEW_SIZE;
+    renderPreviewTable();
+  });
+
+  var mapInputs = [
+    ["datecol", function (f, v) { f.mapping.dateCol = +v; }],
+    ["labelcol", function (f, v) { f.mapping.labelCol = +v; }],
+    ["crosscol", function (f, v) { f.mapping.crossCol = +v; }],
+    ["datefmt", function (f, v) { f.mapping.dateFormat = v; }],
+    ["venuesel", function (f, v) { f.mapping.venueId = +v; }]
+  ];
+  mapInputs.forEach(function (pair) {
+    $(pair[0]).addEventListener("change", function (e) {
+      var f = activeFile();
+      if (!f) return;
+      pair[1](f, e.target.value);
+      if (pair[0] !== "venuesel") f.mapping.profileId = "";
+      reanalyze(f);
+      renderStep3();
+    });
+  });
+
+  $("includefuture").addEventListener("change", function (e) {
+    var f = activeFile(); if (!f) return;
+    f.mapping.includeFuture = e.target.checked;
+    reanalyze(f); renderStep3();
+  });
+  $("keeptail").addEventListener("change", function (e) {
+    var f = activeFile(); if (!f) return;
+    f.mapping.keepTail = e.target.checked;
+    reanalyze(f); renderStep3();
+  });
+  $("cutoff").addEventListener("change", function (e) {
+    var v = e.target.value;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) { e.target.value = state.cutoff; return; }
+    state.cutoff = v;
+    for (var i = 0; i < state.files.length; i++) reanalyze(state.files[i]);
+    renderStep3();
+  });
+
+  $("profilesel").addEventListener("change", function (e) {
+    var f = activeFile(); if (!f) return;
+    var p = profileById(e.target.value);
+    if (p) f.mapping = cloneMapping(p);
+    else f.mapping.profileId = "";
+    reanalyze(f);
+    renderStep3();
+  });
+
+  $("saveprofile").addEventListener("click", function () {
+    var f = activeFile(); if (!f) return;
+    var name = window.prompt("Profiilin nimi", "Oma kartoitus " + new Date().toISOString().slice(0, 10));
+    if (!name) return;
+    var id = "custom-" + Date.now();
+    var p = {
+      id: id, name: name, builtin: false,
+      venueId: f.mapping.venueId, labelCol: f.mapping.labelCol,
+      dateCol: f.mapping.dateCol, dateFormat: f.mapping.dateFormat,
+      ticketCols: f.mapping.ticketCols.slice(), groupCols: f.mapping.groupCols.slice(),
+      crossCol: f.mapping.crossCol, expect: null, signature: []
+    };
+    var custom = customProfiles(state.profiles).concat([p]);
+    var ok = saveCustomProfiles(custom);
+    state.profiles = BUILTIN_PROFILES.concat(custom);
+    f.mapping.profileId = id;
+    renderStep3();
+    showGlobal(ok ? "ok" : "warn", ok
+      ? "Profiili tallennettiin tähän selaimeen."
+      : "Profiili on käytössä tässä istunnossa, mutta sitä ei voitu tallentaa: selain ei salli localStoragea.");
+  });
+
+  $("delprofile").addEventListener("click", function () {
+    var f = activeFile(); if (!f) return;
+    var p = profileById(f.mapping.profileId);
+    if (!p || p.builtin) return;
+    var custom = customProfiles(state.profiles).filter(function (x) { return x.id !== p.id; });
+    saveCustomProfiles(custom);
+    state.profiles = BUILTIN_PROFILES.concat(custom);
+    f.mapping.profileId = "";
+    renderStep3();
+  });
+
+  var modeChange = function (e) { state.mergeMode = e.target.value; renderStep5(); };
+  $("mode-merge").addEventListener("change", modeChange);
+  $("mode-replace").addEventListener("change", modeChange);
+  $("mergevenue").addEventListener("change", function (e) { state.mergeVenue = +e.target.value; renderStep5(); });
+  $("mergepick").addEventListener("click", function () { $("mergefile").click(); });
+  $("mergefile").addEventListener("change", function (e) {
+    var file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      var dec = decodeBytes(new Uint8Array(reader.result));
+      useExisting(file.name, dec.text);
+    };
+    reader.readAsArrayBuffer(file);
+  });
+  $("mergepastebtn").addEventListener("click", function () {
+    var t = $("mergepaste").value;
+    if (!t.trim()) { showGlobal("warn", "Liitä ensin nykyisen tickets-tiedoston sisältö."); return; }
+    useExisting("liitetty sisältö", t);
+  });
+  $("mergeclear").addEventListener("click", function () {
+    delete state.existing[state.mergeVenue];
+    renderStep5();
+  });
+
+  var gotos = document.querySelectorAll("[data-goto]");
+  for (var i = 0; i < gotos.length; i++) {
+    (function (b) {
+      b.addEventListener("click", function () { goto(+b.getAttribute("data-goto")); });
+    })(gotos[i]);
+  }
+}
+
+function useExisting(name, text) {
+  var parsed = parseTicketsCsv(text);
+  if (!parsed.days.length) {
+    showGlobal("err", "Tiedostosta ei löytynyt yhtään päivää. Odotettu otsikkorivi on DATE,TICKETS,GROUPS,TOTAL.");
+    return;
+  }
+  state.existing[state.mergeVenue] = { name: name, days: parsed.days, errors: parsed.errors };
+  renderStep5();
+}
+
+/* ---------------------------------------------------------------- boot */
+
+function boot() {
+  state.profiles = loadProfiles();
+  wire();
+  if (/[?&]selftest=1(&|$)/.test(window.location.search)) {
+    runSelfTests();
+    return;
+  }
+  render();
+}
+
+/* ================================================================= tests === */
+
+var TESTS = [];
+function test(group, name, fn) { TESTS.push({ group: group, name: name, fn: fn }); }
+
+function eq(actual, expected, what) {
+  var a = JSON.stringify(actual), b = JSON.stringify(expected);
+  if (a !== b) throw new Error((what ? what + ": " : "") + "odotettiin " + b + ", saatiin " + a);
+}
+function ok(cond, what) { if (!cond) throw new Error(what || "ehto ei toteutunut"); }
+
+function mkFile(headerLine, dataLines, delim) {
+  var d = delim || ";";
+  var rows = parseCSV(headerLine + "\n" + dataLines.join("\n") + "\n", d);
+  return { name: "test", headers: rows[0], rows: rows.slice(1) };
+}
+
+/* ---- CSV-jäsennys ---- */
+
+test("CSV", "peruskentät ja LF", function () {
+  eq(parseCSV("a;b;c\n1;2;3\n", ";"), [["a", "b", "c"], ["1", "2", "3"]]);
+});
+
+test("CSV", "lainausmerkeissä oleva erotin", function () {
+  eq(parseCSV('a;b\n"x;y";2\n', ";"), [["a", "b"], ["x;y", "2"]]);
+});
+
+test("CSV", "kaksinkertaistettu lainausmerkki", function () {
+  eq(parseCSV('a\n"hän sanoi ""hei"""\n', ";"), [["a"], ['hän sanoi "hei"']]);
+});
+
+test("CSV", "upotettu rivinvaihto kentän sisällä", function () {
+  eq(parseCSV('a;b\n"rivi1\nrivi2";2\n', ";"), [["a", "b"], ["rivi1\nrivi2", "2"]]);
+});
+
+test("CSV", "CRLF-rivinvaihdot", function () {
+  eq(parseCSV("a;b\r\n1;2\r\n", ";"), [["a", "b"], ["1", "2"]]);
+});
+
+test("CSV", "tyhjät rivit ohitetaan", function () {
+  eq(parseCSV("a;b\n\n1;2\n\n\n", ";"), [["a", "b"], ["1", "2"]]);
+});
+
+test("CSV", "vajaat rivit säilyvät, eivät kaada jäsennystä", function () {
+  var rows = parseCSV("a;b;c\n1;2\n1;2;3;4\n", ";");
+  eq(rows.length, 3);
+  eq(rows[1], ["1", "2"]);
+  eq(rows[2], ["1", "2", "3", "4"]);
+});
+
+test("CSV", "BOM poistetaan dekoodauksessa", function () {
+  var bytes = new Uint8Array([0xEF, 0xBB, 0xBF, 0x61, 0x3B, 0x62, 0x0A]);
+  var dec = decodeBytes(bytes);
+  eq(dec.text, "a;b\n");
+  eq(dec.encoding, "utf-8");
+  eq(parseCSV(dec.text, ";"), [["a", "b"]]);
+});
+
+test("CSV", "50 000 riviä jäsentyy alle sekunnissa", function () {
+  var parts = ["pvm;a;b;c"];
+  for (var i = 0; i < 50000; i++) parts.push("1.1.2026;12;34;46");
+  var text = parts.join("\n") + "\n";
+  var t0 = (window.performance && performance.now) ? performance.now() : Date.now();
+  var rows = parseCSV(text, ";");
+  var t1 = (window.performance && performance.now) ? performance.now() : Date.now();
+  eq(rows.length, 50001);
+  ok(t1 - t0 < 1000, "jäsennys kesti " + Math.round(t1 - t0) + " ms, raja on 1000 ms");
+  return Math.round(t1 - t0) + " ms";
+});
+
+/* ---- merkistö ---- */
+
+test("Merkistö", "windows-1252 dekoodaa ä, ö ja å oikein", function () {
+  /* "Päivämäärä ä ö å" cp1252-tavuina */
+  var bytes = new Uint8Array([0x50, 0xE4, 0x69, 0x76, 0xE4, 0x6D, 0xE4, 0xE4, 0x72, 0xE4,
+                              0x20, 0xE4, 0x20, 0xF6, 0x20, 0xE5]);
+  var dec = decodeBytes(bytes);
+  eq(dec.encoding, "windows-1252");
+  eq(dec.text, "Päivämäärä ä ö å");
+});
+
+test("Merkistö", "oma cp1252-varapurkaja tuottaa saman tuloksen", function () {
+  var bytes = new Uint8Array([0x59, 0x6C, 0x65, 0x69, 0x73, 0xF6, 0xE4, 0x2C, 0x20, 0x52, 0x79, 0x68, 0x6D, 0xE4, 0x74]);
+  eq(decodeCp1252(bytes), "Yleisöä, Ryhmät");
+});
+
+test("Merkistö", "kelvollinen UTF-8 tunnistetaan UTF-8:ksi", function () {
+  var bytes = new Uint8Array([0x50, 0xC3, 0xA4, 0x69, 0x76, 0xC3, 0xA4]);
+  var dec = decodeBytes(bytes);
+  eq(dec.encoding, "utf-8");
+  eq(dec.text, "Päivä");
+});
+
+test("Merkistö", "cp1252-tavut eivät jää UTF-8-tulkintaan", function () {
+  var bytes = new Uint8Array([0x52, 0x79, 0x68, 0x6D, 0xE4, 0x74]);
+  eq(decodeBytes(bytes).text, "Ryhmät");
+});
+
+/* ---- tunnistus ---- */
+
+var HDR_A = ";Päivämäärä;Yleisöä;Ryhmät;Yhteensä;;;;;;;;;;";
+var HDR_B = ";Päivämäärä;Varaus;Verkkokauppa tilastot;Ovelta;Ktalon puh tilasto;Ryhmät ;KUTOSET;Ktalon vieraat;Yhteensä;Lisätietoa;;;";
+
+test("Tunnistus", "erotin tunnistuu Pekurin otsikkorivistä", function () {
+  eq(detectDelimiter(HDR_A + "\nKeskiviikko;14.1.2026;16;370;386;;;;;;;;;;\n"), ";");
+});
+
+test("Tunnistus", "erotin tunnistuu Kaupungintalon otsikkorivistä", function () {
+  eq(detectDelimiter(HDR_B + "\nTiistai;13.1.2026;100;;;;;;;100;;;;\n"), ";");
+});
+
+test("Tunnistus", "pilkkuerotin tunnistuu", function () {
+  eq(detectDelimiter("DATE,TICKETS,GROUPS,TOTAL\n14.1.2026,16,370,386\n"), ",");
+});
+
+test("Tunnistus", "sarkainerotin tunnistuu", function () {
+  eq(detectDelimiter("a\tb\tc\n1\t2\t3\n"), "\t");
+});
+
+test("Tunnistus", "profiili A tunnistuu otsikosta Yleisöä", function () {
+  var p = detectProfile(parseCSV(HDR_A + "\n", ";")[0]);
+  ok(p && p.id === "pekuri", "odotettiin profiilia pekuri");
+  eq(p.venueId, 1);
+  eq(p.ticketCols, [2]);
+  eq(p.groupCols, [3]);
+});
+
+test("Tunnistus", "profiili B tunnistuu otsikoista Verkkokauppa tilastot ja KUTOSET", function () {
+  var p = detectProfile(parseCSV(HDR_B + "\n", ";")[0]);
+  ok(p && p.id === "kaupungintalo", "odotettiin profiilia kaupungintalo");
+  eq(p.venueId, 2);
+  eq(p.ticketCols, [2, 3, 4, 5]);
+  eq(p.groupCols, [6, 7, 8]);
+});
+
+test("Tunnistus", "otsikkovarmistus hyväksyy Ryhmät-sarakkeen perässä olevan välilyönnin", function () {
+  var headers = parseCSV(HDR_B + "\n", ";")[0];
+  eq(headers[6], "Ryhmät ");
+  eq(normHeader(headers[6]), "ryhmät");
+  eq(verifyHeaders(BUILTIN_PROFILES[1], headers), []);
+});
+
+test("Tunnistus", "otsikkovarmistus huomaa väärän sarakkeen", function () {
+  var headers = parseCSV(";Päivämäärä;Jotain muuta;Ryhmät;Yhteensä\n", ";")[0];
+  var issues = verifyHeaders(BUILTIN_PROFILES[0], headers);
+  eq(issues.length, 1);
+  eq(issues[0].index, 2);
+});
+
+test("Tunnistus", "tuntematon otsikkorivi ei tunnista profiilia", function () {
+  eq(detectProfile(["date", "value"]), null);
+});
+
+/* ---- päivämäärät ---- */
+
+test("Päivämäärä", "d.m.yyyy ilman etunollia", function () { eq(parseDate("14.1.2026", "dmy"), "2026-01-14"); });
+test("Päivämäärä", "dd.mm.yyyy etunollilla", function () { eq(parseDate("04.09.2026", "dmy"), "2026-09-04"); });
+test("Päivämäärä", "dd.mm.yyyy tiukka muoto hylkää etunollattoman", function () {
+  eq(parseDate("4.9.2026", "dmy2"), null);
+  eq(parseDate("04.09.2026", "dmy2"), "2026-09-04");
+});
+test("Päivämäärä", "yyyy-mm-dd", function () { eq(parseDate("2026-08-23", "ymd"), "2026-08-23"); });
+test("Päivämäärä", "ISO-aikaleima", function () {
+  eq(parseDate("2026-08-23T14:05:00Z", "isots"), "2026-08-23");
+  eq(parseDate("2026-08-23 14:05", "isots"), "2026-08-23");
+});
+test("Päivämäärä", "Excelin sarjanumero", function () {
+  eq(parseDate("46036", "excel"), "2026-01-14");
+  eq(parseDate("46000", "excel"), "2025-12-09");
+});
+test("Päivämäärä", "automaattitunnistus kattaa kaikki muodot", function () {
+  eq(parseDate("14.1.2026", "auto"), "2026-01-14");
+  eq(parseDate("2026-01-14", "auto"), "2026-01-14");
+  eq(parseDate("2026-01-14T09:00:00", "auto"), "2026-01-14");
+  eq(parseDate("46036", "auto"), "2026-01-14");
+});
+test("Päivämäärä", "virheelliset syötteet hylätään", function () {
+  eq(parseDate("", "auto"), null);
+  eq(parseDate("Helmikuu", "auto"), null);
+  eq(parseDate("Yhteensä", "auto"), null);
+  eq(parseDate("32.1.2026", "auto"), null);
+  eq(parseDate("29.2.2026", "auto"), null);
+  eq(parseDate("14.13.2026", "auto"), null);
+  eq(parseDate("14.1.26", "dmy"), null);
+});
+test("Päivämäärä", "karkausvuosi hyväksytään", function () { eq(parseDate("29.2.2024", "dmy"), "2024-02-29"); });
+test("Päivämäärä", "vientimuoto on etunollaton", function () {
+  eq(formatFi("2026-01-14"), "14.1.2026");
+  eq(formatFi("2026-09-04"), "4.9.2026");
+  eq(formatFi("2026-12-31"), "31.12.2026");
+});
+test("Päivämäärä", "viikonpäivän nimi lasketaan oikein", function () {
+  eq(weekdayNameFi("2026-07-25"), "Lauantai");
+  eq(weekdayNameFi("2026-06-25"), "Torstai");
+});
+
+/* ---- lukuarvot ---- */
+
+test("Luku", "kokonaisluku ja tyhjä", function () {
+  eq(parseNumber("42").value, 42);
+  eq(parseNumber("42").kind, "number");
+  eq(parseNumber("").kind, "empty");
+  eq(parseNumber("   ").kind, "empty");
+});
+test("Luku", "pilkkudesimaali", function () { eq(parseNumber("1,5").value, 1.5); });
+test("Luku", "tuhaterotin välilyönnillä ja sitkeällä välilyönnillä", function () {
+  eq(parseNumber("15 510").value, 15510);
+  eq(parseNumber("16\u00A0463").value, 16463);
+  eq(parseNumber("2\u202F112").value, 2112);
+});
+test("Luku", "tekstiarvo tunnistetaan tekstiksi", function () {
+  eq(parseNumber("Suljettu").kind, "text");
+  eq(parseNumber("suljettu").kind, "text");
+  eq(parseNumber("ei löytynyt?").kind, "text");
+  eq(parseNumber("#ARVO!").kind, "text");
+  eq(parseNumber("Suljettu").value, 0);
+});
+test("Luku", "negatiivinen luku jäsentyy", function () { eq(parseNumber("-5").value, -5); });
+
+/* ---- analyysi ---- */
+
+function analyzeA(lines, over) {
+  var f = mkFile(HDR_A, lines, ";");
+  var m = cloneMapping(BUILTIN_PROFILES[0]);
+  if (over) for (var k in over) if (over.hasOwnProperty(k)) m[k] = over[k];
+  return analyze(f, m, {}, "2026-08-24");
+}
+function analyzeB(lines, over, decisions) {
+  var f = mkFile(HDR_B, lines, ";");
+  var m = cloneMapping(BUILTIN_PROFILES[1]);
+  if (over) for (var k in over) if (over.hasOwnProperty(k)) m[k] = over[k];
+  return analyze(f, m, decisions || {}, "2026-08-24");
+}
+function warnKinds(a) { return a.warnings.map(function (w) { return w.kind; }); }
+
+test("Analyysi", "profiili A: yksi sarake TICKETS, yksi GROUPS", function () {
+  var a = analyzeA(["Keskiviikko;14.1.2026;16;370;386;;;;;;;;;;"]);
+  eq(a.days.length, 1);
+  eq(a.days[0], { date: "2026-01-14", tickets: 16, groups: 370, total: 386, lines: [2], closed: false, blank: false });
+});
+
+test("Analyysi", "profiili B: neljän sarakkeen TICKETS ja kolmen GROUPS summautuvat", function () {
+  var a = analyzeB(["Tiistai;27.1.2026;;72;;9;24;;140;245;;;;"]);
+  eq(a.days.length, 1);
+  eq(a.days[0].tickets, 81);
+  eq(a.days[0].groups, 164);
+  eq(a.days[0].total, 245);
+});
+
+test("Analyysi", "TOTAL on aina TICKETS + GROUPS, ei lähteen Yhteensä", function () {
+  var a = analyzeA(["Lauantai;30.5.2026;35;;2251;;;;408;423;;;;;"]);
+  eq(a.days[0].total, 35);
+  ok(warnKinds(a).indexOf("cross") !== -1, "ristiintarkistuksen varoitus puuttuu");
+});
+
+test("Analyysi", "ristiintarkistuksen poikkeama havaitaan ja erotus näytetään", function () {
+  var a = analyzeB(["Maanantai;15.6.2026;;;;;;;;475;;;;", "Tiistai;16.6.2026;;34;;34;33;;;101;;;;"]);
+  var w = a.warnings.filter(function (x) { return x.kind === "cross"; });
+  eq(w.length, 1);
+  ok(w[0].text.indexOf("475") !== -1 && w[0].text.indexOf("erotus") !== -1, "erotusta ei mainita");
+  eq(a.days[0].total, 0);
+});
+
+test("Analyysi", "roskarivit ohitetaan: Helmikuu, Maaliskuu, Yhteensä, tyhjä", function () {
+  var a = analyzeB([
+    "Lauantai;31.1.2026;;132;;27;;;;159;;;;",
+    ";Yhteensä;247;1488;;346;460;;140;2681;;;;",
+    ";;;;;;;;;;;;;",
+    ";Helmikuu;;;;;;;;;;;;",
+    "Sunnuntai;1.2.2026;;47;;;30;;;77;;;;",
+    ";Maaliskuu;;;;;;;;;;;;",
+    "Sunnuntai;1.3.2026;;27;;21;7;0;;55;;;;"
+  ]);
+  eq(a.days.length, 3);
+  eq(a.skipped.length, 4);
+  eq(a.skipByReason.nodate.length, 4);
+  eq(a.skipped.map(function (s) { return s.line; }), [3, 4, 5, 7]);
+});
+
+test("Analyysi", "tekstiarvo numerosarakkeessa tulkitaan nollaksi ja varoittaa", function () {
+  var a = analyzeB([
+    "Torstai;12.2.2026;;26;;;20;;1;47;;;;",
+    "Perjantai;13.2.2026;Suljettu;;;;;;;0;;;;",
+    "Lauantai;14.2.2026;;87;;;30;;;117;;;;"
+  ]);
+  var w = a.warnings.filter(function (x) { return x.kind === "text"; });
+  eq(w.length, 1);
+  eq(w[0].line, 3);
+  ok(w[0].text.indexOf('"Suljettu"') !== -1, "alkuperäistä tekstiä ei näytetä");
+  eq(a.days[1].total, 0);
+  eq(a.days[1].closed, true);
+});
+
+test("Analyysi", "nollapäivä kirjataan nollana, kiinni ja auki erotellaan", function () {
+  var a = analyzeB([
+    "Perjantai;13.2.2026;Suljettu;;;;;;;0;;;;",
+    "Lauantai;14.2.2026;;;;;;;;0;;;;",
+    "Sunnuntai;15.2.2026;;27;;2;;;;29;;;;"
+  ]);
+  eq(a.days.length, 3);
+  eq(a.summary.zeroDays, 2);
+  eq(a.summary.closedDays, 1);
+  eq(a.summary.openNoVisitors, 1);
+});
+
+test("Analyysi", "loppupään tyhjät päivärivit ohitetaan, keskellä oleva säilyy nollana", function () {
+  var a = analyzeB([
+    "Lauantai;27.6.2026;;35;55;;;;;90;;;;",
+    "Maanantai;29.6.2026;;;;;;;;;;;;",
+    "Tiistai;30.6.2026;;20;20;;;;;40;;;;",
+    "Maanantai;24.8.2026;;;;;;;;;;;;",
+    ";31.8.2026;;;;;;;;;;;;"
+  ]);
+  eq(a.days.length, 3);
+  eq(a.days[1].date, "2026-06-29");
+  eq(a.days[1].total, 0);
+  eq(a.skipByReason.tail.length, 2);
+});
+
+test("Analyysi", "epäjärjestyksessä oleva päivä havaitaan ja ehdotus on 25.7.2026", function () {
+  var a = analyzeB([
+    "Perjantai;24.7.2026;;19;105;;;;;124;;;;",
+    "Lauantai;25.6.2026;suljettu;;;;;;;;;;;",
+    "Sunnuntai;26.7.2026;;20;84;;;;;104;;;;"
+  ]);
+  var w = a.warnings.filter(function (x) { return x.kind === "order"; });
+  eq(w.length, 1);
+  eq(w[0].line, 3);
+  eq(w[0].suggest, "2026-07-25");
+  ok(w[0].decision === true, "epäjärjestys ei tarjoa päätöstä");
+});
+
+test("Analyysi", "epäjärjestystä ei korjata automaattisesti", function () {
+  var a = analyzeB([
+    "Perjantai;24.7.2026;;19;105;;;;;124;;;;",
+    "Lauantai;25.6.2026;suljettu;;;;;;;;;;;",
+    "Sunnuntai;26.7.2026;;20;84;;;;;104;;;;"
+  ]);
+  eq(a.days.map(function (d) { return d.date; }), ["2026-06-25", "2026-07-24", "2026-07-26"]);
+  ok(a.days.map(function (d) { return d.date; }).indexOf("2026-07-25") === -1, "päivä korjattiin automaattisesti");
+});
+
+test("Analyysi", "käyttäjän korjaus siirtää rivin ehdotettuun päivään", function () {
+  var a = analyzeB([
+    "Perjantai;24.7.2026;;19;105;;;;;124;;;;",
+    "Lauantai;25.6.2026;suljettu;;;;;;;;;;;",
+    "Sunnuntai;26.7.2026;;20;84;;;;;104;;;;"
+  ], null, { 3: { action: "fix", date: "2026-07-25" } });
+  eq(a.days.map(function (d) { return d.date; }), ["2026-07-24", "2026-07-25", "2026-07-26"]);
+});
+
+test("Analyysi", "käyttäjän valinta ohita jättää rivin pois", function () {
+  var a = analyzeB([
+    "Perjantai;24.7.2026;;19;105;;;;;124;;;;",
+    "Lauantai;25.6.2026;suljettu;;;;;;;;;;;",
+    "Sunnuntai;26.7.2026;;20;84;;;;;104;;;;"
+  ], null, { 3: { action: "skip" } });
+  eq(a.days.length, 2);
+  eq(a.skipByReason.decision.length, 1);
+});
+
+test("Analyysi", "sama päivä useasti: arvot summautuvat ja varoitus syntyy", function () {
+  var a = analyzeA([
+    "Torstai;25.6.2026;61;;61;;;;;;;;;;",
+    "Perjantai;26.6.2026;59;;59;;;;;;;;;;",
+    "Lauantai;25.6.2026;0;0;0;;;;;;;;;;"
+  ]);
+  eq(a.warnings.filter(function (x) { return x.kind === "duplicate"; }).length, 1);
+  eq(a.days.length, 2);
+  eq(a.days[0].tickets, 61);
+});
+
+test("Analyysi", "negatiivinen arvo havaitaan", function () {
+  var a = analyzeA(["Keskiviikko;14.1.2026;-5;10;5;;;;;;;;;;"]);
+  eq(a.warnings.filter(function (x) { return x.kind === "negative"; }).length, 1);
+});
+
+test("Analyysi", "rajapäivä vaikuttaa siihen mitkä päivät hyväksytään", function () {
+  var lines = [
+    "Sunnuntai;23.8.2026;;27;37;;;;;;;;;",
+    "Maanantai;24.8.2026;;;;;;;;;;;;",
+    ";5.9.2026;;;;;200;;;;;;;"
+  ];
+  var f = mkFile(HDR_B, lines, ";");
+  var m = cloneMapping(BUILTIN_PROFILES[1]);
+  eq(analyze(f, m, {}, "2026-08-24").days.map(function (d) { return d.date; }), ["2026-08-23"]);
+  eq(analyze(f, m, {}, "2026-08-25").days.map(function (d) { return d.date; }), ["2026-08-23", "2026-08-24"]);
+});
+
+test("Analyysi", "kuluva ja tulevat päivät rajataan pois oletuksena", function () {
+  var a = analyzeB([
+    "Sunnuntai;23.8.2026;;27;37;;;;;;;;;",
+    "Maanantai;24.8.2026;;5;;;;;;;;;;",
+    ";5.9.2026;;;;;200;;;;;;;"
+  ]);
+  eq(a.days.length, 1);
+  eq(a.days[0].date, "2026-08-23");
+  eq(a.futureRecords.length, 2);
+  eq(a.skipByReason.future.length, 2);
+});
+
+test("Analyysi", "tulevat päivät voi ottaa mukaan valinnalla", function () {
+  var a = analyzeB([
+    "Sunnuntai;23.8.2026;;27;37;;;;;;;;;",
+    ";5.9.2026;;;;;200;;;;;;;"
+  ], { includeFuture: true });
+  eq(a.days.length, 2);
+  eq(a.days[1].groups, 200);
+  ok(warnKinds(a).indexOf("future") !== -1, "tulevasta päivästä ei varoitettu");
+});
+
+test("Analyysi", "epäuskottavan suuri arvo havaitaan", function () {
+  var lines = [];
+  for (var d = 1; d <= 10; d++) lines.push("Päivä;" + d + ".3.2026;20;0;20;;;;;;;;;;");
+  lines.push("Päivä;11.3.2026;900;0;900;;;;;;;;;;");
+  var a = analyzeA(lines);
+  var w = a.warnings.filter(function (x) { return x.kind === "outlier"; });
+  eq(w.length, 1);
+  eq(w[0].date, "2026-03-11");
+});
+
+test("Analyysi", "venuelle ilman rivejä tulee varoitus", function () {
+  var a = analyzeA([";Yhteensä;1;2;3;;;;;;;;;;"]);
+  eq(a.days.length, 0);
+  ok(warnKinds(a).indexOf("novenue") !== -1, "puuttuvasta datasta ei varoitettu");
+});
+
+test("Analyysi", "eri sarakemäärä kirjataan varoitukseksi eikä kaada jäsennystä", function () {
+  var a = analyzeA(["Keskiviikko;14.1.2026;16;370"]);
+  eq(a.days.length, 1);
+  eq(a.days[0].total, 386);
+  ok(warnKinds(a).indexOf("ragged") !== -1, "sarakemäärästä ei varoitettu");
+});
+
+test("Analyysi", "jäsentymätön päivämäärä varoittaa ja ohittaa rivin", function () {
+  var a = analyzeA(["Keskiviikko;32.13.2026;16;370;386;;;;;;;;;;"]);
+  eq(a.days.length, 0);
+  ok(warnKinds(a).indexOf("baddate") !== -1, "virheellisestä päivämäärästä ei varoitettu");
+  eq(a.skipByReason.baddate.length, 1);
+});
+
+/* ---- yhdistäminen ---- */
+
+function dayOf(date, t, g) { return { date: date, tickets: t, groups: g, total: t + g, lines: [], closed: false, blank: false }; }
+
+test("Yhdistäminen", "duplikaattipäivällä uusi voittaa", function () {
+  var res = mergeDays([dayOf("2026-01-14", 10, 5)], [dayOf("2026-01-14", 16, 370)], "merge");
+  eq(res.days.length, 1);
+  eq(res.days[0].tickets, 16);
+  eq(res.days[0].groups, 370);
+  eq(res.changed.length, 1);
+  eq(res.added.length, 0);
+});
+
+test("Yhdistäminen", "vanhat päivät säilyvät yhdistämistilassa", function () {
+  var res = mergeDays([dayOf("2026-01-14", 10, 5)], [dayOf("2026-01-15", 20, 0)], "merge");
+  eq(res.days.map(function (d) { return d.date; }), ["2026-01-14", "2026-01-15"]);
+  eq(res.added.length, 1);
+  eq(res.removed.length, 0);
+  eq(res.unchanged, 1);
+});
+
+test("Yhdistäminen", "korvaustilassa vanhat päivät näkyvät poistuneina", function () {
+  var res = mergeDays([dayOf("2026-01-14", 10, 5)], [dayOf("2026-01-15", 20, 0)], "replace");
+  eq(res.days.map(function (d) { return d.date; }), ["2026-01-15"]);
+  eq(res.removed.length, 1);
+  eq(res.removed[0].date, "2026-01-14");
+});
+
+test("Yhdistäminen", "identtinen aineisto tuottaa tyhjän erotuksen", function () {
+  var days = [dayOf("2026-01-14", 16, 370), dayOf("2026-01-15", 33, 0)];
+  var res = mergeDays(days, days.slice(), "merge");
+  eq(res.added.length, 0);
+  eq(res.changed.length, 0);
+  eq(res.removed.length, 0);
+  eq(res.unchanged, 2);
+});
+
+test("Yhdistäminen", "tulos järjestyy päivämäärän mukaan", function () {
+  var res = mergeDays([dayOf("2026-03-01", 1, 1)], [dayOf("2026-01-15", 2, 2), dayOf("2026-02-01", 3, 3)], "merge");
+  eq(res.days.map(function (d) { return d.date; }), ["2026-01-15", "2026-02-01", "2026-03-01"]);
+});
+
+test("Yhdistäminen", "nykyinen tickets.csv luetaan takaisin oikein", function () {
+  var parsed = parseTicketsCsv("DATE,TICKETS,GROUPS,TOTAL\n14.1.2026,16,370,386\n15.1.2026,33,0,33\n");
+  eq(parsed.days.length, 2);
+  eq(parsed.days[0], { date: "2026-01-14", tickets: 16, groups: 370, total: 386, lines: [2], closed: false, blank: false });
+  eq(parsed.errors, []);
+});
+
+test("Yhdistäminen", "luku ja kirjoitus on kierrossa häviötön", function () {
+  var text = "DATE,TICKETS,GROUPS,TOTAL\n14.1.2026,16,370,386\n4.9.2026,7,0,7\n";
+  eq(toTicketsCsv(parseTicketsCsv(text).days), text);
+});
+
+/* ---- vienti ---- */
+
+test("Vienti", "otsikkorivi, pilkkuerotin ja rivinvaihdot", function () {
+  var out = toTicketsCsv([dayOf("2026-01-14", 16, 370)]);
+  eq(out, "DATE,TICKETS,GROUPS,TOTAL\n14.1.2026,16,370,386\n");
+  ok(out.indexOf("\r") === -1, "tuloksessa on CR-merkkejä");
+  ok(out.charAt(out.length - 1) === "\n", "tiedosto ei pääty rivinvaihtoon");
+});
+
+test("Vienti", "päivämäärissä ei ole etunollia", function () {
+  var out = toTicketsCsv([dayOf("2026-01-04", 1, 2), dayOf("2026-09-14", 3, 4)]);
+  eq(out.split("\n")[1].split(",")[0], "4.1.2026");
+  eq(out.split("\n")[2].split(",")[0], "14.9.2026");
+  ok(!/,0\d|^0\d/m.test(out.split("\n")[1]), "etunollia löytyi");
+});
+
+test("Vienti", "TOTAL lasketaan aina komponenteista", function () {
+  var d = dayOf("2026-01-14", 16, 370);
+  d.total = 99999;
+  eq(toTicketsCsv([d]), "DATE,TICKETS,GROUPS,TOTAL\n14.1.2026,16,370,386\n");
+});
+
+test("Vienti", "luvut ovat kokonaislukuja ilman desimaaleja", function () {
+  var a = analyzeA(["Keskiviikko;14.1.2026;16,0;370,0;386;;;;;;;;;;"]);
+  eq(toTicketsCsv(a.days), "DATE,TICKETS,GROUPS,TOTAL\n14.1.2026,16,370,386\n");
+});
+
+test("Vienti", "normalisoitu tickets_daily.csv on ISO-muodossa ja venueittain", function () {
+  var out = toDailyCsv({ 2: [dayOf("2026-01-13", 100, 0)], 1: [dayOf("2026-01-14", 16, 370)] });
+  eq(out, "venue_id,date,tickets_sold,groups_sold,tickets_total\n" +
+          "1,2026-01-14,16,370,386\n" +
+          "2,2026-01-13,100,0,100\n");
+});
+
+/* ---- tallennus ---- */
+
+test("Tallennus", "localStoragen puuttuminen ei kaada työkalua", function () {
+  var real = null, threw = false;
+  try { real = Object.getOwnPropertyDescriptor(window, "localStorage"); } catch (e) { threw = true; }
+  var list;
+  try {
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      get: function () { throw new Error("SecurityError: localStorage ei ole käytettävissä"); }
+    });
+    list = loadProfiles();
+    eq(saveCustomProfiles([]), false);
+  } finally {
+    if (real) Object.defineProperty(window, "localStorage", real);
+    else if (!threw) { try { delete window.localStorage; } catch (e2) { /* ei mitään */ } }
+  }
+  eq(list.length, BUILTIN_PROFILES.length);
+  storageWorks = true;
+});
+
+/* ---------------------------------------------------------------- runner */
+
+function runSelfTests() {
+  for (var i = 1; i <= 6; i++) $("step-" + i).hidden = true;
+  $("stepper").parentNode.hidden = true;
+  $("selftest").hidden = false;
+
+  var tbl = $("testtable");
+  clear(tbl.tHead); clear(tbl.tBodies[0]);
+  tbl.tHead.appendChild(el("tr", null, [
+    el("th", { scope: "col", text: "Ryhmä" }),
+    el("th", { scope: "col", text: "Testi" }),
+    el("th", { scope: "col", text: "Tulos" }),
+    el("th", { scope: "col", text: "Huomio" })
+  ]));
+
+  var passed = 0, failed = 0;
+  var t0 = (window.performance && performance.now) ? performance.now() : Date.now();
+  for (var i2 = 0; i2 < TESTS.length; i2++) {
+    var t = TESTS[i2];
+    var status, note = "";
+    try {
+      var r = t.fn();
+      status = "OK";
+      note = typeof r === "string" ? r : "";
+      passed++;
+    } catch (e) {
+      status = "VIRHE";
+      note = e && e.message ? e.message : String(e);
+      failed++;
+    }
+    var tr = el("tr", null, [
+      el("td", { text: t.group }),
+      el("td", { text: t.name }),
+      el("td", { class: status === "OK" ? "pass" : "fail", text: status === "OK" ? "✓ OK" : "✕ VIRHE" }),
+      el("td", { text: note })
+    ]);
+    tr.querySelector("td:nth-child(4)").style.whiteSpace = "normal";
+    tbl.tBodies[0].appendChild(tr);
+  }
+  var t1 = (window.performance && performance.now) ? performance.now() : Date.now();
+
+  var sum = $("testsummary");
+  clear(sum);
+  sum.appendChild(msg(failed ? "err" : "ok",
+    (failed ? "Testejä epäonnistui." : "Kaikki testit menivät läpi.") +
+    " Yhteensä " + TESTS.length + " testiä, " + passed + " onnistui, " + failed +
+    " epäonnistui. Kesto " + Math.round(t1 - t0) + " ms."));
+  document.title = (failed ? "VIRHE " + failed + "/" : "OK " + passed + "/") + TESTS.length + " · itsetestit";
+  window.__selftest = { total: TESTS.length, passed: passed, failed: failed };
+}
+
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+else boot();
+</script>
+</body>
+</html>

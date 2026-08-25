@@ -350,6 +350,28 @@ Ticket CSVs are matched case-insensitively against English and Finnish column al
 Dates are parsed with explicit formats only (`d.m.YYYY`, then `YYYY-MM-DD`), never by
 inference. When the total column is absent it is derived as `tickets_sold + groups_sold`.
 
+### Producing the ticket CSVs
+
+The ticket files are the one input nothing fetches: the opening team maintains a
+spreadsheet and exports it as CSV. `tools/tickets-parser.html` converts that export into
+the per-venue file this pipeline reads. Open it straight from the filesystem, no server
+and no install:
+
+```bash
+open tools/tickets-parser.html
+```
+
+One self-contained file, zero external requests, everything processed in the browser.
+It auto-detects the encoding (the export is windows-1252, not UTF-8), the delimiter and
+the venue profile, sums the multi-column channel totals, and reports every skipped row
+and every anomaly rather than dropping anything silently. `?selftest=1` runs its test
+suite. Column mappings, the known source-data problems and the regression results are
+documented in [`tools/README.md`](tools/README.md).
+
+Note that these columns are visitor **channels** (booking, web shop, door, phone,
+groups, house guests), not ticket products. `tickets_sold` and `groups_sold` mean
+individual and group visitors here; they are not a sales report.
+
 ---
 
 ## Development
@@ -605,5 +627,10 @@ data/processed/  canonical tables and manifest.json
 data/reference/  climatology
 data/forecasts/  latest/ plus one dated archive per run
 docs/            DATA_MODEL.md, FRAMEWORK_PLAN.md, FORECAST_MODEL.md
+tools/
+  tickets-parser.html            browser tool: opening-team CSV export -> per-venue tickets file
+  README.md                      column mappings, known source-data problems, regression results
+  MUUNNOSRAPORTTI.md             report from the hand-run conversion, the regression baseline
+  fixtures/                      real source files and the expected output
 .github/workflows/deploy.yml     build, test and publish to Cloudflare Pages
 ```

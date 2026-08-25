@@ -604,10 +604,20 @@ Tämä on apuväline, ei osa päivittäistä automaattiajoa. Sen voi toteuttaa m
 myös ennen osioita 2 ja 3. Se korvaa nykyisen manuaalisen työvaiheen, jossa
 `data/raw/tickets/venue_{id}/tickets.csv` päivitetään käsin.
 
-Lähdetiedostojen rakenne on selvitetty ja sarakekartoitus todennettu nykyistä
-lipputiedostoa vasten. Yksityiskohdat ovat promptissa. Aukiolotiimin viemät tiedostot
-ovat repossa valmiina polussa `tools/fixtures/kavijatilastot-pekuri.csv` ja
-`tools/fixtures/kavijatilastot-kaupungintalo.csv`.
+Lähdetiedostojen rakenne on selvitetty, sarakekartoitus todennettu ja muunnos ajettu
+kertaalleen käsin. Repon lipputiedostot ovat siis jo ajan tasalla, ja ne toimivat
+työkalun regressiotestinä: työkalun on tuotettava täsmälleen samat tiedostot.
+
+Repossa valmiina:
+
+| Tiedosto | Sisältö |
+| --- | --- |
+| `tools/fixtures/kavijatilastot-pekuri.csv` | Aukiolotiimin vienti, venue 1 |
+| `tools/fixtures/kavijatilastot-kaupungintalo.csv` | Aukiolotiimin vienti, venue 2 |
+| `tools/fixtures/expected-tickets_daily.csv` | Odotettu tulos normalisoidussa muodossa |
+| `tools/MUUNNOSRAPORTTI.md` | Käsin ajetun muunnoksen tulokset ja poikkeamat |
+| `data/raw/tickets/venue_1/tickets.csv` | Muunnoksen tulos, 222 riviä |
+| `data/raw/tickets/venue_2/tickets.csv` | Muunnoksen tulos, 222 riviä |
 
 ````text
 Rakennat Oulu2026 Visitor Flow Frameworkiin apuvälineen: selainpohjaisen työkalun, jolla
@@ -617,9 +627,17 @@ aukiolotiimin ylläpitämä kävijätilasto-CSV muunnetaan venuekohtaisiksi lipp
 
 - docs/FRAMEWORK_PLAN.md luku 4.2, kohta tickets_daily.csv
 - config/venues.json: venuet ja niiden tickets_path
-- data/raw/tickets/venue_1/tickets.csv ja venue_2/tickets.csv: kohdeformaatti
 - packages/ingest/src/ovf_ingest/normalize.py: miten lippudata luetaan ja normalisoidaan
-- tools/fixtures/: aidot lähdetiedostot, joita vasten työkalu kehitetään
+- tools/MUUNNOSRAPORTTI.md: käsin ajetun muunnoksen tulokset, poikkeamat ja päätökset.
+  Lue tämä huolella, se on tämän työkalun tosiasiallinen määrittely.
+
+Tiedostot joita vasten työkalu kehitetään ja testataan:
+
+- tools/fixtures/kavijatilastot-pekuri.csv          lähde, venue 1
+- tools/fixtures/kavijatilastot-kaupungintalo.csv   lähde, venue 2
+- data/raw/tickets/venue_1/tickets.csv              odotettu tulos, 222 riviä
+- data/raw/tickets/venue_2/tickets.csv              odotettu tulos, 222 riviä
+- tools/fixtures/expected-tickets_daily.csv         odotettu tulos normalisoituna, 444 riviä
 
 # Tehtävä
 
@@ -683,16 +701,25 @@ Otsikkorivi:
 Eli TICKETS ja GROUPS ovat USEAN sarakkeen summia. Tämä on kartoituksen tärkein
 ominaisuus, ei erikoistapaus.
 
-## Kartoitus on todennettu
+## Kartoitus on todennettu ja muunnos ajettu
 
-Vertasin laskettuja arvoja nykyisiin lipputiedostoihin:
-- venue 1: kaikki 124 riviä täsmäävät täydellisesti
-- venue 2: ryhmäluvut täsmäävät kaikilla 125 rivillä, yksittäisliput 50 rivillä
+Kartoitus varmistettiin vertaamalla laskettuja arvoja siihen tickets.csv-tiedostoon,
+joka repossa oli ENNEN muunnosta:
+- venue 1: kaikki 124 päällekkäistä päivää täsmäsivät täydellisesti
+- venue 2: ryhmäluvut täsmäsivät kaikilla 125 päivällä, yksittäisliput 50 päivällä
 
-Venue 2:n yksittäislippujen erot EIVÄT ole kartoitusvirhe. Kokeilin tyhjentävästi
-kaikki sarakeyhdistelmät, eikä mikään muu tuota parempaa osumaa. Erot johtuvat siitä
-että aukiolotiimi on korjannut Excelin lukuja sen jälkeen kun nykyinen tickets.csv
-tehtiin. Uudet luvut ovat oikeat. ÄLÄ yritä korjata tätä "bugina".
+Venue 2:n yksittäislippujen erot eivät olleet kartoitusvirhe. Kaikki mahdolliset
+sarakeyhdistelmät kokeiltiin tyhjentävästi, eikä mikään muu tuottanut parempaa osumaa.
+Erot johtuivat siitä että aukiolotiimi oli korjannut Excelin lukuja vanhan tiedoston
+tekemisen jälkeen. Muutokset menivät molempiin suuntiin ja koko jakson summa muuttui
+vain 6 kävijää.
+
+Muunnos on sen jälkeen ajettu, ja repon tickets.csv-tiedostot ovat nyt muunnoksen tulos:
+molemmilla venueilla 222 riviä, Pekuri 14.1. - 23.8.2026 ja Kaupungintalo
+13.1. - 23.8.2026 (25.7.2026 puuttuu, katso tools/MUUNNOSRAPORTTI.md).
+
+TÄSTÄ SEURAA: työkalun on tuotettava näistä lähdetiedostoista täsmälleen nykyiset
+repon tiedostot, rivi riviltä. Jos tulos eroaa, vika on työkalussa.
 
 # Roskarivit ja poikkeamat joita lähdedatassa oikeasti on
 
@@ -798,9 +825,10 @@ Vaihe 5: yhdistäminen olemassa olevaan
     poistaa duplikaatit päivän perusteella (uusi voittaa) ja järjestää päivämäärän
     mukaan. Näytä erotus: lisätyt päivät, muuttuneet päivät vanhoine ja uusine
     arvoineen, ja poistuneet päivät.
-  Odotettu tulos tälle aineistolle: venue 1:llä noin 98 uutta päivää ja venue 2:lla
-  noin 83 uutta päivää, minkä lisäksi venue 2:lla suuri osa vanhoista päivistä muuttuu,
-  koska aukiolotiimi on korjannut lukuja. Näytä tämä selvästi, ettei käyttäjä säikähdä.
+  Odotettu tulos tällä aineistolla: nolla lisättyä ja nolla muuttunutta päivää, koska
+  repon tiedostot on jo muunnettu näistä samoista lähteistä. Tyhjä erotus on siis
+  onnistumisen merkki, ei virhe. Kun aukiolotiimi toimittaa seuraavan viennin, erotus
+  näyttää uudet ja korjatut päivät.
 
 Vaihe 6: vienti
   - Lataa venuekohtainen tickets.csv. Formaatti täsmälleen: otsikkorivi
@@ -863,19 +891,27 @@ Koska build-vaihetta ei ole, sisällytä testit samaan tiedostoon. URL-parametri
 
 # Regressiotestit aitoa dataa vasten
 
-Nämä on ajettava käsin ja kirjattava tools/README.md:hen:
+Nämä on ajettava käsin ja kirjattava tools/README.md:hen. Ne ovat tämän työkalun
+tärkein hyväksymiskriteeri, koska odotettu tulos on tiedossa tarkalleen.
 
-1. Profiili A, PEKURI-tiedosto: tuloksen on täsmättävä nykyisen
-   data/raw/tickets/venue_1/tickets.csv:n kanssa kaikilla 124 päällekkäisellä
-   päivämäärällä, sekä TICKETS että GROUPS.
-2. Profiili B, KAUPUNGINTALO-tiedosto: GROUPS-arvojen on täsmättävä nykyisen
-   data/raw/tickets/venue_2/tickets.csv:n kanssa kaikilla 125 päällekkäisellä
-   päivämäärällä. TICKETS täsmää 50 rivillä, ja loput erot ovat odotettuja, koska
-   lähde on päivittynyt. Erojen on näyttävä yhdistämisvaiheen erotusnäkymässä.
-3. Kummastakin tiedostosta syntyy oikea määrä rivejä: venue 1 noin 221 päivää
-   (14.1. - 23.8.2026), venue 2 noin 190 päivää joilla on dataa (13.1. - 23.8.2026,
-   kun 5.9.2026 ennakkovaraus on jätetty pois).
-4. Kaikki luvussa "Roskarivit ja poikkeamat" luetellut tapaukset näkyvät varoituksina.
+1. tools/fixtures/kavijatilastot-pekuri.csv profiililla A:
+   tuloksen on oltava rivi riviltä identtinen tiedoston
+   data/raw/tickets/venue_1/tickets.csv kanssa. 222 riviä, 14.1. - 23.8.2026,
+   yksittäisliput yhteensä 13 957, ryhmät 3 631, kaikki yhteensä 17 588.
+2. tools/fixtures/kavijatilastot-kaupungintalo.csv profiililla B:
+   tuloksen on oltava rivi riviltä identtinen tiedoston
+   data/raw/tickets/venue_2/tickets.csv kanssa. 222 riviä, 13.1. - 23.8.2026,
+   yksittäisliput yhteensä 11 775, ryhmät 5 281, kaikki yhteensä 17 056.
+   Huomaa että 25.7.2026 EI ole tuloksessa, koska lähteen rivillä 203 on
+   kirjoitusvirhe. Tämä on tarkoituksellista, älä korjaa sitä.
+3. Molemmat yhdessä normalisoituna: tuloksen on vastattava tiedostoa
+   tools/fixtures/expected-tickets_daily.csv, 444 riviä.
+4. Yhdistämistila samoilla tiedostoilla: erotuksen on oltava tyhjä.
+5. Kaikki luvussa "Roskarivit ja poikkeamat" luetellut tapaukset näkyvät varoituksina.
+   Odotettu varoitusmäärä: venue 1 kolme varoitusta ja viisi ohitettua riviä,
+   venue 2 kahdeksan varoitusta ja kahdeksan ohitettua riviä.
+
+Vertailun voi tehdä komennolla diff, koska tiedostojen pitää olla tavu tavulta samat.
 
 # Dokumentaatio
 
@@ -891,11 +927,12 @@ maininta työkalusta repon juuren README.md:hen.
 2. Molemmat aidot tiedostot tools/fixtures/-hakemistosta jäsentyvät oikein, ääkköset
    näkyvät oikein, ja profiili tunnistuu automaattisesti.
 3. ?selftest=1 ajaa testit ja kaikki menevät läpi.
-4. Regressiotestit 1 ja 2 antavat kuvatut tulokset.
-5. Ladattu tickets-venue-1.csv on formaatiltaan yhteensopiva nykyisen tiedoston kanssa.
-6. Yhdistämistila näyttää erotuksen tarkasti eikä hukkaa vanhoja päiviä.
-7. Työkalu toimii yksityisessä selainikkunassa, jossa localStorage heittää poikkeuksen.
-8. Tiedoston koko alle 250 kB.
+4. Kaikki viisi regressiotestiä menevät läpi. Erityisesti: ladattu tickets-venue-1.csv
+   on tavu tavulta identtinen tiedoston data/raw/tickets/venue_1/tickets.csv kanssa,
+   ja sama pätee venue 2:lle.
+5. Yhdistämistila näyttää erotuksen tarkasti eikä hukkaa vanhoja päiviä.
+6. Työkalu toimii yksityisessä selainikkunassa, jossa localStorage heittää poikkeuksen.
+7. Tiedoston koko alle 250 kB.
 
 # Älä tee näitä
 
@@ -905,8 +942,8 @@ maininta työkalusta repon juuren README.md:hen.
 - Älä korjaa epäjärjestyksessä olevia päivämääriä automaattisesti, kysy käyttäjältä
 - Älä hiljaisesti pudota rivejä, jokainen ohitettu rivi näkyy varoituksissa syineen
 - Älä oleta UTF-8-merkistöä, lähde on windows-1252
-- Älä yritä saada venue 2:n vanhoja yksittäislippuja täsmäämään nykyiseen
-  tickets.csv-tiedostoon, ero on aito ja johtuu lähteen päivittymisestä
+- Älä lisää 25.7.2026 venue 2:n tulokseen, sen puuttuminen on tietoinen päätös
+- Älä muuta repon tickets.csv-tiedostoja, ne ovat regressiotestin odotettu tulos
 - Älä pyöristä lippumääriä liukuluvuiksi, ne ovat kokonaislukuja
 - Älä tee tästä osaa Astro-sovellusta, se on itsenäinen tiedosto
 ````
