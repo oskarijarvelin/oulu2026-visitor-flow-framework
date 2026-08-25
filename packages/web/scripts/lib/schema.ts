@@ -178,3 +178,134 @@ export function assertKeys(value: unknown, expected: readonly string[], name: st
   }
   return record;
 }
+
+// --- Arviointiajot ---------------------------------------------------------
+
+/**
+ * Arviointi on valinnainen tyovaihe, toisin kuin ingest ja forecast: puuttuva
+ * `data/evaluations/` ei kaada buildia. Skeeman versio sen sijaan tarkistetaan, koska
+ * hiljainen vaarin renderointi on pahempi kuin epaonnistunut build.
+ */
+export const EVALUATION_SCHEMA_VERSION = 'v1';
+
+export const PREDICTIONS_SCHEMA = [
+  'venue_id',
+  'date',
+  'horizon_days',
+  'model',
+  'weather_mode',
+  'y_true',
+  'p10',
+  'p50',
+  'p90',
+] as const;
+
+/** Kentat joiden on loydyttava `data/evaluations/index.json`-tiedostosta. */
+export const EVALUATION_INDEX_KEYS = ['schema_version', 'runs'];
+
+/** Kentat joiden on loydyttava rekisterin jokaiselta ajolta. */
+export const EVALUATION_RUN_KEYS = [
+  'run_id',
+  'kind',
+  'window',
+  'sweep',
+  'windows',
+  'models',
+  'reference_rule',
+  'primary_weather_mode',
+  'verdicts',
+  'members',
+  'created_at',
+];
+
+/** Kentat joiden on loydyttava ajon `verdicts.json`-tiedostosta. */
+export const VERDICTS_KEYS = [
+  'kind',
+  'schema_version',
+  'run_id',
+  'primary_weather_mode',
+  'reference_rule',
+  'family_size',
+  'summary_fi',
+  'venues',
+];
+
+/** Kentat joiden on loydyttava ikkuna-ajon venuekohtaiselta verdiktilta. */
+export const VERDICT_WINDOW_VENUE_KEYS = ['venue_id', 'venue_name', 'reference', 'baseline_mae', 'models'];
+
+/** Kentat joiden on loydyttava ikkuna-ajon mallikohtaiselta verdiktilta. */
+export const VERDICT_WINDOW_MODEL_KEYS = [
+  'model',
+  'comparison',
+  'bias',
+  'calibration',
+  'total',
+  'weather_sensitivity',
+];
+
+/** Kentat joiden on loydyttava mallien vertailusta. */
+export const VERDICT_COMPARISON_KEYS = [
+  'model',
+  'reference',
+  'n',
+  'mean_difference',
+  'ci_low',
+  'ci_high',
+  'verdict',
+  'model_mae',
+  'reference_mae',
+  'skill_score',
+  'mde',
+  'mde_pct',
+];
+
+/** Kentat joiden on loydyttava koosteajon mallikohtaiselta verdiktilta. */
+export const VERDICT_SWEEP_MODEL_KEYS = ['model', 'pooled', 'per_window', 'totals'];
+
+/** Kentat joiden on loydyttava koosteen pooled-lohkosta. */
+export const VERDICT_POOLED_KEYS = [
+  'model',
+  'reference',
+  'n_windows',
+  'n_days',
+  'mean_difference',
+  'ci_low',
+  'ci_high',
+  'verdict',
+  'windows_favouring',
+  'windows_opposing',
+  'windows_neutral',
+  'mde',
+  'mde_pct',
+  'reference_mae',
+];
+
+/**
+ * Vaatii etta arviointitiedoston skeemaversio on tunnettu.
+ *
+ * Tama on ainoa arviointidatan portti joka kaataa buildin. Perustelu on sama kuin
+ * sarakkeiden tarkistuksella: tuntemattoman version renderointi tuottaisi sivun joka
+ * nayttaa oikealta mutta esittaa vaaria lukuja.
+ */
+export function assertEvaluationVersion(value: unknown, runId: string, file: string): Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new BuildDataError(`Arviointitiedoston ${file} sisallon pitaisi olla JSON-objekti (ajo ${runId}).`);
+  }
+  const record = value as Record<string, unknown>;
+  const version = record['schema_version'];
+  if (version !== EVALUATION_SCHEMA_VERSION) {
+    throw new BuildDataError(
+      [
+        'Arviointidatan skeemaversio ei ole tuettu, build keskeytetaan.',
+        `  Ajo:     ${runId}`,
+        `  Tiedosto: ${file}`,
+        `  Odotettu: ${EVALUATION_SCHEMA_VERSION}`,
+        `  Luettu:   ${version === undefined ? '(puuttuu)' : JSON.stringify(version)}`,
+        '',
+        '  Sivu ei osaa esittaa tuntematonta versiota. Aja arviointi uudelleen tai',
+        '  paivita packages/web/scripts/lib/schema.ts vastaamaan uutta muotoa.',
+      ].join('\n'),
+    );
+  }
+  return record;
+}

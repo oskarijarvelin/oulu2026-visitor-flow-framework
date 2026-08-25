@@ -1,0 +1,851 @@
+---
+/**
+ * Tarkkuussivu: tallennetut arviointiajot selattavina.
+ *
+ * Jokaisen ajon sisalto renderoidaan palvelimella ja piilotetaan `hidden`-attribuutilla
+ * paitsi oletusajolta, joten hash-linkki toimii myos ilman JavaScriptia sikali kuin
+ * selain saa skriptin ladattua; ilman sita nakyy uusin kooste. Kaaviot ovat saarekkeita
+ * jotka saavat kaikkien ajojen datan kerran ja piirtavat valitun.
+ */
+
+import AccuracyBars from '../charts/accuracybars.ts';
+import AccuracyIntervals from '../charts/accuracyintervals.ts';
+import AccuracySeries from '../charts/accuracyseries.ts';
+import AccuracyTotals from '../charts/accuracytotals.ts';
+import Callout from '../components/Callout.astro';
+import Figure from '../components/Figure.astro';
+import Layout from '../components/Layout.astro';
+import TableScroll from '../components/TableScroll.astro';
+import accuracyData from '../data/accuracy.json';
+import metaData from '../data/meta.json';
+import { chartStrings } from '../i18n/charts.ts';
+import { localizedPath, type Lang } from '../i18n/index.ts';
+import { ui } from '../i18n/ui/index.ts';
+import {
+  biasWord,
+  calibrationPayload,
+  calibrationWord,
+  differencePayload,
+  horizonPayload,
+  indexRuns,
+  periodLabel,
+  seriesPayload,
+  signed,
+  summaryParagraph,
+  totalsPayload,
+  venueOf,
+  verdictColor,
+  verdictMark,
+  verdictShort,
+  verdictWord,
+  weatherPayload,
+  windowLabel,
+} from '../lib/accuracyview.ts';
+import { formatters } from '../lib/format.ts';
+import { modelLabel, referenceLabel } from '../lib/labels.ts';
+import type { AccuracyData, AccuracyRun, Meta } from '../lib/types.ts';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui(lang);
+const f = formatters(lang);
+const strings = chartStrings(lang);
+
+const site = metaData as Meta;
+const accuracy = accuracyData as unknown as AccuracyData;
+const runs = accuracy.runs;
+const defaultRun = accuracy.default_run ?? '';
+const index = indexRuns(runs);
+
+const isDefault = (run: AccuracyRun): boolean => run.run_id === defaultRun;
+
+/** Ajovalitsimen kortit. Verdikti nakyy jo tassa, jotta listasta nakee suunnan. */
+const runCards = runs.map((run) => ({
+  run,
+  period: periodLabel(run, f),
+  badge:
+    run.kind === 'sweep'
+      ? t.accuracy.sweepBadge(f.int(run.windows?.length ?? run.members.length))
+      : t.accuracy.windowBadge,
+  models: run.models.map((model) => modelLabel(model, lang)).join(', '),
+  verdicts: run.venues.flatMap((venue) =>
+    venue.models.map((model) => {
+      const verdict = model.pooled?.verdict ?? model.comparison?.verdict ?? 'no_difference';
+      return {
+        key: `${venue.venue_id}-${model.model}`,
+        venue: venue.venue_name,
+        word: verdictShort(verdict, t),
+        mark: verdictMark(verdict),
+        color: verdictColor(verdict),
+      };
+    }),
+  ),
+}));
+
+/** Yksi paneeli per venue. Kuvaajat saavat kaikkien ajojen datan kerran. */
+const panels = site.venues.map((venue) => {
+  const payloadFor = <T,>(build: (run: AccuracyRun) => T): Record<string, T> =>
+    Object.fromEntries(runs.map((run) => [run.run_id, build(run)]));
+
+  return {
+    venue,
+    series: payloadFor((run) => seriesPayload(run, venue.venue_id, index, lang)),
+    horizon: payloadFor((run) => horizonPayload(venueOf(run, venue.venue_id), accuracy.horizon_buckets, lang)),
+    difference: payloadFor((run) => differencePayload(venueOf(run, venue.venue_id), lang)),
+    totals: payloadFor((run) => totalsPayload(venueOf(run, venue.venue_id), lang, periodLabel(run, f))),
+    calibration: payloadFor((run) => calibrationPayload(run, venue.venue_id, index, lang)),
+    weather: payloadFor((run) => weatherPayload(run, venue.venue_id, index, lang)),
+    /** Ajon venuekohtainen osuus, tai undefined kun ajo ei kata tata venueta. */
+    byRun: runs.map((run) => ({ run, data: venueOf(run, venue.venue_id) })),
+  };
+});
+---
+
+<Layout
+  lang={lang}
+  title={t.accuracy.title}
+  heading={t.accuracy.heading}
+  description={t.accuracy.description}
+  lead={t.accuracy.lead}
+>
+  <div class="mt-6">
+    <Callout title={t.accuracy.compareTitle}>
+      <p>{t.accuracy.compareAccuracy}</p>
+      <p class="mt-2">
+        {t.accuracy.compareQuality}{' '}
+        <a class="underline" href={localizedPath('/quality', lang)}>{t.accuracy.compareLink}</a>.
+      </p>
+    </Callout>
+  </div>
+
+  {
+    runs.length === 0 ? (
+      <section class="mt-6">
+        <Callout tone="warning" title={t.accuracy.emptyTitle}>
+          <p>{t.accuracy.emptyBody}</p>
+          <p class="mt-2">{t.accuracy.emptyHint}</p>
+          <pre class="mt-2 overflow-x-auto rounded-md border border-line bg-surface p-3 text-xs leading-5"><code>python -m ovf_forecast evaluate --test 2026-04
+python -m ovf_forecast evaluate --sweep monthly --from 2026-04 --to 2026-08</code></pre>
+        </Callout>
+      </section>
+    ) : (
+      <Fragment>
+        <section
+          aria-labelledby="arviointiajot"
+          class="mt-6 rounded-lg border border-line bg-surface p-4 sm:p-5"
+          data-run-default={defaultRun}
+        >
+          <h2 id="arviointiajot" class="text-lg font-semibold tracking-tight text-ink">
+            {t.accuracy.runsHeading}
+          </h2>
+          <p class="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">{t.accuracy.runsLead}</p>
+
+          <nav aria-label={t.accuracy.runsLabel} class="mt-4">
+            <ul class="grid gap-2 sm:grid-cols-2">
+              {runCards.map((card) => (
+                <li>
+                  <a
+                    href={`#run=${encodeURIComponent(card.run.run_id)}`}
+                    data-run-link={card.run.run_id}
+                    aria-current={isDefault(card.run) ? 'true' : 'false'}
+                    class="block rounded-md border border-line bg-canvas px-3 py-2 text-sm no-underline transition-colors hover:border-ink-muted aria-[current=true]:border-series-1 aria-[current=true]:bg-surface aria-[current=true]:shadow-[inset_0_0_0_1px_var(--color-series-1)]"
+                  >
+                    <span class="flex flex-wrap items-baseline gap-x-2">
+                      <span class="font-medium text-ink">{card.period}</span>
+                      <span class="text-xs text-ink-muted">{card.badge}</span>
+                    </span>
+                    <span class="mt-0.5 block text-xs text-ink-muted">
+                      {t.accuracy.runModels(card.models)}
+                    </span>
+                    <span class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
+                      {card.verdicts.map((entry) => (
+                        <span class="text-ink-muted">
+                          <span aria-hidden="true" style={`color:${entry.color}`}>{entry.mark}</span>{' '}
+                          {entry.venue}: {entry.word}
+                        </span>
+                      ))}
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <p class="mt-3 text-xs leading-5 text-ink-muted">{t.accuracy.runFallbackNote}</p>
+        </section>
+
+        <section aria-labelledby="verdikti" class="mt-6 rounded-lg border border-line bg-surface p-4 sm:p-5">
+          <h2 id="verdikti" class="text-lg font-semibold tracking-tight text-ink">
+            {t.accuracy.summaryHeading}
+          </h2>
+          {runs.map((run) => (
+            <div data-run={run.run_id} hidden={!isDefault(run)}>
+              <p class="mt-2 max-w-3xl text-sm leading-6 text-ink-muted">{summaryParagraph(run, lang)}</p>
+            </div>
+          ))}
+        </section>
+
+        {panels.map((panel) => (
+          <section class="mt-8 space-y-6">
+            <h2 class="text-xl font-semibold tracking-tight text-ink">{panel.venue.name}</h2>
+
+            {panel.byRun.map(({ run, data }) => (
+              <div data-run={run.run_id} hidden={!isDefault(run)}>
+                <div class="space-y-3" role="group" aria-label={t.accuracy.verdictAria(panel.venue.name)}>
+                  {(data?.models ?? []).map((model) => {
+                    const summary = model.pooled ?? model.comparison;
+                    if (!summary) return null;
+                    const color = verdictColor(summary.verdict);
+                    const modelMae = model.comparison?.model_mae ?? null;
+                    return (
+                      <div
+                        class="rounded-md border border-l-4 border-line bg-surface p-4"
+                        style={`border-left-color:${color}`}
+                      >
+                        <p class="flex flex-wrap items-baseline gap-x-2 text-base font-semibold text-ink">
+                          <span aria-hidden="true" style={`color:${color}`}>{verdictMark(summary.verdict)}</span>
+                          <span>{modelLabel(model.model, lang)}:</span>
+                          <span>{verdictWord(summary.verdict, t)}</span>
+                        </p>
+                        <dl class="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+                          <div>
+                            <dt class="text-xs font-medium text-ink-muted">{t.accuracy.meanDifferenceLabel}</dt>
+                            <dd class="text-ink">
+                              <span class="font-medium tabular-nums">{signed(summary.mean_difference, f)}</span>{' '}
+                              <span class="text-ink-muted">
+                                {t.accuracy.intervalLabel(signed(summary.ci_low, f), signed(summary.ci_high, f))}
+                              </span>
+                            </dd>
+                          </div>
+                          <div>
+                            <dt class="text-xs font-medium text-ink-muted">
+                              {t.accuracy.referenceLine(referenceLabel(summary.reference, lang))}
+                            </dt>
+                            <dd class="text-ink">
+                              {modelMae === null
+                                ? t.accuracy.referenceMaeOnly(f.decimal(summary.reference_mae))
+                                : t.accuracy.maePair(
+                                    modelLabel(model.model, lang),
+                                    f.decimal(modelMae),
+                                    referenceLabel(summary.reference, lang),
+                                    f.decimal(summary.reference_mae),
+                                  )}
+                            </dd>
+                          </div>
+                        </dl>
+                        {model.pooled && (
+                          <p class="mt-2 text-sm leading-6 text-ink-muted">
+                            {t.accuracy.windowSplit(
+                              f.int(model.pooled.windows_favouring),
+                              f.int(model.pooled.windows_opposing),
+                              f.int(model.pooled.windows_neutral),
+                            )}
+                          </p>
+                        )}
+                        {summary.verdict === 'no_difference' && (
+                          <p class="mt-2 text-sm leading-6 text-ink">
+                            {t.accuracy.mdeNote(f.decimal(summary.mde), f.pct(summary.mde_pct))}
+                          </p>
+                        )}
+                        {model.bias && (
+                          <p class="mt-2 text-xs leading-5 text-ink-muted">
+                            {t.accuracy.biasLine(
+                              signed(model.bias.mean_error, f),
+                              signed(model.bias.ci_low, f),
+                              signed(model.bias.ci_high, f),
+                            )}
+                            {'. '}
+                            {biasWord(model.bias.verdict, t)}
+                            {'. '}
+                            {model.comparison && t.accuracy.skillScore(f.decimal(model.comparison.skill_score, 3))}
+                            {model.comparison &&
+                              `. ${t.accuracy.holmLine(
+                                f.decimal(model.raw_p_value ?? model.comparison.dm_p_value, 3),
+                                f.decimal(model.holm_p_value ?? model.comparison.dm_p_value, 3),
+                              )}.`}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+            <Figure
+              lang={lang}
+              title={t.accuracy.diffTitle}
+              level={3}
+              description={t.accuracy.diffDescription}
+              footnote={t.accuracy.diffFootnote}
+            >
+              <AccuracyIntervals
+                client:visible
+                lang={lang}
+                ariaLabel={t.accuracy.diffAria(panel.venue.name)}
+                defaultRun={defaultRun}
+                runs={panel.difference}
+                missingLabel={t.accuracy.seriesMissing}
+                axisLabel={strings.accuracyDifference}
+                placeholderHeight={280}
+              />
+              <div slot="alternative">
+                {panel.byRun.map(({ run, data }) => (
+                  <div data-run={run.run_id} hidden={!isDefault(run)}>
+                    <TableScroll label={t.accuracy.windowsCaption(panel.venue.name)} scrollY={false}>
+                      <table class="data-table">
+                        <caption>{t.accuracy.windowsCaption(panel.venue.name)}</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">{t.accuracy.colTestPeriod}</th>
+                            <th scope="col">{t.accuracy.colReference}</th>
+                            <th scope="col" class="num">{t.accuracy.colModelMae}</th>
+                            <th scope="col" class="num">{t.accuracy.colReferenceMae}</th>
+                            <th scope="col" class="num">{t.accuracy.colDifference}</th>
+                            <th scope="col" class="num">{t.accuracy.colInterval}</th>
+                            <th scope="col">{t.accuracy.colVerdict}</th>
+                            <th scope="col" class="num">{t.accuracy.colMde}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(data?.models ?? []).flatMap((model) => [
+                            ...(model.per_window ?? []).map((window) => (
+                              <tr>
+                                <th scope="row" class="nowrap">{windowLabel(window.label, f)}</th>
+                                <td>{referenceLabel(window.reference, lang)}</td>
+                                <td class="num">{f.decimal(window.model_mae)}</td>
+                                <td class="num">{f.decimal(window.reference_mae)}</td>
+                                <td class="num">{signed(window.mean_difference, f)}</td>
+                                <td class="num nowrap">
+                                  {signed(window.ci_low, f)} … {signed(window.ci_high, f)}
+                                </td>
+                                <td class:list={[window.verdict === 'worse' && 'warn']}>
+                                  <span aria-hidden="true">{verdictMark(window.verdict)}</span>{' '}
+                                  {verdictShort(window.verdict, t)}
+                                </td>
+                                <td class="num">
+                                  {f.decimal(window.mde)} ({f.pct(window.mde_pct, 0)})
+                                </td>
+                              </tr>
+                            )),
+                            ...(model.pooled
+                              ? [
+                                  <tr class="is-forecast">
+                                    <th scope="row" class="strong nowrap">{t.accuracy.diffPooledRow}</th>
+                                    <td>{referenceLabel(model.pooled.reference, lang)}</td>
+                                    <td class="num muted">{f.missing()}</td>
+                                    <td class="num">{f.decimal(model.pooled.reference_mae)}</td>
+                                    <td class="num strong">{signed(model.pooled.mean_difference, f)}</td>
+                                    <td class="num nowrap">
+                                      {signed(model.pooled.ci_low, f)} … {signed(model.pooled.ci_high, f)}
+                                    </td>
+                                    <td class:list={['strong', model.pooled.verdict === 'worse' && 'warn']}>
+                                      <span aria-hidden="true">{verdictMark(model.pooled.verdict)}</span>{' '}
+                                      {verdictShort(model.pooled.verdict, t)}
+                                    </td>
+                                    <td class="num">
+                                      {f.decimal(model.pooled.mde)} ({f.pct(model.pooled.mde_pct, 0)})
+                                    </td>
+                                  </tr>,
+                                ]
+                              : []),
+                            ...(model.comparison
+                              ? [
+                                  <tr>
+                                    <th scope="row" class="nowrap">{modelLabel(model.model, lang)}</th>
+                                    <td>{referenceLabel(model.comparison.reference, lang)}</td>
+                                    <td class="num">{f.decimal(model.comparison.model_mae)}</td>
+                                    <td class="num">{f.decimal(model.comparison.reference_mae)}</td>
+                                    <td class="num strong">{signed(model.comparison.mean_difference, f)}</td>
+                                    <td class="num nowrap">
+                                      {signed(model.comparison.ci_low, f)} … {signed(model.comparison.ci_high, f)}
+                                    </td>
+                                    <td class:list={['strong', model.comparison.verdict === 'worse' && 'warn']}>
+                                      <span aria-hidden="true">{verdictMark(model.comparison.verdict)}</span>{' '}
+                                      {verdictShort(model.comparison.verdict, t)}
+                                    </td>
+                                    <td class="num">
+                                      {f.decimal(model.comparison.mde)} ({f.pct(model.comparison.mde_pct, 0)})
+                                    </td>
+                                  </tr>,
+                                ]
+                              : []),
+                          ])}
+                        </tbody>
+                      </table>
+                    </TableScroll>
+                  </div>
+                ))}
+              </div>
+            </Figure>
+
+            <Figure
+              lang={lang}
+              title={t.accuracy.seriesTitle}
+              level={3}
+              description={t.accuracy.seriesDescription}
+              footnote={t.accuracy.seriesFootnote}
+            >
+              <AccuracySeries
+                client:visible
+                lang={lang}
+                ariaLabel={t.accuracy.seriesAria(panel.venue.name)}
+                defaultRun={defaultRun}
+                runs={panel.series}
+                missingLabel={t.accuracy.seriesMissing}
+                placeholderHeight={300}
+              />
+              <div slot="alternative">
+                {panel.byRun.map(({ run, data }) => (
+                  <div data-run={run.run_id} hidden={!isDefault(run)}>
+                    {run.kind === 'sweep' && (
+                      <p class="mb-3 text-xs leading-5 text-ink-muted">{t.accuracy.seriesStitched}</p>
+                    )}
+                    <p class="mb-3 text-xs leading-5 text-ink-muted">{t.accuracy.worstLead}</p>
+                    <TableScroll label={t.accuracy.worstCaption(panel.venue.name)} scrollY={false}>
+                      <table class="data-table">
+                        <caption>{t.accuracy.worstCaption(panel.venue.name)}</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">{t.common.day}</th>
+                            <th scope="col">{t.accuracy.colWeekday}</th>
+                            <th scope="col" class="num">{t.accuracy.colActual}</th>
+                            <th scope="col" class="num">{t.accuracy.colForecast}</th>
+                            <th scope="col" class="num">{t.accuracy.colError}</th>
+                            <th scope="col">{t.accuracy.colNote}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(data?.worst_days ?? []).map((day) => (
+                            <tr>
+                              <th scope="row" class="nowrap">{f.date(day.date)}</th>
+                              <td>{f.weekdayLong(day.dow)}</td>
+                              <td class="num">{f.int(day.y_true)}</td>
+                              <td class="num">{f.decimal(day.p50)}</td>
+                              <td class="num warn">{signed(day.error, f)}</td>
+                              <td>{day.is_holiday ? (day.holiday_name ?? t.common.holiday) : ''}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </TableScroll>
+                  </div>
+                ))}
+              </div>
+            </Figure>
+
+            <Figure
+              lang={lang}
+              title={t.accuracy.horizonTitle}
+              level={3}
+              description={t.accuracy.horizonDescription}
+              footnote={t.accuracy.horizonFootnote}
+            >
+              <AccuracyBars
+                client:visible
+                lang={lang}
+                ariaLabel={t.accuracy.horizonAria(panel.venue.name)}
+                defaultRun={defaultRun}
+                runs={panel.horizon}
+                missingLabel={t.accuracy.seriesMissing}
+                valueLabel="MAE"
+                placeholderHeight={280}
+              />
+              <div slot="alternative">
+                {panel.byRun.map(({ run, data }) => (
+                  <div data-run={run.run_id} hidden={!isDefault(run)}>
+                    <TableScroll label={t.accuracy.horizonCaption(panel.venue.name)} scrollY={false}>
+                      <table class="data-table">
+                        <caption>{t.accuracy.horizonCaption(panel.venue.name)}</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">{t.common.model}</th>
+                            <th scope="col">{t.common.horizon}</th>
+                            <th scope="col" class="num">MAE</th>
+                            <th scope="col" class="num">n</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(data?.horizon ?? []).map((row) => (
+                            <tr>
+                              <th scope="row">{modelLabel(row.model, lang)}</th>
+                              <td class="nowrap">{lang === 'fi' ? `${row.bucket} vrk` : `${row.bucket} days`}</td>
+                              <td class="num">{f.decimal(row.mae)}</td>
+                              <td class="num muted">{row.n}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </TableScroll>
+                  </div>
+                ))}
+              </div>
+            </Figure>
+
+            <Figure
+              lang={lang}
+              title={t.accuracy.totalTitle}
+              level={3}
+              description={t.accuracy.totalDescription}
+              footnote={t.accuracy.totalFootnote}
+            >
+              {panel.byRun.map(({ run, data }) => {
+                const flagged = (data?.models ?? []).flatMap((model) =>
+                  [...(model.totals ?? []), ...(model.total ? [model.total] : [])].filter(
+                    (total) => total.is_thin || total.is_drifted,
+                  ),
+                );
+                if (flagged.length === 0) return null;
+                return (
+                  <div data-run={run.run_id} hidden={!isDefault(run)} class="mb-4">
+                    <Callout tone="warning" title={t.accuracy.totalWarningTitle}>
+                      <p>
+                        {flagged.some((total) => total.is_thin) && `${t.accuracy.totalWarningThin} `}
+                        {flagged.some((total) => total.is_drifted) && `${t.accuracy.totalWarningDrifted} `}
+                        {t.accuracy.totalWarningBody}
+                      </p>
+                    </Callout>
+                  </div>
+                );
+              })}
+              <AccuracyTotals
+                client:visible
+                lang={lang}
+                ariaLabel={t.accuracy.totalAria(panel.venue.name)}
+                defaultRun={defaultRun}
+                runs={panel.totals}
+                missingLabel={t.accuracy.seriesMissing}
+                forecastLabel={strings.accuracyForecast}
+                actualLabel={strings.actual}
+                intervalLabel={t.accuracy.colTotalInterval}
+                placeholderHeight={280}
+              />
+              <div slot="alternative">
+                {panel.byRun.map(({ run, data }) => (
+                  <div data-run={run.run_id} hidden={!isDefault(run)}>
+                    <TableScroll label={t.accuracy.totalCaption(panel.venue.name)} scrollY={false}>
+                      <table class="data-table">
+                        <caption>{t.accuracy.totalCaption(panel.venue.name)}</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">{t.accuracy.colTestPeriod}</th>
+                            <th scope="col" class="num">{t.accuracy.colForecast}</th>
+                            <th scope="col" class="num">{t.accuracy.colActual}</th>
+                            <th scope="col" class="num">{t.accuracy.colDifference}</th>
+                            <th scope="col" class="num">{t.accuracy.colTotalInterval}</th>
+                            <th scope="col">{t.accuracy.colNote}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(data?.models ?? []).flatMap((model) =>
+                            [...(model.totals ?? []), ...(model.total ? [model.total] : [])].map((total) => (
+                              <tr>
+                                <th scope="row" class="nowrap">
+                                  {total.label === undefined ? periodLabel(run, f) : windowLabel(total.label, f)}
+                                </th>
+                                <td class="num">{f.int(total.predicted)}</td>
+                                <td class="num">{f.int(total.actual)}</td>
+                                <td class="num">{f.signedPct(total.difference_pct)}</td>
+                                <td class="num nowrap">
+                                  {f.int(total.p10)} - {f.int(total.p90)}
+                                </td>
+                                <td class:list={[(total.is_thin || total.is_drifted) && 'warn']}>
+                                  {total.is_thin || total.is_drifted
+                                    ? strings.accuracyIntervalUnreliable
+                                    : ''}
+                                </td>
+                              </tr>
+                            )),
+                          )}
+                        </tbody>
+                      </table>
+                    </TableScroll>
+                  </div>
+                ))}
+              </div>
+            </Figure>
+
+            <Figure
+              lang={lang}
+              title={t.accuracy.calibrationTitle}
+              level={3}
+              description={t.accuracy.calibrationDescription}
+              footnote={t.accuracy.calibrationFootnote}
+            >
+              <AccuracyIntervals
+                client:visible
+                lang={lang}
+                ariaLabel={t.accuracy.calibrationAria(panel.venue.name)}
+                defaultRun={defaultRun}
+                runs={panel.calibration}
+                missingLabel={t.accuracy.seriesMissing}
+                axisLabel={strings.accuracyCoverage}
+                placeholderHeight={240}
+              />
+              <div slot="alternative">
+                {panel.byRun.map(({ run }) => (
+                  <div data-run={run.run_id} hidden={!isDefault(run)}>
+                    <TableScroll label={t.accuracy.calibrationCaption(panel.venue.name)} scrollY={false}>
+                      <table class="data-table">
+                        <caption>{t.accuracy.calibrationCaption(panel.venue.name)}</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">{t.common.model}</th>
+                            <th scope="col">{t.accuracy.colTestPeriod}</th>
+                            <th scope="col" class="num">{t.accuracy.colCoverage}</th>
+                            <th scope="col" class="num">{t.accuracy.colInterval}</th>
+                            <th scope="col">{t.accuracy.colVerdict}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(run.kind === 'sweep'
+                            ? (run.windows ?? []).map((window) => index.get(window.run_id))
+                            : [run]
+                          )
+                            .filter((member): member is AccuracyRun => member !== undefined)
+                            .flatMap((member) =>
+                              (venueOf(member, panel.venue.venue_id)?.models ?? []).flatMap((model) =>
+                                model.calibration
+                                  ? [
+                                      <tr>
+                                        <th scope="row">{modelLabel(model.model, lang)}</th>
+                                        <td class="nowrap">{periodLabel(member, f)}</td>
+                                        <td class="num">
+                                          {f.pct(model.calibration.coverage * 100, 0)} (
+                                          {model.calibration.covered}/{model.calibration.n})
+                                        </td>
+                                        <td class="num nowrap">
+                                          {f.decimal(model.calibration.ci_low, 2)} -{' '}
+                                          {f.decimal(model.calibration.ci_high, 2)}
+                                        </td>
+                                        <td
+                                          class:list={[model.calibration.verdict !== 'calibrated' && 'warn']}
+                                        >
+                                          {calibrationWord(model.calibration.verdict, t)}
+                                        </td>
+                                      </tr>,
+                                    ]
+                                  : [],
+                              ),
+                            )}
+                        </tbody>
+                      </table>
+                    </TableScroll>
+                  </div>
+                ))}
+              </div>
+            </Figure>
+
+            <Figure
+              lang={lang}
+              title={t.accuracy.weatherTitle}
+              level={3}
+              description={t.accuracy.weatherDescription}
+              footnote={t.accuracy.weatherFootnote}
+            >
+              <AccuracyBars
+                client:visible
+                lang={lang}
+                ariaLabel={t.accuracy.weatherAria(panel.venue.name)}
+                defaultRun={defaultRun}
+                runs={panel.weather}
+                missingLabel={t.accuracy.seriesMissing}
+                valueLabel="MAE"
+                placeholderHeight={260}
+              />
+              <div slot="alternative">
+                {panel.byRun.map(({ run }) => (
+                  <div data-run={run.run_id} hidden={!isDefault(run)}>
+                    <TableScroll label={t.accuracy.weatherCaption(panel.venue.name)} scrollY={false}>
+                      <table class="data-table">
+                        <caption>{t.accuracy.weatherCaption(panel.venue.name)}</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">{t.common.model}</th>
+                            <th scope="col">{t.accuracy.colTestPeriod}</th>
+                            <th scope="col" class="num">{t.accuracy.weatherPerfect}</th>
+                            <th scope="col" class="num">{t.accuracy.weatherOperational}</th>
+                            <th scope="col" class="num">{t.accuracy.weatherClimatology}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(run.kind === 'sweep'
+                            ? (run.windows ?? []).map((window) => index.get(window.run_id))
+                            : [run]
+                          )
+                            .filter((member): member is AccuracyRun => member !== undefined)
+                            .flatMap((member) =>
+                              (venueOf(member, panel.venue.venue_id)?.models ?? []).flatMap((model) =>
+                                model.weather_sensitivity
+                                  ? [
+                                      <tr>
+                                        <th scope="row">{modelLabel(model.model, lang)}</th>
+                                        <td class="nowrap">{periodLabel(member, f)}</td>
+                                        <td class="num muted">
+                                          {f.decimal(model.weather_sensitivity.perfect)}
+                                        </td>
+                                        <td class="num strong">
+                                          {f.decimal(model.weather_sensitivity.operational)}
+                                        </td>
+                                        <td class="num">
+                                          {f.decimal(model.weather_sensitivity.climatology)}
+                                        </td>
+                                      </tr>,
+                                    ]
+                                  : [],
+                              ),
+                            )}
+                        </tbody>
+                      </table>
+                    </TableScroll>
+                  </div>
+                ))}
+              </div>
+            </Figure>
+
+            <section class="rounded-lg border border-line bg-surface p-4 sm:p-5">
+              <h3 class="text-base font-semibold tracking-tight text-ink">{t.accuracy.metricsTitle}</h3>
+              <p class="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">{t.accuracy.metricsLead}</p>
+              {panel.byRun.map(({ run, data }) => (
+                <div data-run={run.run_id} hidden={!isDefault(run)} class="mt-4">
+                  <TableScroll label={t.accuracy.metricsCaption(panel.venue.name)} scrollY={false}>
+                    <table class="data-table">
+                      <caption>{t.accuracy.metricsCaption(panel.venue.name)}</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">{t.common.model}</th>
+                          <th scope="col" class="num">MAE</th>
+                          <th scope="col" class="num">RMSE</th>
+                          <th scope="col" class="num">MASE</th>
+                          <th scope="col" class="num">{t.quality.bias}</th>
+                          <th scope="col" class="num">{t.accuracy.colPinball}</th>
+                          <th scope="col" class="num">{t.accuracy.colCoverage}</th>
+                          <th scope="col" class="num">{t.accuracy.colSmape}</th>
+                          <th scope="col" class="num">n</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(data?.metrics ?? []).map((row) => (
+                          <tr>
+                            <th scope="row">{modelLabel(row.model, lang)}</th>
+                            <td class="num strong">{f.decimal(row.mae)}</td>
+                            <td class="num">{f.decimal(row.rmse)}</td>
+                            <td class="num">{row.mase === null ? f.missing() : f.decimal(row.mase, 3)}</td>
+                            <td class="num">{signed(row.bias, f)}</td>
+                            <td class="num nowrap">
+                              {f.decimal(row.pinball_q10)} / {f.decimal(row.pinball_q50)} /{' '}
+                              {f.decimal(row.pinball_q90)}
+                            </td>
+                            <td class:list={['num', row.coverage_80 < 0.7 && 'warn']}>
+                              {f.pct(row.coverage_80 * 100, 0)}
+                            </td>
+                            <td class:list={['num', !row.smape_reliable && 'warn']}>
+                              {f.pct(row.smape)}
+                              {!row.smape_reliable && (
+                                <span> ({t.accuracy.smapeUnreliableShort})</span>
+                              )}
+                            </td>
+                            <td class="num muted">{row.n}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </TableScroll>
+                  {(data?.metrics ?? []).some((row) => !row.smape_reliable) && (
+                    <p class="mt-2 text-xs leading-5 text-ink-muted">
+                      {t.accuracy.smapeUnreliable}{' '}
+                      {t.accuracy.zeroDays(
+                        f.int(Math.max(...(data?.metrics ?? []).map((row) => row.zero_days), 0)),
+                      )}
+                      .
+                    </p>
+                  )}
+                </div>
+              ))}
+            </section>
+          </section>
+        ))}
+      </Fragment>
+    )
+  }
+
+  <section aria-labelledby="rajoitteet" class="mt-8">
+    <h2 id="rajoitteet" class="text-lg font-semibold tracking-tight text-ink">{t.accuracy.limitsHeading}</h2>
+    <p class="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">{t.accuracy.limitsLead}</p>
+    <ol class="mt-4 list-decimal space-y-3 pl-6 text-sm leading-6 text-ink-muted">
+      <li>
+        <strong class="text-ink">{t.accuracy.limitSingleWindowStrong}</strong>{' '}
+        {t.accuracy.limitSingleWindowBody}
+      </li>
+      <li>
+        <strong class="text-ink">{t.accuracy.limitNoDifferenceStrong}</strong>{' '}
+        {t.accuracy.limitNoDifferenceBody}
+      </li>
+      <li>
+        <strong class="text-ink">{t.accuracy.limitPerfectStrong}</strong> {t.accuracy.limitPerfectBody}
+      </li>
+      <li>
+        <strong class="text-ink">{t.accuracy.limitTotalStrong}</strong> {t.accuracy.limitTotalBody}
+      </li>
+      <li>
+        <strong class="text-ink">{t.accuracy.limitSmapeStrong}</strong> {t.accuracy.limitSmapeBody}
+      </li>
+      <li>
+        <strong class="text-ink">{t.accuracy.limitYearlyStrong}</strong> {t.accuracy.limitYearlyBody}
+      </li>
+    </ol>
+    <p class="mt-3 text-xs leading-5 text-ink-muted">{t.accuracy.limitsSource}</p>
+  </section>
+</Layout>
+
+<script>
+  /**
+   * Ajovalitsin. Valittu ajo asuu osoitteen hash-osassa, jotta yksittaisen ajon voi
+   * jakaa linkkina, ja juurielementin data-attribuutissa, josta kaaviosaarekkeet
+   * lukevat sen myos silloin kun ne heraavat vasta myohemmin.
+   */
+  import { RUN_DATASET_KEY, RUN_EVENT, runFromHash } from '../lib/runstate.ts';
+
+  const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-run-link]'));
+  const panels = Array.from(document.querySelectorAll<HTMLElement>('[data-run]'));
+  const known = new Set(links.map((link) => link.dataset['runLink'] ?? ''));
+  const fallback =
+    document.querySelector<HTMLElement>('[data-run-default]')?.dataset['runDefault'] ?? '';
+
+  function apply(run: string): void {
+    if (run === '') return;
+    document.documentElement.dataset[RUN_DATASET_KEY] = run;
+    for (const panel of panels) panel.hidden = panel.dataset['run'] !== run;
+    for (const link of links) {
+      link.setAttribute('aria-current', link.dataset['runLink'] === run ? 'true' : 'false');
+    }
+    document.dispatchEvent(new CustomEvent(RUN_EVENT, { detail: { run } }));
+  }
+
+  function fromLocation(): string {
+    const run = runFromHash(window.location.hash);
+    return run !== null && known.has(run) ? run : fallback;
+  }
+
+  if (links.length > 0) {
+    apply(fromLocation());
+
+    for (const link of links) {
+      link.addEventListener('click', (event) => {
+        const run = link.dataset['runLink'];
+        if (run === undefined || run === '') return;
+        event.preventDefault();
+        const hash = `#run=${encodeURIComponent(run)}`;
+        if (window.location.hash !== hash) {
+          window.history.pushState(null, '', hash);
+        }
+        apply(run);
+      });
+    }
+
+    window.addEventListener('hashchange', () => apply(fromLocation()));
+    window.addEventListener('popstate', () => apply(fromLocation()));
+  }
+</script>

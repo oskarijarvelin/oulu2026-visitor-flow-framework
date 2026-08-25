@@ -123,7 +123,7 @@ describe('osoitteet', () => {
   });
 
   it('ovat kaannettavissa molempiin suuntiin', () => {
-    for (const path of ['/', '/venue/1', '/venue/2', '/weather', '/forecast', '/quality', '/about']) {
+    for (const path of ['/', '/venue/1', '/venue/2', '/weather', '/forecast', '/quality', '/accuracy', '/about']) {
       for (const lang of LANGS) {
         const localized = localizedPath(path, lang);
         expect(langFromPath(localized)).toBe(lang);

@@ -7,22 +7,45 @@
  * epaonnistunut build kuin sivusto joka nayttaa vanhaa dataa oikeana.
  */
 
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { BuildDataError, bool, int, num, optionalNum, optionalStr, str, type Row } from './lib/csv.ts';
-import { CONFIG_DIR, FORECAST_DIR, OUT_DIR, PROCESSED_DIR } from './lib/paths.ts';
+import { CONFIG_DIR, EVALUATIONS_DIR, FORECAST_DIR, OUT_DIR, PROCESSED_DIR } from './lib/paths.ts';
 import { addDays, localDate } from '../src/lib/dates.ts';
 import { RAINY_HOUR_MM, WEATHER_GROUP_ORDER, weatherGroup, weatherGroupFromLabel } from '../src/lib/weather.ts';
 import { readJson, readTable, requireDirectory } from './lib/read.ts';
 import {
+  EVALUATION_INDEX_KEYS,
+  EVALUATION_RUN_KEYS,
   FORECAST_MANIFEST_KEYS,
   FORECAST_SCHEMA,
   INGEST_MANIFEST_KEYS,
   METRICS_KEYS,
+  PREDICTIONS_SCHEMA,
   PROCESSED_SCHEMA,
+  VERDICTS_KEYS,
+  VERDICT_COMPARISON_KEYS,
+  VERDICT_POOLED_KEYS,
+  VERDICT_SWEEP_MODEL_KEYS,
+  VERDICT_WINDOW_MODEL_KEYS,
+  VERDICT_WINDOW_VENUE_KEYS,
+  assertEvaluationVersion,
   assertKeys,
 } from './lib/schema.ts';
+import {
+  HORIZON_BUCKETS,
+  buildSeries,
+  count1,
+  horizonRows,
+  modelMetrics,
+  selectSeriesRuns,
+  share3,
+  sortRuns,
+  worstDays,
+  type PredictionRow,
+  type RunRef,
+} from './lib/accuracy.ts';
 import {
   buildProfileCells,
   changePct,
@@ -41,6 +64,19 @@ import {
   summarisePeriod,
 } from './lib/transform.ts';
 import type {
+  AccuracyBias,
+  AccuracyCalibration,
+  AccuracyComparison,
+  AccuracyData,
+  AccuracyModel,
+  AccuracyPerWindow,
+  AccuracyPooled,
+  AccuracyRun,
+  AccuracyTotal,
+  AccuracyVenue,
+  AccuracyWeatherSensitivity,
+  AccuracyWindow,
+  AccuracyWindowRef,
   BacktestColumns,
   BacktestRow,
   DailyColumns,
@@ -59,8 +95,10 @@ import type {
   SourceStatus,
   TrafficDailyRow,
   VenueForecast,
+  Verdict,
   VenueQuality,
   VenueSummary,
+  WeatherMode,
   WeatherSource,
 } from '../src/lib/types.ts';
 
@@ -74,6 +112,8 @@ const HOURLY_DAYS = Number(process.env.OVF_HOURLY_DAYS ?? 120);
 const PRODUCTION_MODEL = 'baseline';
 /** Backtestin rivitason sarja rajataan paamalleihin; vertailukohdat jaavat koosteisiin. */
 const BACKTEST_ROW_MODELS = new Set(['baseline', 'prophet_xgb']);
+/** Arvioinnin vertailukohdat esitysjarjestyksessa. Sama jarjestys kuin docs/EVALUATION.md luvussa 6. */
+const EVALUATION_BASELINES = ['seasonal_naive', 'moving_average_28d', 'climatology_dow'];
 
 // --- Konfiguraatio ---------------------------------------------------------
 
@@ -464,6 +504,15 @@ function main(): void {
     traffic: buildTrafficSummary(traffic.rows),
   };
 
+  // Pyhapaivat paivamaaran mukaan: arviointisivu merkitsee ne aikasarjaan ja
+  // pahiten menneiden paivien taulukkoon.
+  const holidayNames: Record<string, string> = {};
+  for (const row of calendar.rows) {
+    if (!bool(row, 'is_holiday')) continue;
+    holidayNames[str(row, 'date')] = optionalStr(row, 'holiday_name') ?? 'Pyhäpäivä';
+  }
+  const accuracy = buildAccuracy(holidayNames);
+
   mkdirSync(OUT_DIR, { recursive: true });
   const written = [
     write('meta.json', meta),
@@ -472,10 +521,15 @@ function main(): void {
     write('profile.json', profile),
     write('forecast.json', forecast),
     write('quality.json', quality),
+    write('accuracy.json', accuracy),
   ];
 
   const total = written.reduce((acc, entry) => acc + entry.bytes, 0);
-  process.stdout.write(`build-data: ${venues.length} venueta, ingest ${ingest.age_hours} h vanha\n`);
+  const evaluations =
+    accuracy.runs.length === 0 ? 'ei arviointiajoja' : `${accuracy.runs.length} arviointiajoa`;
+  process.stdout.write(
+    `build-data: ${venues.length} venueta, ingest ${ingest.age_hours} h vanha, ${evaluations}\n`,
+  );
   for (const entry of written) {
     process.stdout.write(`  ${entry.file.padEnd(14)} ${(entry.bytes / 1024).toFixed(1).padStart(7)} kB\n`);
   }
@@ -727,6 +781,471 @@ function buildVenueQuality(venueId: number): VenueQuality {
       ),
     ),
     mae_by_horizon: maeCurves,
+  };
+}
+
+
+// --- Arviointiajot ---------------------------------------------------------
+
+/** Yhden ajon luetut tiedostot ennen muunnosta. */
+interface RawEvaluationRun {
+  entry: Record<string, unknown>;
+  verdicts: Record<string, unknown>;
+  /** Ajon paasaan tilan rivit venuen mukaan. Kooste ei kirjoita omia rivejaan. */
+  predictions: Map<string, PredictionRow[]>;
+  /** MASE-nimittaja venuelta. Ei ole `predictions.csv`-tiedostossa. */
+  maseDenominator: Map<string, number>;
+  ref: RunRef;
+}
+
+function evaluationPath(runId: string, file: string): string {
+  return resolve(EVALUATIONS_DIR, runId, file);
+}
+
+function relativeEvaluationPath(runId: string, file: string): string {
+  return `data/evaluations/${runId}/${file}`;
+}
+
+/**
+ * Lukee ajon `predictions.csv`-tiedoston ja rajaa sen ajon paasaan tilaan.
+ *
+ * Muut kaksi tilaa ovat ylaraja ja alaraja, eivat tulos, ja niiden ottaminen mukaan
+ * kolminkertaistaisi paketin koon. Sään kolme tilaa nakyvat sivulla `verdicts.json`:in
+ * `weather_sensitivity`-kentasta.
+ */
+function readPredictions(runId: string, weatherMode: string): Map<string, PredictionRow[]> {
+  const path = evaluationPath(runId, 'predictions.csv');
+  const byVenue = new Map<string, PredictionRow[]>();
+  if (!existsSync(path)) return byVenue;
+
+  const table = readTable(path, PREDICTIONS_SCHEMA);
+  for (const row of table.rows) {
+    if (str(row, 'weather_mode') !== weatherMode) continue;
+    const key = str(row, 'venue_id');
+    const parsed: PredictionRow = {
+      venue_id: int(row, 'venue_id'),
+      date: str(row, 'date'),
+      horizon_days: int(row, 'horizon_days'),
+      model: str(row, 'model'),
+      weather_mode: str(row, 'weather_mode'),
+      y_true: num(row, 'y_true'),
+      p10: num(row, 'p10'),
+      p50: num(row, 'p50'),
+      p90: num(row, 'p90'),
+    };
+    const bucket = byVenue.get(key);
+    if (bucket) bucket.push(parsed);
+    else byVenue.set(key, [parsed]);
+  }
+  for (const rows of byVenue.values()) {
+    rows.sort((a, b) => a.date.localeCompare(b.date) || a.model.localeCompare(b.model));
+  }
+  return byVenue;
+}
+
+/**
+ * MASE-nimittaja venueittain. `metrics.json` on ainoa paikka jossa koulutusdatan
+ * seasonal naive -MAE on; ilman sita MASE jaa taulukossa tyhjaksi.
+ */
+function readMaseDenominators(runId: string): Map<string, number> {
+  const path = evaluationPath(runId, 'metrics.json');
+  const out = new Map<string, number>();
+  if (!existsSync(path)) return out;
+  const metrics = assertEvaluationVersion(
+    readJson(path, `Ajon ${runId} metrics.json`),
+    runId,
+    relativeEvaluationPath(runId, 'metrics.json'),
+  );
+  const venues = Array.isArray(metrics['venues']) ? (metrics['venues'] as Record<string, unknown>[]) : [];
+  for (const venue of venues) {
+    const diagnostics = venue['diagnostics'] as Record<string, unknown> | undefined;
+    const value = diagnostics?.['mase_denominator'];
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+      out.set(String(venue['venue_id']), value);
+    }
+  }
+  return out;
+}
+
+function asRecord(value: unknown, what: string): Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new BuildDataError(`${what} ei ole JSON-objekti.`);
+  }
+  return value as Record<string, unknown>;
+}
+
+function asArray(value: unknown, what: string): Record<string, unknown>[] {
+  if (!Array.isArray(value)) throw new BuildDataError(`${what} ei ole taulukko.`);
+  return value.map((entry, index) => asRecord(entry, `${what}[${index}]`));
+}
+
+function numberAt(record: Record<string, unknown>, key: string): number {
+  const value = record[key];
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new BuildDataError(`Arviointidatan kentta ${key} ei ole luku: ${JSON.stringify(value)}`);
+  }
+  return value;
+}
+
+function verdictAt(record: Record<string, unknown>, key: string): Verdict {
+  const value = String(record[key]);
+  if (value !== 'better' && value !== 'no_difference' && value !== 'worse') {
+    throw new BuildDataError(`Tuntematon verdikti "${value}". Odotettu better, no_difference tai worse.`);
+  }
+  return value;
+}
+
+function toWindow(record: Record<string, unknown>): AccuracyWindow {
+  return {
+    origin: String(record['origin']),
+    test_start: String(record['test_start']),
+    test_end: String(record['test_end']),
+    horizon_days: numberAt(record, 'horizon_days'),
+    train_window: String(record['train_window']),
+  };
+}
+
+function toComparison(record: Record<string, unknown>, runId: string): AccuracyComparison {
+  assertKeys(record, VERDICT_COMPARISON_KEYS, relativeEvaluationPath(runId, 'verdicts.json'));
+  return {
+    reference: String(record['reference']),
+    n: numberAt(record, 'n'),
+    mean_difference: count1(numberAt(record, 'mean_difference')),
+    ci_low: count1(numberAt(record, 'ci_low')),
+    ci_high: count1(numberAt(record, 'ci_high')),
+    verdict: verdictAt(record, 'verdict'),
+    model_mae: count1(numberAt(record, 'model_mae')),
+    reference_mae: count1(numberAt(record, 'reference_mae')),
+    skill_score: share3(numberAt(record, 'skill_score')),
+    skill_ci_low: share3(numberAt(record, 'skill_ci_low')),
+    skill_ci_high: share3(numberAt(record, 'skill_ci_high')),
+    mde: count1(numberAt(record, 'mde')),
+    mde_pct: count1(numberAt(record, 'mde_pct')),
+    dm_statistic: share3(numberAt(record, 'dm_statistic')),
+    dm_p_value: share3(numberAt(record, 'dm_p_value')),
+    dm_lag: numberAt(record, 'dm_lag'),
+  };
+}
+
+function toBias(record: Record<string, unknown>): AccuracyBias {
+  return {
+    mean_error: count1(numberAt(record, 'mean_error')),
+    ci_low: count1(numberAt(record, 'ci_low')),
+    ci_high: count1(numberAt(record, 'ci_high')),
+    verdict: String(record['verdict']),
+    mean_actual: count1(numberAt(record, 'mean_actual')),
+    pct_of_actual: count1(numberAt(record, 'pct_of_actual')),
+  };
+}
+
+function toCalibration(record: Record<string, unknown>): AccuracyCalibration {
+  return {
+    covered: numberAt(record, 'covered'),
+    n: numberAt(record, 'n'),
+    coverage: share3(numberAt(record, 'coverage')),
+    ci_low: share3(numberAt(record, 'ci_low')),
+    ci_high: share3(numberAt(record, 'ci_high')),
+    target: share3(numberAt(record, 'target')),
+    verdict: String(record['verdict']),
+  };
+}
+
+function toTotal(record: Record<string, unknown>): AccuracyTotal {
+  const label = record['label'];
+  return {
+    ...(typeof label === 'string' ? { label } : {}),
+    predicted: count1(numberAt(record, 'predicted')),
+    actual: count1(numberAt(record, 'actual')),
+    difference: count1(numberAt(record, 'difference')),
+    difference_pct: count1(numberAt(record, 'difference_pct')),
+    p10: count1(numberAt(record, 'p10')),
+    p90: count1(numberAt(record, 'p90')),
+    covers_actual: record['covers_actual'] === true,
+    summed_daily_p10: count1(numberAt(record, 'summed_daily_p10')),
+    summed_daily_p90: count1(numberAt(record, 'summed_daily_p90')),
+    n_ratio_samples: numberAt(record, 'n_ratio_samples'),
+    is_thin: record['is_thin'] === true,
+    median_ratio: share3(numberAt(record, 'median_ratio')),
+    is_drifted: record['is_drifted'] === true,
+  };
+}
+
+function toWeatherSensitivity(record: Record<string, unknown>): AccuracyWeatherSensitivity {
+  return {
+    perfect: count1(numberAt(record, 'perfect')),
+    operational: count1(numberAt(record, 'operational')),
+    climatology: count1(numberAt(record, 'climatology')),
+    gap: count1(numberAt(record, 'gap')),
+    gap_pct: count1(numberAt(record, 'gap_pct')),
+  };
+}
+
+function toPooled(record: Record<string, unknown>, runId: string): AccuracyPooled {
+  assertKeys(record, VERDICT_POOLED_KEYS, relativeEvaluationPath(runId, 'verdicts.json'));
+  return {
+    reference: String(record['reference']),
+    n_windows: numberAt(record, 'n_windows'),
+    n_days: numberAt(record, 'n_days'),
+    mean_difference: count1(numberAt(record, 'mean_difference')),
+    ci_low: count1(numberAt(record, 'ci_low')),
+    ci_high: count1(numberAt(record, 'ci_high')),
+    verdict: verdictAt(record, 'verdict'),
+    windows_favouring: numberAt(record, 'windows_favouring'),
+    windows_opposing: numberAt(record, 'windows_opposing'),
+    windows_neutral: numberAt(record, 'windows_neutral'),
+    mde: count1(numberAt(record, 'mde')),
+    mde_pct: count1(numberAt(record, 'mde_pct')),
+    reference_mae: count1(numberAt(record, 'reference_mae')),
+  };
+}
+
+function toPerWindow(record: Record<string, unknown>, windows: AccuracyWindowRef[]): AccuracyPerWindow {
+  const origin = String(record['origin']);
+  const match = windows.find((window) => window.origin === origin);
+  return {
+    label: String(record['label']),
+    origin,
+    ...(match ? { run_id: match.run_id } : {}),
+    reference: String(record['reference']),
+    model_mae: count1(numberAt(record, 'model_mae')),
+    reference_mae: count1(numberAt(record, 'reference_mae')),
+    mean_difference: count1(numberAt(record, 'mean_difference')),
+    ci_low: count1(numberAt(record, 'ci_low')),
+    ci_high: count1(numberAt(record, 'ci_high')),
+    verdict: verdictAt(record, 'verdict'),
+    mde: count1(numberAt(record, 'mde')),
+    mde_pct: count1(numberAt(record, 'mde_pct')),
+    raw_p_value: share3(numberAt(record, 'raw_p_value')),
+    holm_p_value: share3(numberAt(record, 'holm_p_value')),
+  };
+}
+
+
+/**
+ * Paketoi `data/evaluations/` sivuston luettavaksi.
+ *
+ * Arviointi on valinnainen tyovaihe, toisin kuin ingest ja forecast: puuttuva tai tyhja
+ * hakemisto tuottaa tyhjan `runs`-listan eika kaada buildia. Skeeman versio sen sijaan
+ * tarkistetaan, koska tuntemattoman version hiljainen renderointi olisi pahempi kuin
+ * epaonnistunut build.
+ */
+function buildAccuracy(holidays: Record<string, string>): AccuracyData {
+  const empty: AccuracyData = { runs: [], default_run: null, horizon_buckets: [...HORIZON_BUCKETS] };
+  const indexPath = resolve(EVALUATIONS_DIR, 'index.json');
+  if (!existsSync(EVALUATIONS_DIR) || !existsSync(indexPath)) return empty;
+
+  const index = assertEvaluationVersion(
+    readJson(indexPath, 'Arviointien rekisteri'),
+    '(rekisteri)',
+    'data/evaluations/index.json',
+  );
+  assertKeys(index, EVALUATION_INDEX_KEYS, 'data/evaluations/index.json');
+  const entries = asArray(index['runs'], 'data/evaluations/index.json runs');
+  if (entries.length === 0) return empty;
+
+  // Ensimmainen kierros lukee tiedostot, toinen rakentaa. Kooste piirretaan
+  // jasenajojensa riveista, joten ne on oltava luettuina ennen koosteen rakentamista.
+  const raw = new Map<string, RawEvaluationRun>();
+  for (const entry of entries) {
+    assertKeys(entry, EVALUATION_RUN_KEYS, 'data/evaluations/index.json');
+    const runId = String(entry['run_id']);
+    const verdictsFile = relativeEvaluationPath(runId, 'verdicts.json');
+    const verdicts = assertEvaluationVersion(
+      readJson(evaluationPath(runId, 'verdicts.json'), `Ajon ${runId} verdicts.json`),
+      runId,
+      verdictsFile,
+    );
+    assertKeys(verdicts, VERDICTS_KEYS, verdictsFile);
+
+    const kind = String(entry['kind']) === 'sweep' ? 'sweep' : 'window';
+    const members = Array.isArray(entry['members']) ? (entry['members'] as unknown[]).map(String) : [];
+    const window = entry['window'] === null ? null : toWindow(asRecord(entry['window'], 'window'));
+    const lastDay = window ? window.test_end : String(verdicts['last_day'] ?? '');
+
+    raw.set(runId, {
+      entry,
+      verdicts,
+      predictions: readPredictions(runId, String(entry['primary_weather_mode'])),
+      maseDenominator: readMaseDenominators(runId),
+      ref: { run_id: runId, kind, created_at: String(entry['created_at']), members, last_day: lastDay },
+    });
+  }
+
+  const keepSeries = selectSeriesRuns([...raw.values()].map((run) => run.ref));
+  const runs = sortRuns([...raw.values()].map((run) => run.ref)).map((ref) =>
+    buildAccuracyRun(raw.get(ref.run_id)!, raw, keepSeries.has(ref.run_id), holidays),
+  );
+
+  return { runs, default_run: runs[0]?.run_id ?? null, horizon_buckets: [...HORIZON_BUCKETS] };
+}
+
+function buildAccuracyRun(
+  run: RawEvaluationRun,
+  raw: Map<string, RawEvaluationRun>,
+  keepSeries: boolean,
+  holidays: Record<string, string>,
+): AccuracyRun {
+  const { entry, verdicts, ref } = run;
+  const runId = ref.run_id;
+  const isSweep = ref.kind === 'sweep';
+  const mainModels = Array.isArray(entry['models']) ? (entry['models'] as unknown[]).map(String) : [];
+  const window = entry['window'] === null ? undefined : toWindow(asRecord(entry['window'], 'window'));
+
+  const windows: AccuracyWindowRef[] = Array.isArray(verdicts['windows'])
+    ? asArray(verdicts['windows'], 'windows').map((record) => ({
+        run_id: String(record['run_id']),
+        ...toWindow(record),
+      }))
+    : [];
+
+  // Koosteella ei ole omia ennusterivejaan: se lukee jasenikkunoidensa rivit. Sama
+  // paiva voi esiintya kahdessa ikkunassa vain liukuvassa sweepissa, ja silloin
+  // ensimmainen esiintyma voittaa, jotta aikajana pysyy yksikasitteisena.
+  const predictionsByVenue = new Map<string, PredictionRow[]>();
+  const memberIds = isSweep ? (windows.length > 0 ? windows.map((w) => w.run_id) : ref.members) : [runId];
+  for (const memberId of memberIds) {
+    const member = raw.get(memberId);
+    if (!member) continue;
+    for (const [venueKey, rows] of member.predictions) {
+      const bucket = predictionsByVenue.get(venueKey) ?? [];
+      bucket.push(...rows);
+      predictionsByVenue.set(venueKey, bucket);
+    }
+  }
+  for (const [venueKey, rows] of predictionsByVenue) {
+    const seen = new Set<string>();
+    const unique = rows.filter((row) => {
+      const key = `${row.model}|${row.date}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    unique.sort((a, b) => a.date.localeCompare(b.date) || a.model.localeCompare(b.model));
+    predictionsByVenue.set(venueKey, unique);
+  }
+
+  const venues = asArray(verdicts['venues'], `${runId} venues`).map((venue) =>
+    buildAccuracyVenue(venue, {
+      runId,
+      isSweep,
+      mainModels,
+      windows,
+      rows: predictionsByVenue.get(String(venue['venue_id'])) ?? [],
+      maseDenominator: run.maseDenominator.get(String(venue['venue_id'])) ?? null,
+      holidays,
+    }),
+  );
+
+  const series: Record<string, ReturnType<typeof buildSeries>> = {};
+  // Koosteen sarjaa ei tallenneta erikseen: se on jasentensa sarjojen jatko, ja
+  // kahdentaminen kaksinkertaistaisi paketin painavimman osan.
+  if (keepSeries && !isSweep) {
+    for (const [venueKey, rows] of predictionsByVenue) {
+      series[venueKey] = buildSeries(rows, mainModels, holidays);
+    }
+  }
+
+  return {
+    run_id: runId,
+    kind: ref.kind,
+    created_at: ref.created_at,
+    models: mainModels,
+    reference_rule: String(entry['reference_rule']),
+    primary_weather_mode: String(entry['primary_weather_mode']) as WeatherMode,
+    family_size: Number(verdicts['family_size'] ?? 0),
+    summary_fi: String(verdicts['summary_fi'] ?? ''),
+    first_day: window ? window.test_start : String(verdicts['first_day'] ?? ''),
+    last_day: window ? window.test_end : String(verdicts['last_day'] ?? ''),
+    ...(window ? { window } : {}),
+    ...(isSweep ? { sweep: String(entry['sweep'] ?? '') } : {}),
+    ...(windows.length > 0 ? { windows } : {}),
+    members: isSweep ? memberIds : [],
+    venues,
+    ...(Object.keys(series).length > 0 ? { series } : {}),
+  };
+}
+
+interface VenueContext {
+  runId: string;
+  isSweep: boolean;
+  mainModels: string[];
+  windows: AccuracyWindowRef[];
+  rows: PredictionRow[];
+  maseDenominator: number | null;
+  holidays: Record<string, string>;
+}
+
+function buildAccuracyVenue(venue: Record<string, unknown>, context: VenueContext): AccuracyVenue {
+  const { runId, isSweep, mainModels, windows, rows, holidays } = context;
+  const file = relativeEvaluationPath(runId, 'verdicts.json');
+
+  const models: AccuracyModel[] = asArray(venue['models'], `${runId} models`).map((model) => {
+    const name = String(model['model']);
+    if (isSweep) {
+      assertKeys(model, VERDICT_SWEEP_MODEL_KEYS, file);
+      return {
+        model: name,
+        pooled: toPooled(asRecord(model['pooled'], 'pooled'), runId),
+        per_window: asArray(model['per_window'], 'per_window').map((record) =>
+          toPerWindow(record, windows),
+        ),
+        totals: asArray(model['totals'], 'totals').map(toTotal),
+      };
+    }
+    assertKeys(model, VERDICT_WINDOW_MODEL_KEYS, file);
+    return {
+      model: name,
+      comparison: toComparison(asRecord(model['comparison'], 'comparison'), runId),
+      bias: toBias(asRecord(model['bias'], 'bias')),
+      calibration: toCalibration(asRecord(model['calibration'], 'calibration')),
+      total: toTotal(asRecord(model['total'], 'total')),
+      weather_sensitivity: toWeatherSensitivity(asRecord(model['weather_sensitivity'], 'weather_sensitivity')),
+      raw_p_value: share3(numberAt(model, 'raw_p_value')),
+      holm_p_value: share3(numberAt(model, 'holm_p_value')),
+    };
+  });
+
+  if (!isSweep) assertKeys(venue, VERDICT_WINDOW_VENUE_KEYS, file);
+
+  // Mallit ensin, sitten vertailukohdat kiinteassa jarjestyksessa. Sama jarjestys
+  // taulukoissa ja kuvaajissa, jotta rivit vastaavat toisiaan sivulta toiselle.
+  const present = new Set(rows.map((row) => row.model));
+  const order = [
+    ...mainModels.filter((model) => present.has(model)),
+    ...EVALUATION_BASELINES.filter((model) => present.has(model)),
+  ];
+  const byModel = new Map<string, PredictionRow[]>();
+  for (const row of rows) {
+    const bucket = byModel.get(row.model);
+    if (bucket) bucket.push(row);
+    else byModel.set(row.model, [row]);
+  }
+
+  const baselineMae = venue['baseline_mae'];
+  const primaryModel = order[0];
+
+  return {
+    venue_id: Number(venue['venue_id']),
+    venue_name: String(venue['venue_name']),
+    reference: String(venue['reference'] ?? models[0]?.pooled?.reference ?? ''),
+    ...(typeof baselineMae === 'object' && baselineMae !== null
+      ? {
+          baseline_mae: Object.fromEntries(
+            Object.entries(baselineMae as Record<string, number>).map(([model, value]) => [
+              model,
+              count1(Number(value)),
+            ]),
+          ),
+        }
+      : {}),
+    models,
+    // MASE tarvitsee koulutusdatan nimittajan, joka on ikkunakohtainen. Koosteessa
+    // ikkunoita on monta eika yhta oikeaa nimittajaa ole, joten se jaa tyhjaksi.
+    metrics: order.map((model) =>
+      modelMetrics(model, byModel.get(model) ?? [], isSweep ? null : context.maseDenominator),
+    ),
+    horizon: horizonRows(rows, order),
+    worst_days: primaryModel === undefined ? [] : worstDays(byModel.get(primaryModel) ?? [], holidays),
   };
 }
 

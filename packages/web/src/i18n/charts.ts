@@ -67,6 +67,18 @@ export interface ChartStrings {
   backtestOutside: string;
 
   capacityReference: string;
+
+  referencesLabel: string;
+  referencesNone: string;
+  referencesAll: string;
+  accuracyDifference: string;
+  accuracyCoverage: string;
+  accuracyMae: string;
+  accuracyForecast: string;
+  accuracyZero: string;
+  accuracyTotalTip: (predicted: string, actual: string) => string;
+  accuracyIntervalUnreliable: string;
+  accuracyErrorTip: (value: string) => string;
 }
 
 const FI: ChartStrings = {
@@ -133,6 +145,18 @@ const FI: ChartStrings = {
   backtestOutside: 'Toteuma välin ulkopuolella',
 
   capacityReference: 'Kapasiteetti',
+
+  referencesLabel: 'Vertailukohdat',
+  referencesNone: 'Piilossa',
+  referencesAll: 'Kaikki',
+  accuracyDifference: 'Keskiero, kävijätapahtumaa vuorokaudessa',
+  accuracyCoverage: 'Peittävyys',
+  accuracyMae: 'MAE, kävijätapahtumaa vuorokaudessa',
+  accuracyForecast: 'Ennuste',
+  accuracyZero: 'Ei eroa',
+  accuracyTotalTip: (predicted, actual) => `Ennuste ${predicted}, toteuma ${actual}`,
+  accuracyIntervalUnreliable: 'Väli ei ole kalibroitu',
+  accuracyErrorTip: (value) => `Virhe ${value}`,
 };
 
 const EN: ChartStrings = {
@@ -199,6 +223,18 @@ const EN: ChartStrings = {
   backtestOutside: 'Actual outside the interval',
 
   capacityReference: 'Capacity',
+
+  referencesLabel: 'References',
+  referencesNone: 'Hidden',
+  referencesAll: 'All',
+  accuracyDifference: 'Mean difference, visitor events per day',
+  accuracyCoverage: 'Coverage',
+  accuracyMae: 'MAE, visitor events per day',
+  accuracyForecast: 'Forecast',
+  accuracyZero: 'No difference',
+  accuracyTotalTip: (predicted, actual) => `Forecast ${predicted}, actual ${actual}`,
+  accuracyIntervalUnreliable: 'The interval is not calibrated',
+  accuracyErrorTip: (value) => `Error ${value}`,
 };
 
 const CHART_STRINGS: Record<Lang, ChartStrings> = { fi: FI, en: EN };

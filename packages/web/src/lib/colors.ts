@@ -55,6 +55,24 @@ export const MODEL_STYLE: Record<string, { color: string; dash: string | null }>
   prophet_xgb: { color: SERIES.compare, dash: '2 3' },
   seasonal_naive: { color: NEUTRAL.muted, dash: '1 3' },
   moving_average_28d: { color: SERIES.accent, dash: '8 3 2 3' },
+  climatology_dow: { color: '#e69f00', dash: '4 2' },
+};
+
+/**
+ * Verdiktin varit. Vari ei kanna tietoa yksin: jokaisen verdiktin rinnalla on aina
+ * sana ja merkki, joten sivu toimii harmaasavyisena ja punavihervarisokealle.
+ */
+export const VERDICT_COLOR: Record<string, string> = {
+  better: '#0072b2',
+  no_difference: '#4b5361',
+  worse: '#d55e00',
+};
+
+/** Verdiktin merkki. Sana on aina vieressa; merkki on nopea silmalle. */
+export const VERDICT_MARK: Record<string, string> = {
+  better: '\u25b2',
+  no_difference: '\u25cf',
+  worse: '\u25bc',
 };
 
 export function modelStyle(model: string): { color: string; dash: string | null } {

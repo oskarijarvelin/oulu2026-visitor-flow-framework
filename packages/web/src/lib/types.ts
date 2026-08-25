@@ -374,3 +374,258 @@ export interface VenueQuality {
 export interface QualityData {
   venues: Record<string, VenueQuality>;
 }
+
+// ---------------------------------------------------------------------------
+// accuracy.json
+// ---------------------------------------------------------------------------
+
+/**
+ * Verdikti sellaisena kuin osio 3 sen kirjoittaa. Sivu ei laske naita uudelleen:
+ * `verdicts.json` on jo laskettu, ja sen luvut luetaan sellaisenaan.
+ */
+export type Verdict = 'better' | 'no_difference' | 'worse';
+
+/** Sään kolme tilaa. Verdikti lasketaan aina `operational`-tilasta. */
+export type WeatherMode = 'perfect' | 'operational' | 'climatology';
+
+export interface AccuracyWindow {
+  origin: string;
+  test_start: string;
+  test_end: string;
+  horizon_days: number;
+  train_window: string;
+}
+
+/** Koosteen jasenikkuna. `run_id` osoittaa erikseen tallennettuun ikkuna-ajoon. */
+export interface AccuracyWindowRef extends AccuracyWindow {
+  run_id: string;
+}
+
+export interface AccuracyComparison {
+  reference: string;
+  n: number;
+  /** Mallin ja vertailukohdan paivavirheiden keskiero. Negatiivinen = malli lahempana. */
+  mean_difference: number;
+  ci_low: number;
+  ci_high: number;
+  verdict: Verdict;
+  model_mae: number;
+  reference_mae: number;
+  skill_score: number;
+  skill_ci_low: number;
+  skill_ci_high: number;
+  /** Pienin ero jonka tama otos olisi erottanut. Pakollinen osa "ei eroa" -verdiktia. */
+  mde: number;
+  mde_pct: number;
+  dm_statistic: number;
+  dm_p_value: number;
+  dm_lag: number;
+}
+
+export interface AccuracyBias {
+  mean_error: number;
+  ci_low: number;
+  ci_high: number;
+  verdict: string;
+  mean_actual: number;
+  pct_of_actual: number;
+}
+
+export interface AccuracyCalibration {
+  covered: number;
+  n: number;
+  coverage: number;
+  /** Clopper-Pearsonin eksakti binomivali. */
+  ci_low: number;
+  ci_high: number;
+  target: number;
+  verdict: string;
+}
+
+export interface AccuracyTotal {
+  /** Koosteessa ikkunan tunnus, ikkuna-ajossa puuttuu. */
+  label?: string;
+  predicted: number;
+  actual: number;
+  difference: number;
+  difference_pct: number;
+  p10: number;
+  p90: number;
+  covers_actual: boolean;
+  summed_daily_p10: number;
+  summed_daily_p90: number;
+  n_ratio_samples: number;
+  /** Sisakkaisessa backtestissa oli liian vahan origoja: valia ei pida lukea. */
+  is_thin: boolean;
+  median_ratio: number;
+  /** Sisakkaisten mallien virheissa on tasosiirtyma: vali perii sen. */
+  is_drifted: boolean;
+}
+
+/** Sään kolmen tilan MAE. `perfect` on ylaraja, ei tulos. */
+export interface AccuracyWeatherSensitivity {
+  perfect: number;
+  operational: number;
+  climatology: number;
+  gap: number;
+  gap_pct: number;
+}
+
+/** Koosteen paatulos: bootstrap uudelleenottaa kokonaisia ikkunoita, ei paivia. */
+export interface AccuracyPooled {
+  reference: string;
+  n_windows: number;
+  n_days: number;
+  mean_difference: number;
+  ci_low: number;
+  ci_high: number;
+  verdict: Verdict;
+  windows_favouring: number;
+  windows_opposing: number;
+  windows_neutral: number;
+  mde: number;
+  mde_pct: number;
+  reference_mae: number;
+}
+
+export interface AccuracyPerWindow {
+  label: string;
+  origin: string;
+  run_id?: string;
+  reference: string;
+  model_mae: number;
+  reference_mae: number;
+  mean_difference: number;
+  ci_low: number;
+  ci_high: number;
+  verdict: Verdict;
+  mde: number;
+  mde_pct: number;
+  raw_p_value: number;
+  holm_p_value: number;
+}
+
+/** Yksi malli yhden venuen kohdalla. Ikkuna- ja koosteajolla on eri kentat. */
+export interface AccuracyModel {
+  model: string;
+  /** Ikkuna-ajo. */
+  comparison?: AccuracyComparison;
+  bias?: AccuracyBias;
+  calibration?: AccuracyCalibration;
+  total?: AccuracyTotal;
+  weather_sensitivity?: AccuracyWeatherSensitivity;
+  raw_p_value?: number;
+  holm_p_value?: number;
+  /** Koosteajo. */
+  pooled?: AccuracyPooled;
+  per_window?: AccuracyPerWindow[];
+  totals?: AccuracyTotal[];
+}
+
+/**
+ * Paivatason mittarit yhdelle mallille. Nama lasketaan build-aikana
+ * `predictions.csv`-tiedostosta ajon paasaan tilassa, koska `verdicts.json` ei niita
+ * sisalla. MASE tarvitsee koulutusdatan nimittajan, joka luetaan `metrics.json`:sta;
+ * ilman sita se on null.
+ */
+export interface AccuracyMetrics {
+  model: string;
+  n: number;
+  mae: number;
+  rmse: number;
+  mase: number | null;
+  bias: number;
+  pinball_q10: number;
+  pinball_q50: number;
+  pinball_q90: number;
+  coverage_80: number;
+  smape: number;
+  /** false kun testijaksolla on nollapaivia: sMAPE saavuttaa silloin kattonsa. */
+  smape_reliable: boolean;
+  zero_days: number;
+}
+
+export interface AccuracyHorizonRow {
+  bucket: HorizonBucket;
+  model: string;
+  mae: number;
+  n: number;
+}
+
+export interface AccuracyWorstDay {
+  date: string;
+  dow: Dow;
+  y_true: number;
+  p50: number;
+  /** Ennuste miinus toteuma: positiivinen tarkoittaa yliarviota. */
+  error: number;
+  is_holiday: boolean;
+  holiday_name?: string;
+}
+
+export interface AccuracyVenue {
+  venue_id: number;
+  venue_name: string;
+  /** Paavertailukohta talla ikkunalla. Koosteessa voi olla "best-per-window". */
+  reference: string;
+  /** Kaikkien kolmen vertailukohdan MAE. Puuttuu koosteesta. */
+  baseline_mae?: Record<string, number>;
+  models: AccuracyModel[];
+  metrics: AccuracyMetrics[];
+  horizon: AccuracyHorizonRow[];
+  worst_days: AccuracyWorstDay[];
+}
+
+/**
+ * Paivasarja sarakemuodossa. Vain paamalleilla on vali; vertailukohdista riittaa p50,
+ * koska ne piirretaan ohuina viivoina.
+ */
+export interface AccuracySeriesModel {
+  p50: number[];
+  p10?: number[];
+  p90?: number[];
+}
+
+export interface AccuracySeries {
+  dates: string[];
+  horizon_days: number[];
+  y_true: number[];
+  /** Pyhapaivat: paivamaara -> nimi. */
+  holidays: Record<string, string>;
+  models: Record<string, AccuracySeriesModel>;
+}
+
+export interface AccuracyRun {
+  run_id: string;
+  kind: 'window' | 'sweep';
+  created_at: string;
+  models: string[];
+  reference_rule: string;
+  primary_weather_mode: WeatherMode;
+  family_size: number;
+  /** Valmis suomenkielinen kappale. Englanninkielinen vastine rakennetaan kentista. */
+  summary_fi: string;
+  first_day: string;
+  last_day: string;
+  /** Ikkuna-ajo. */
+  window?: AccuracyWindow;
+  /** Kooste. */
+  sweep?: string;
+  windows?: AccuracyWindowRef[];
+  /** Koosteen jasenajot, tallennusjarjestyksessa. Tyhja ikkuna-ajolla. */
+  members: string[];
+  venues: AccuracyVenue[];
+  /**
+   * Venue_id merkkijonona -> paivasarja. Puuttuu kun sarja on karsittu paketista tai
+   * kun ajo on kooste: kooste kootaan jasenajoistaan, jottei sama sarja ole kahdesti.
+   */
+  series?: Record<string, AccuracySeries>;
+}
+
+export interface AccuracyData {
+  runs: AccuracyRun[];
+  /** Valittu ajo kun osoitteessa ei ole hashia. Null kun ajoja ei ole. */
+  default_run: string | null;
+  /** Horisonttikorit joihin virhe on ryhmitelty. */
+  horizon_buckets: HorizonBucket[];
+}

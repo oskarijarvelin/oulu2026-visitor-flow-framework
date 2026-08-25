@@ -88,8 +88,9 @@ python -m ovf_forecast report                   # print the last run's metrics
 
 Accuracy evaluation trains on a window you choose, forecasts another, and says whether
 the difference from the best simple baseline is real. Results accumulate under
-`data/evaluations/`; see [docs/EVALUATION.md](docs/EVALUATION.md) for how to read one and,
-more importantly, for what it does not prove.
+`data/evaluations/`. [Part 3 below](#part-3-measuring-forecast-accuracy) is the usage
+guide; [docs/EVALUATION.md](docs/EVALUATION.md) has the leakage rules, the statistics and
+what the results do not prove.
 
 ```bash
 python -m ovf_forecast evaluate --test 2026-04                    # train to 31 March, forecast April
@@ -415,6 +416,155 @@ committed data and fails if the baseline stops beating the seasonal-naive benchm
 
 ---
 
+## Part 3: measuring forecast accuracy
+
+`python -m ovf_forecast evaluate` answers one question at a time: **train on everything
+up to this day, forecast that period, did it land, and is the difference from a simple
+rule real?**
+
+It is not the same thing as `backtest`. `backtest` is part of the production pipeline:
+it sweeps origins to derive the prediction intervals a forecast ships with. `evaluate`
+is a measuring instrument you point at a period you choose, and it ends in a verdict
+rather than a set of intervals.
+
+Everything it prints and writes is in Finnish, including the verdict paragraph and the
+stored reports. Only this README and the code are in English.
+
+### Two ways to run it
+
+One window, the common case. Train on everything up to 31 March, forecast April:
+
+```bash
+python -m ovf_forecast evaluate --test 2026-04
+```
+
+`--test` also takes `2026-04-15` for a single day and `2026-04-01:2026-04-30` for an
+explicit range. `--train-end` is optional: without it the origin is the day before the
+test period starts, which is what you almost always want.
+
+Many windows, which is what actually constitutes evidence:
+
+```bash
+python -m ovf_forecast evaluate --sweep monthly --from 2026-04 --to 2026-08 --models baseline
+```
+
+That runs one window per month, stores each separately, and writes a pooled verdict on
+top. About a minute without Prophet installed. `--sweep rolling --step 14 --horizon 30`
+does the same with origins stepping back a fortnight at a time instead of by calendar
+month.
+
+Sweeps skip any window with fewer than 60 training days. With history starting on
+1 January 2026, April is the first month that can be evaluated.
+
+Through the Makefile: `make evaluate`, `make evaluate-sweep`, `make evaluate-list`.
+
+### What you get back
+
+The command prints the verdict as one paragraph and tells you where it was stored. Each
+run writes five files under `data/evaluations/{run_id}/`:
+
+| File | Contents |
+| --- | --- |
+| `report.md` | The readable report, nine sections, verdict first |
+| `metrics.json` | Every metric, per venue, model, horizon bucket and weather mode |
+| `verdicts.json` | The same verdicts a machine can read |
+| `predictions.csv` | `venue_id, date, horizon_days, model, weather_mode, y_true, p10, p50, p90` |
+| `config.json` | Every parameter the run used |
+
+`data/evaluations/index.json` is the registry. Run ids are deterministic and readable,
+for example `eval_v1_2026-03-31_2026-04-01_2026-04-30_baseline`, so re-running the same
+window overwrites its directory instead of accumulating near-duplicates.
+
+To read stored results:
+
+```bash
+python -m ovf_forecast evaluate list                  # what has been evaluated
+python -m ovf_forecast evaluate report --id <run_id>  # one stored report
+python -m ovf_forecast evaluate report --pooled       # every stored run as one verdict
+```
+
+### Reading a result in thirty seconds
+
+The report opens with a paragraph that already contains the answer. If you want to check
+it yourself, four numbers carry the whole thing:
+
+1. **The verdict and its interval.** `d` is the model's mean daily absolute error minus
+   the reference's. Negative means the model is closer. The verdict is `parempi`,
+   `huonompi` or `ei havaittavaa eroa`, decided by whether the 95 % bootstrap interval
+   clears zero.
+2. **MDE, the smallest detectable difference.** Only meaningful when the verdict is
+   `ei havaittavaa eroa`, and then it is essential: it separates "the two are equally
+   good" from "this sample was too small to tell". On one month of this data it runs
+   around 30 % of the reference MAE, so a single month can only prove large differences.
+3. **The period total.** Forecast total against actual, in visitors and per cent. This
+   is a different question from daily accuracy and the two regularly disagree. In April
+   the `climatology_dow` rule hit venue 1's monthly total to within 0.8 % while its daily
+   MAE was 22 % of the daily mean.
+4. **Coverage and bias.** Coverage says whether the p10–p90 band is honest; the target is
+   0.80 and the report gives an exact binomial interval around what was observed. Bias
+   says whether the model is systematically high or low rather than merely noisy.
+
+### Flags
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--test` | — | `YYYY-MM`, `YYYY-MM-DD` or `YYYY-MM-DD:YYYY-MM-DD`. Required unless `--sweep` is given |
+| `--train-end` | day before `--test` | Last day the model may see |
+| `--sweep` | — | `monthly` (needs `--from` and `--to`) or `rolling` |
+| `--step`, `--horizon`, `--max-windows` | 14, 30, 12 | Rolling sweeps only |
+| `--models` | `baseline,prophet_xgb` | Comma separated. Prophet is skipped with a warning if not installed |
+| `--reference` | `best` | `best` picks the hardest baseline per window. Also `seasonal_naive`, `moving_average_28d`, `climatology_dow` |
+| `--weather` | all three | `perfect`, `operational`, `climatology`. The verdict uses `operational` |
+| `--train-window` | `all` | `all`, or a number of days for a sliding training window |
+| `--venue` | every venue | Repeatable |
+| `--resamples`, `--seed` | 10000, 20260101 | Bootstrap. The run is deterministic |
+
+Exit codes match the rest of the CLI: 0 succeeded, 1 a venue could not be evaluated,
+2 nothing could be produced.
+
+### Four ways to fool yourself
+
+**Quoting the `perfect` weather number.** Every window is scored three times: with the
+observed weather, with a forecast out to 16 days and climatology after that, and with
+climatology throughout. `perfect` is an upper bound on what the model could do if the
+weather were known, not a result. `operational` is the headline. The gap between
+`perfect` and `climatology` is itself worth reading: it is the share of the model's
+accuracy that rests on knowing the weather.
+
+**Choosing an easy reference.** The default `best` grades the model against whichever of
+the three baselines won that window, which is deliberately the hardest opponent
+available. `--reference seasonal_naive` will produce friendlier numbers that mean less.
+
+**Treating one window as proof.** A single origin's thirty errors share one training set
+and one state of the world, so they are nowhere near thirty independent observations.
+The per-window verdict is descriptive. The pooled verdict across a sweep, which
+resamples whole windows, is the evidence.
+
+**Trusting the period-total interval when it is flagged.** That interval comes from a
+nested backtest run entirely inside the training window, and on short histories it has
+few origins to work with. April has three. When the nested models are biased rather than
+merely noisy, the report says so explicitly per model and tells you to read the total's
+error and the bias separately instead.
+
+### Where the numbers stand
+
+The monthly sweep from April to August 2026 is committed under `data/evaluations/`. On
+both venues **the baseline model loses to the best simple rule**. Pooled across five
+windows the model is worse by 60.0 visitors per day on venue 1 (95 % interval +3.1 to
++124.4) and by 17.1 on venue 2 (+3.7 to +32.7). By sign it was ahead in one window of
+five, and two individual windows were significantly worse.
+
+That is a real result, not a broken pipeline. Roughly eight months of history from a
+single year is not enough to learn a seasonal pattern, and a weekday mean computed from
+the training data is a genuinely strong opponent on that much data. The most promising
+next step is an event calendar as a feature, since neither the model nor the baselines
+currently know that anything is happening on a given day.
+
+[`docs/EVALUATION.md`](docs/EVALUATION.md) covers the leakage rules, the statistics and,
+in chapter 11, what these results specifically do not prove.
+
+---
+
 ## Part 2: the web section
 
 `packages/web` is an Astro 5 site with `output: 'static'`. It has no server routes, no
@@ -464,9 +614,9 @@ Playwright needs its browser once: `npx playwright install chromium` inside
 
 ### Build-time data packaging
 
-`scripts/build-data.ts` runs as the npm `prebuild` step. It reads `data/processed/` and
-`data/forecasts/latest/`, computes the aggregates, and writes six files into
-`packages/web/src/data/`, which is gitignored because it is derived:
+`scripts/build-data.ts` runs as the npm `prebuild` step. It reads `data/processed/`,
+`data/forecasts/latest/` and `data/evaluations/`, computes the aggregates, and writes
+seven files into `packages/web/src/data/`, which is gitignored because it is derived:
 
 | File | Contents |
 | --- | --- |
@@ -476,13 +626,23 @@ Playwright needs its browser once: `npx playwright install chromium` inside
 | `profile.json` | Weekday x hour matrix, mean and median |
 | `forecast.json` | 7-day hourly and 30-day daily, both models |
 | `quality.json` | Backtest metrics and the forecast-versus-actual series |
+| `accuracy.json` | Stored evaluation runs: verdicts, metrics, daily series |
 
-Total under 400 kB. Floats are rounded to one decimal, counts to integers, and the two
-largest files are column-oriented rather than arrays of objects, so the payload does not
-grow out of budget as the history lengthens. The script prints the size of each file.
+Total under 500 kB, of which `accuracy.json` is under 150 kB. Floats are rounded to one
+decimal and shares to three, counts to integers, and the largest files are
+column-oriented rather than arrays of objects, so the payload does not grow out of budget
+as the history lengthens. The script prints the size of each file.
 
 The data contract is typed in `src/lib/types.ts` and the input columns are listed in
 `scripts/lib/schema.ts`. Both are checked, never assumed.
+
+`accuracy.json` reads the verdicts out of each run's `verdicts.json` as they stand and
+never recomputes them; only the things a verdict does not contain, the daily metrics, the
+horizon buckets, the worst days and the daily series, are derived from `predictions.csv`
+at build time. It is kept small by three rules: only the rows in the run's primary
+weather mode, daily series from at most the twelve newest window runs plus every run a
+sweep refers to, and a sweep drawing its series from its member windows rather than
+storing a second copy.
 
 ### Build gates
 
@@ -491,6 +651,13 @@ The build fails, with a message rather than a stack trace, when:
 - `data/processed/manifest.json` is missing, or older than 48 hours
 - the forecast files are missing or empty
 - any input file's columns differ from `scripts/lib/schema.ts`
+- a stored evaluation run's `verdicts.json` is not `schema_version: v1`
+
+Evaluation data is the one exception to the first rule. It is an optional step, unlike
+ingest and forecast, so a missing or empty `data/evaluations/` writes an `accuracy.json`
+with no runs and `/accuracy` renders its empty state. A run whose schema version is
+unknown still fails the build, and the message names the run and the version it read:
+rendering an unknown version silently would be worse than not deploying.
 
 A failed build is the correct outcome: a site that silently shows week-old numbers as
 current is worse than one that does not deploy. The age limit can be relaxed for a
@@ -500,8 +667,9 @@ deliberate run against an old dataset:
 OVF_MAX_MANIFEST_AGE_HOURS=720 npm run build
 ```
 
-`OVF_NOW` overrides the clock and `OVF_HOURLY_DAYS` the hourly window; both exist for
-tests and reproducible runs.
+`OVF_NOW` overrides the clock, `OVF_HOURLY_DAYS` the hourly window and
+`OVF_EVALUATIONS_DIR` the evaluation directory; all three exist for tests and
+reproducible runs.
 
 ### Pages
 
@@ -512,10 +680,31 @@ tests and reproducible runs.
 | `/weather` | Temperature scatter with a linear fit, rainy versus dry, weather-class distribution |
 | `/forecast` | 7-day hourly and 30-day daily, p10 to p90 band, model comparison, weather source marked |
 | `/quality` | Backtest by horizon, MAE and coverage, comparison to seasonal naive, known limits |
+| `/accuracy` | Stored evaluation runs: verdict, difference against the reference, period total, calibration |
 | `/about` | Where the data comes from, what the numbers mean, what they do not mean |
 
 Each of those exists twice: at the path above in Finnish, and under `/en` in English, so
-`/venue/1` and `/en/venue/1` are the same page in two languages. That is 14 pages in all.
+`/venue/1` and `/en/venue/1` are the same page in two languages. That is 16 pages in all.
+
+#### `/quality` and `/accuracy` answer different questions
+
+The two are easy to confuse, so each page opens with a short note and a link to the
+other.
+
+`/quality` measures **the production pipeline**: the rolling origin backtest that the
+prediction intervals a published forecast carries are derived from. It moves on every
+run.
+
+`/accuracy` measures **chosen windows**: train up to here, forecast that period, did the
+model beat a simple rule. It moves only when somebody runs `evaluate`, and it ends in a
+verdict rather than a set of intervals. The run selector lists every stored run, sweeps
+first, and keeps the selected one in the address as `#run=<run_id>` so a single run can
+be shared as a link. Without JavaScript the page shows the newest sweep. Verdicts are
+shown as they stand, including when they go against the model, and a
+"no detectable difference" verdict always carries its MDE, because without it the reader
+cannot tell an honest tie from a sample too small to decide. Part 3 above and
+[`docs/EVALUATION.md`](docs/EVALUATION.md) chapter 11 are what the page's closing section
+condenses.
 
 ### Two languages, one page each
 
@@ -632,7 +821,7 @@ packages/forecast/tests/
 packages/web/
   astro.config.mjs               static output, Tailwind, the vanilla island renderer
   scripts/build-data.ts          data/ -> src/data/*.json, with the build gates
-  scripts/lib/                   csv.ts, schema.ts, transform.ts, read.ts, paths.ts
+  scripts/lib/                   csv.ts, schema.ts, transform.ts, accuracy.ts, read.ts, paths.ts
   src/lib/                       types.ts (the data contract), dates, format, weather, series
   src/i18n/                      locales and path mapping, ui/fi.ts + ui/en.ts, charts.ts
   src/renderer/                  the Astro renderer that makes client:visible work without a framework
@@ -645,7 +834,7 @@ data/raw/        immutable per-day response cache
 data/processed/  canonical tables and manifest.json
 data/reference/  climatology
 data/forecasts/  latest/ plus one dated archive per run
-docs/            DATA_MODEL.md, FRAMEWORK_PLAN.md, FORECAST_MODEL.md
+docs/            DATA_MODEL.md, FRAMEWORK_PLAN.md, FORECAST_MODEL.md, EVALUATION.md
 tools/
   tickets-parser.html            browser tool: opening-team CSV export -> per-venue tickets file
   README.md                      column mappings, known source-data problems, regression results

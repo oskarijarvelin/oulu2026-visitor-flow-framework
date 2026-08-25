@@ -12,14 +12,24 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { BuildDataError, parseCsv } from '../scripts/lib/csv.ts';
-import { FORECAST_DIR, PROCESSED_DIR } from '../scripts/lib/paths.ts';
+import { EVALUATIONS_DIR, FORECAST_DIR, PROCESSED_DIR } from '../scripts/lib/paths.ts';
 import {
+  EVALUATION_INDEX_KEYS,
+  EVALUATION_RUN_KEYS,
   FORECAST_MANIFEST_KEYS,
   FORECAST_SCHEMA,
   INGEST_MANIFEST_KEYS,
   METRICS_KEYS,
+  PREDICTIONS_SCHEMA,
   PROCESSED_SCHEMA,
+  VERDICTS_KEYS,
+  VERDICT_COMPARISON_KEYS,
+  VERDICT_POOLED_KEYS,
+  VERDICT_SWEEP_MODEL_KEYS,
+  VERDICT_WINDOW_MODEL_KEYS,
+  VERDICT_WINDOW_VENUE_KEYS,
   assertColumns,
+  assertEvaluationVersion,
   assertKeys,
 } from '../scripts/lib/schema.ts';
 
@@ -134,4 +144,93 @@ describeWithData('ennustetiedostojen sisalto on kayttokelpoinen', () => {
       }
     });
   }
+});
+
+describe('arviointidatan skeemaportti', () => {
+  it('hyvaksyy tuetun version', () => {
+    expect(() => assertEvaluationVersion({ schema_version: 'v1' }, 'eval_x', 'verdicts.json')).not.toThrow();
+  });
+
+  it('nimeaa ajon ja lukemansa version kun versio on vaara', () => {
+    expect(() => assertEvaluationVersion({ schema_version: 'v2' }, 'eval_x', 'verdicts.json')).toThrow(
+      /eval_x/,
+    );
+    expect(() => assertEvaluationVersion({ schema_version: 'v2' }, 'eval_x', 'verdicts.json')).toThrow(
+      /Luettu:\s+"v2"/,
+    );
+  });
+
+  it('kaatuu kun versio puuttuu kokonaan', () => {
+    expect(() => assertEvaluationVersion({}, 'eval_x', 'verdicts.json')).toThrow(/\(puuttuu\)/);
+  });
+});
+
+/**
+ * Arviointidatan rakenne. Sivu lukee `verdicts.json`:in luvut sellaisenaan, joten
+ * kentan uudelleennimeaminen osiossa 3 rikkoisi esityksen hiljaisesti. Nama testit
+ * kaatuvat silloin nimeltä.
+ */
+const evaluationIndexPath = resolve(EVALUATIONS_DIR, 'index.json');
+const hasEvaluations = existsSync(evaluationIndexPath);
+const describeWithEvaluations = hasEvaluations ? describe : describe.skip;
+
+describeWithEvaluations('data/evaluations vastaa sovittua skeemaa', () => {
+  const index = JSON.parse(readFileSync(evaluationIndexPath, 'utf8'));
+  const entries: Record<string, unknown>[] = index.runs ?? [];
+
+  it('index.json sisaltaa vaaditut kentat', () => {
+    expect(() => assertEvaluationVersion(index, '(rekisteri)', 'index.json')).not.toThrow();
+    expect(() => assertKeys(index, EVALUATION_INDEX_KEYS, 'index.json')).not.toThrow();
+    expect(entries.length).toBeGreaterThan(0);
+  });
+
+  for (const entry of entries) {
+    const runId = String(entry['run_id']);
+
+    it(`${runId}: rekisterin rivi`, () => {
+      expect(() => assertKeys(entry, EVALUATION_RUN_KEYS, 'index.json')).not.toThrow();
+    });
+
+    it(`${runId}: verdicts.json`, () => {
+      const path = resolve(EVALUATIONS_DIR, runId, 'verdicts.json');
+      expect(existsSync(path), `Tiedosto puuttuu: ${path}`).toBe(true);
+      const verdicts = JSON.parse(readFileSync(path, 'utf8'));
+      expect(() => assertEvaluationVersion(verdicts, runId, 'verdicts.json')).not.toThrow();
+      expect(() => assertKeys(verdicts, VERDICTS_KEYS, 'verdicts.json')).not.toThrow();
+      expect(String(verdicts.summary_fi).length, 'summary_fi on tyhja').toBeGreaterThan(0);
+
+      const isSweep = verdicts.kind === 'sweep';
+      for (const venue of verdicts.venues as Record<string, unknown>[]) {
+        if (!isSweep) {
+          expect(() => assertKeys(venue, VERDICT_WINDOW_VENUE_KEYS, 'verdicts.json')).not.toThrow();
+        }
+        for (const model of venue['models'] as Record<string, unknown>[]) {
+          if (isSweep) {
+            expect(() => assertKeys(model, VERDICT_SWEEP_MODEL_KEYS, 'verdicts.json')).not.toThrow();
+            expect(() => assertKeys(model['pooled'], VERDICT_POOLED_KEYS, 'verdicts.json')).not.toThrow();
+            continue;
+          }
+          expect(() => assertKeys(model, VERDICT_WINDOW_MODEL_KEYS, 'verdicts.json')).not.toThrow();
+          expect(() =>
+            assertKeys(model['comparison'], VERDICT_COMPARISON_KEYS, 'verdicts.json'),
+          ).not.toThrow();
+        }
+      }
+    });
+
+    it(`${runId}: predictions.csv`, () => {
+      const path = resolve(EVALUATIONS_DIR, runId, 'predictions.csv');
+      expect(existsSync(path), `Tiedosto puuttuu: ${path}`).toBe(true);
+      const parsed = table(path, 'predictions.csv');
+      expect(() => assertColumns(parsed, PREDICTIONS_SCHEMA)).not.toThrow();
+    });
+  }
+
+  it('verdiktit ovat tunnettuja arvoja', () => {
+    for (const entry of entries) {
+      for (const verdict of (entry['verdicts'] as Record<string, unknown>[]) ?? []) {
+        expect(['better', 'no_difference', 'worse']).toContain(verdict['verdict']);
+      }
+    }
+  });
 });

@@ -17,17 +17,33 @@ const MODEL_LABEL: Record<Lang, Record<string, string>> = {
     prophet_xgb: 'Prophet + XGBoost',
     seasonal_naive: 'Sama viikonpäivä viimeksi',
     moving_average_28d: '28 vrk liukuva keskiarvo',
+    climatology_dow: 'Viikonpäivän keskiarvo',
   },
   en: {
     baseline: 'Baseline',
     prophet_xgb: 'Prophet + XGBoost',
     seasonal_naive: 'Same weekday last time',
     moving_average_28d: '28-day moving average',
+    climatology_dow: 'Weekday mean',
   },
 };
 
 export function modelLabel(model: ModelName, lang: Lang): string {
   return MODEL_LABEL[lang][model] ?? model;
+}
+
+/**
+ * Vertailukohdan nimi. Koosteessa paavertailukohta voi vaihtua ikkunasta toiseen,
+ * jolloin osio 3 kirjoittaa nimeksi `best-per-window` eika mallin nimea.
+ */
+const REFERENCE_ANY: Record<Lang, string> = {
+  fi: 'Ikkunan paras vertailukohta',
+  en: 'Best reference per window',
+};
+
+export function referenceLabel(reference: string, lang: Lang): string {
+  if (reference === 'best-per-window') return REFERENCE_ANY[lang];
+  return modelLabel(reference, lang);
 }
 
 const SOURCE_LABEL: Record<Lang, Record<string, string>> = {

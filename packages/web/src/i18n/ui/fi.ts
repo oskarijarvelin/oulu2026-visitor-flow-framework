@@ -25,6 +25,7 @@ export const fi = {
     weather: 'Sää',
     forecast: 'Ennuste',
     quality: 'Laatu',
+    accuracy: 'Tarkkuus',
     about: 'Tietoja',
     languageLabel: 'Kieli',
     switchTo: (language: string) => `Vaihda kieleksi ${language}`,
@@ -405,6 +406,11 @@ export const fi = {
     benchmarkCaption: (venue: string) => `${venue}: suhde vertailukohtiin`,
     benchmarkColumn: (benchmark: string) => `MAE-suhde: ${benchmark}`,
 
+    crossRefTitle: 'Tämä sivu mittaa tuotantoputkea',
+    crossRefBody:
+      'Laatusivun luvut tulevat liukuvan origon backtestistä, ja niistä johdetaan ne ennustevälit joita julkaistu ennuste kantaa. Ne päivittyvät joka ajolla. Kysymykseen ”voittiko malli yksinkertaisen säännön valitulla jaksolla” vastaa tarkkuussivu, jonka luvut päivittyvät vasta kun joku ajaa arvioinnin.',
+    crossRefLink: 'Siirry tarkkuussivulle',
+
     limitsHeading: 'Tunnetut rajoitteet',
     limitsLead:
       'Nämä on kirjattu jokaisen venuen metrics.json-tiedoston kenttään do_not_trust. Ne eivät ole arvauksia siitä mikä voisi mennä pieleen, vaan lista tilanteista joissa mitattu tarkkuus ei päde.',
@@ -418,6 +424,219 @@ export const fi = {
       'Backtest käyttää horisonteilla 1-16 toteutunutta säätä, kun tuotanto käyttää sääennustetta. Sääennusteen oma virhe ei siis näy näissä luvuissa. Tämä on tiedostettu optimismi.',
     limitYearly:
       'Kumpikaan malli ei opi vuosikausivaihtelua, koska aineistossa ei ole yhtään täyttä vuotta. Vuodenaikapiirteet mittaavat tässä kevään kulkua, eivät vuosikautta.',
+  },
+
+  accuracy: {
+    title: 'Tarkkuus',
+    heading: 'Ennustemallin tarkkuustestit',
+    description:
+      'Tallennetut arviointiajot: kouluta tähän asti, ennusta tämä jakso, voittiko malli yksinkertaisen säännön.',
+    lead: 'Jokainen tämän sivun ajo vastaa yhteen kysymykseen: malli koulutettiin kaikella datalla origoon asti, sen jälkeen ennustettiin valittu jakso, ja tulosta verrattiin yksinkertaiseen sääntöön. Verdikti on laskettu valmiiksi arviointiajossa ja luetaan tähän sellaisenaan, myös silloin kun se on mallia vastaan.',
+
+    compareTitle: 'Tämä sivu ja laatusivu vastaavat eri kysymykseen',
+    compareAccuracy:
+      'Tämä sivu mittaa valittuja ikkunoita: kouluta tähän asti, ennusta tämä jakso, voittiko malli yksinkertaisen säännön. Se päivittyy kun joku ajaa arvioinnin.',
+    compareQuality:
+      'Laatusivu mittaa tuotantoputkea: liukuvan origon backtest, josta johdetaan ne ennustevälit joita julkaistu ennuste kantaa. Se päivittyy joka ajolla.',
+    compareLink: 'Siirry laatusivulle',
+
+    emptyTitle: 'Yhtään arviointiajoa ei ole tallennettu',
+    emptyBody:
+      'Arviointi on valinnainen työvaihe, toisin kuin datan haku ja ennusteen ajo. Kun ensimmäinen ajo on tallennettu hakemistoon data/evaluations, se ilmestyy tälle sivulle seuraavassa buildissa.',
+    emptyHint: 'Yksi kuukausi kerrallaan tai monen ikkunan kooste:',
+
+    runsHeading: 'Tallennetut arviointiajot',
+    runsLead:
+      'Koosteet ensin, sitten yksittäiset ikkunat, kummatkin uusin ensin. Valittu ajo tallentuu osoitteeseen, joten yksittäisen ajon voi jakaa linkkinä.',
+    runsLabel: 'Valitse arviointiajo',
+    sweepBadge: (windows: string) => `Kooste, ${windows} ikkunaa`,
+    windowBadge: 'Yksittäinen ikkuna',
+    runModels: (models: string) => `Mallit: ${models}`,
+    runSelected: 'Näkyvissä',
+    runFallbackNote:
+      'Ilman JavaScriptiä sivu näyttää uusimman koosteen. Valitsin vaihtaa näkymää heti kun sivun skriptit ovat latautuneet.',
+
+    verdictBetter: 'parempi kuin vertailukohta',
+    verdictNoDifference: 'ei havaittavaa eroa',
+    verdictWorse: 'huonompi kuin vertailukohta',
+    verdictBetterShort: 'parempi',
+    verdictNoDifferenceShort: 'ei eroa',
+    verdictWorseShort: 'huonompi',
+
+    verdictHeading: 'Verdikti',
+    verdictAria: (venue: string) => `${venue}: verdikti ja sen luvut`,
+    meanDifferenceLabel: 'Keskiero',
+    meanDifferenceHelp:
+      'Mallin keskimääräinen päivävirhe miinus vertailukohdan. Negatiivinen tarkoittaa että malli on lähempänä.',
+    intervalLabel: (low: string, high: string) => `95 % väli ${low} … ${high}`,
+    referenceLine: (reference: string) => `Päävertailukohta: ${reference}`,
+    maePair: (model: string, modelMae: string, reference: string, referenceMae: string) =>
+      `${model} ${modelMae}, ${reference} ${referenceMae} kävijätapahtumaa vuorokaudessa`,
+    referenceMaeOnly: (mae: string) => `MAE ${mae} kävijätapahtumaa vuorokaudessa`,
+    mdeNote: (mde: string, pct: string) =>
+      `Tämä otos olisi erottanut vasta ${mde} kävijän eron, eli ${pct} vertailukohdan MAE:sta. ”Ei havaittavaa eroa” ei siis tarkoita samanveroisuutta.`,
+    windowSplit: (favouring: string, opposing: string, neutral: string) =>
+      `Malli oli parempi ${favouring} ja huonompi ${opposing} ikkunassa, ${neutral} ikkunassa eroa ei havaittu.`,
+    pooledScope: (windows: string, days: string) => `${windows} ikkunaa, ${days} vuorokautta`,
+    windowScope: (days: string) => `${days} vuorokautta`,
+    skillScore: (value: string) => `Taitopistemäärä ${value}`,
+    biasLine: (value: string, low: string, high: string) => `Harha ${value} (95 % väli ${low} … ${high})`,
+    familySize: (size: string) => `Monivertailukorjaus: perheen koko ${size}.`,
+    holmLine: (raw: string, holm: string) => `p-arvo ${raw}, Holm-korjattuna ${holm}`,
+
+    summaryHeading: 'Verdikti sanoina',
+    summaryWindowIntro: (from: string, to: string, days: string, origin: string, train: string, mode: string) =>
+      `Ikkuna ${from}–${to} (${days} vrk), koulutus päättyy ${origin}, koulutusikkuna ${train}, sään tila ${mode}.`,
+    summarySweepIntro: (sweep: string, windows: string, from: string, to: string, mode: string, reference: string) =>
+      `Kooste (${sweep}): ${windows} ikkunaa, ${from}–${to}, sään tila ${mode}, päävertailukohta ${reference}.`,
+    summaryVenueWindow: (venue: string, model: string, modelMae: string, reference: string, referenceMae: string) =>
+      `${venue}: malli ${model} teki keskimäärin ${modelMae} kävijän päivävirheen, päävertailukohta ${reference} ${referenceMae}.`,
+    summaryVenueSweep: (venue: string, model: string, reference: string, windows: string, days: string) =>
+      `${venue}: malli ${model} vastaan ${reference}, ${windows} ikkunaa (${days} päivää).`,
+    summaryBetter: (difference: string, low: string, high: string) =>
+      `Malli voittaa vertailukohdan tilastollisesti: ero ${difference} kävijää päivässä (95 % väli ${low}…${high}).`,
+    summaryNoDifference: (difference: string, low: string, high: string) =>
+      `Eroa ei havaittu: ${difference} kävijää päivässä (95 % väli ${low}…${high}).`,
+    summaryWorse: (difference: string, low: string, high: string) =>
+      `Malli häviää vertailukohdalle tilastollisesti: ero ${difference} kävijää päivässä (95 % väli ${low}…${high}).`,
+    summaryMde: (n: string, mde: string, pct: string) =>
+      `Tämä otos (${n}) olisi erottanut vasta ${mde} kävijän eron, eli ${pct} vertailukohdan MAE:sta.`,
+    summaryTotal: (predicted: string, actual: string, pct: string) =>
+      `Jakson kokonaismäärä: ennuste ${predicted}, toteuma ${actual}, ero ${pct}.`,
+    summaryWindowClosing:
+      'Yhden ikkunan tulos on kuvaileva, ei todistava: varsinainen näyttö syntyy usean ikkunan koosteesta.',
+    summarySweepClosing:
+      'Aineistoa on noin kahdeksan kuukautta yhdeltä vuodelta, joten myös kooste lepää ohuen otoksen varassa.',
+
+    seriesTitle: 'Ennuste vastaan toteuma',
+    seriesDescription:
+      'Toteuma yhtenäisenä viivana, mallin mediaaniennuste katkoviivana ja sen p10 - p90 -väli vaaleana alueena. Vertailukohdat saa näkyviin valitsimesta.',
+    seriesFootnote:
+      'Pystyviivat ovat pyhäpäiviä. Kuvasta luetaan mihin suuntaan ennuste karkasi ja pysyikö toteuma välin sisällä, ei sitä kumpi malli voitti: siihen vastaa ero vertailukohtaan.',
+    seriesStitched:
+      'Kooste piirtää jäsenikkunansa peräkkäin, kukin omasta origostaan ennustettuna. Kyseessä ei siis ole yksi yhtenäinen ennuste.',
+    seriesAria: (venue: string) => `Viivakaavio: ${venue}, ennuste ja toteuma testijaksolla.`,
+    seriesMissing:
+      'Tämän ajon päiväsarjaa ei ole paketissa. Aikasarjat otetaan mukaan vain uusimmista ajoista, jotta sivun paino pysyy kurissa; verdikti ja mittarit ovat silti mukana.',
+    seriesCaption: (venue: string) => `${venue}: ennuste ja toteuma päivittäin`,
+
+    horizonTitle: 'Virhe horisontin mukaan',
+    horizonDescription:
+      'Keskimääräinen itseisvirhe horisonttikoreittain: mallit ja kaikki kolme vertailukohtaa rinnakkain.',
+    horizonFootnote:
+      'Tästä luetaan missä kohtaa horisonttia ennuste hajoaa. Korit ovat pieniä, tyypillisesti 7 - 16 vuorokautta, joten yksittäinen pylväs heiluu.',
+    horizonAria: (venue: string) => `Ryhmitelty pylväskaavio: ${venue}, MAE horisonttikoreittain malleittain.`,
+    horizonCaption: (venue: string) => `${venue}: MAE horisonttikoreittain`,
+
+    diffTitle: 'Ero vertailukohtaan luottamusväleineen',
+    diffDescription:
+      'Keskiero ja sen 95 prosentin väli. Nolla on korostettu: kun koko väli on sen toisella puolella, ero on tilastollisesti havaittu.',
+    diffFootnote:
+      'Tämä on sivun tärkein kuva, koska verdikti luetaan siitä suoraan. Nollan yli menevä väli tarkoittaa ettei tämä otos erottanut malleja; lue silloin MDE.',
+    diffAria: (venue: string) => `Piste ja väli -kuvaaja: ${venue}, keskiero vertailukohtaan 95 prosentin välillä.`,
+    diffCaption: (venue: string) => `${venue}: keskiero vertailukohtaan`,
+    diffZeroLabel: 'Nolla: ei eroa',
+    diffPooledRow: 'Kooste',
+
+    totalTitle: 'Jakson kokonaismäärä',
+    totalDescription:
+      'Ennustettu ja toteutunut kokonaismäärä koko jaksolta, ennusteen 80 prosentin väli mukana. Tämä on eri kysymys kuin päivätason tarkkuus.',
+    totalFootnote:
+      'Väliä ei summata päivien väleistä vaan se simuloidaan koulutusikkunan sisäisestä backtestistä. Päivien p10-summa ja p90-summa olisivat tähän aivan liian leveät.',
+    totalAria: (venue: string) => `Pylväskaavio: ${venue}, ennustettu ja toteutunut kokonaismäärä.`,
+    totalCaption: (venue: string) => `${venue}: jakson kokonaismäärä`,
+    totalWarningTitle: 'Kokonaismäärän väliä ei pidä lukea tästä',
+    totalWarningThin: 'Sisäkkäisessä backtestissä oli liian vähän origoja.',
+    totalWarningDrifted:
+      'Sisäkkäisten mallien virheissä on tasosiirtymä eikä pelkkää hajontaa, ja väli perii sen.',
+    totalWarningBody: 'Lue silloin kokonaismäärän ero ja harha erikseen, älä väliä.',
+
+    calibrationTitle: 'Kalibrointi',
+    calibrationDescription:
+      'Osuus vuorokausista joiden toteuma osui p10 - p90 -välille, ja sille Clopper-Pearsonin eksakti binomiväli. Tavoiteviiva on 0,80.',
+    calibrationFootnote:
+      'Kalibroitu tarkoittaa että 0,80 mahtuu välin sisään. Otos on pieni ja osuus lähellä yksikkövälin reunaa, joten väli on leveä eikä sitä saa lukea tarkaksi.',
+    calibrationAria: (venue: string) => `Piste ja väli -kuvaaja: ${venue}, ennustevälien peittävyys.`,
+    calibrationCaption: (venue: string) => `${venue}: peittävyys ja sen väli`,
+    calibrationTarget: 'Tavoite 0,80',
+
+    weatherTitle: 'Sään kolme tilaa',
+    weatherDescription:
+      'Sama ikkuna pisteytettynä kolmesti: toteutuneella säällä, sääennusteella ja klimatologialla. Verdikti lasketaan aina keskimmäisestä.',
+    weatherFootnote:
+      'Perfect on yläraja eikä tulos: se kertoo mihin malli pystyisi jos sää tiedettäisiin etukäteen. Perfectin ja climatologyn välinen ero on se osa tarkkuudesta joka lepää sään tuntemisen varassa.',
+    weatherAria: (venue: string) => `Pylväskaavio: ${venue}, MAE sään kolmessa tilassa.`,
+    weatherCaption: (venue: string) => `${venue}: MAE sään kolmessa tilassa`,
+    weatherPerfect: 'perfect, yläraja',
+    weatherOperational: 'operational, verdiktin perusta',
+    weatherClimatology: 'climatology, alaraja',
+    weatherGap: (value: string, pct: string) => `Sään arvo tässä ikkunassa: ${value} (${pct}).`,
+
+    calibrationCalibrated: 'kalibroitu',
+    calibrationTooNarrow: 'liian kapea',
+    calibrationTooWide: 'liian leveä',
+    biasUnbiased: 'ei systemaattista harhaa',
+    biasOver: 'yliarvioi systemaattisesti',
+    biasUnder: 'aliarvioi systemaattisesti',
+
+    metricsTitle: 'Päivätason mittarit',
+    metricsLead:
+      'Mallit ja vertailukohdat samoilla riveillä. Nämä on laskettu ennusterivistä ajon pääsään tilassa; MAE on päämittari ja verdikti lepää sen varassa.',
+    metricsCaption: (venue: string) => `${venue}: päivätason mittarit malleittain`,
+    smapeUnreliable: 'sMAPE on merkitty epäluotettavaksi: testijaksolla on nollapäiviä.',
+    smapeUnreliableShort: 'epäluotettava',
+    zeroDays: (days: string) => `${days} nollapäivää`,
+
+    windowsTitle: 'Koosteen ikkunat',
+    windowsLead:
+      'Yksi rivi per ikkuna. Kooste ei ole näiden keskiarvo: se uudelleenottaa kokonaisia ikkunoita, koska kaksi saman ikkunan päivää jakavat koulutusjoukon.',
+    windowsCaption: (venue: string) => `${venue}: ikkunakohtaiset verdiktit`,
+
+    worstTitle: 'Pahiten menneet päivät',
+    worstLead:
+      'Viisi suurinta päivävirhettä, suurin ensin. Positiivinen virhe tarkoittaa että malli yliarvioi kyseisen vuorokauden.',
+    worstCaption: (venue: string) => `${venue}: viisi suurinta päivävirhettä`,
+
+    colTestPeriod: 'Testijakso',
+    colReference: 'Vertailukohta',
+    colModelMae: 'Mallin MAE',
+    colReferenceMae: 'Vertailun MAE',
+    colDifference: 'Keskiero',
+    colInterval: '95 % väli',
+    colTotalInterval: '80 % väli',
+    colVerdict: 'Verdikti',
+    colMde: 'MDE',
+    colWeekday: 'Viikonpäivä',
+    colActual: 'Toteuma',
+    colForecast: 'Ennuste',
+    colError: 'Virhe',
+    colNote: 'Huomio',
+    colPinball: 'Pinball 0,1 / 0,5 / 0,9',
+    colSmape: 'sMAPE',
+    colCoverage: 'Peittävyys 80 %',
+
+    limitsHeading: 'Mitä tästä ei voi päätellä',
+    limitsLead:
+      'Tämä on arvioinnin tärkein luku, ja se on lyhennetty tähän dokumentista docs/EVALUATION.md. Jokainen kohta on rajoite jonka ohittaminen tuottaa väärän johtopäätöksen oikeista luvuista.',
+    limitSingleWindowStrong: 'Yhden ikkunan tulos on kuvaileva, ei todistava.',
+    limitSingleWindowBody:
+      'Yhden origon kolmisenkymmentä virhettä jakavat saman koulutusjoukon ja saman kuukauden sään, joten ne eivät ole kolmekymmentä riippumatonta havaintoa. Varsinainen näyttö on monen ikkunan kooste, jossa uudelleenotanta kohdistuu kokonaisiin ikkunoihin.',
+    limitNoDifferenceStrong: '”Ei havaittavaa eroa” ei tarkoita samanveroisuutta.',
+    limitNoDifferenceBody:
+      'Se tarkoittaa että tämä otos ei erottanut malleja. Vain MDE erottaa yhtä hyvät mallit liian pienestä otoksesta, ja tällä aineistolla yhden kuukauden MDE on suuruusluokkaa kolmannes vertailukohdan MAE:sta. Pienet mutta todelliset parannukset jäävät siis näkymättömiin.',
+    limitPerfectStrong: 'Perfect-sään luku on yläraja, ei saavutettu tulos.',
+    limitPerfectBody:
+      'Se pisteyttää mallin toteutuneella säällä, jota ei ole käytettävissä ennustehetkellä. Operational on paras arvaus eikä mittaus: se olettaa hyvän sääennusteen sen sijaan että käyttäisi sitä ennustetta joka origossa oli oikeasti saatavilla.',
+    limitTotalStrong: 'Hyvä kokonaismäärä ei todista hyvää päivätarkkuutta eikä päinvastoin.',
+    limitTotalBody:
+      'Vastakkaisen merkkiset päivävirheet kumoavat toisensa summassa. Huhtikuussa yksinkertainen viikonpäivän keskiarvo osui venue 1:n kuukausisummaan alle prosentin tarkkuudella, vaikka sen päivätason virhe oli noin viidennes päivän keskiarvosta.',
+    limitSmapeStrong: 'sMAPE ei kelpaa verdiktin perustaksi tällä aineistolla.',
+    limitSmapeBody:
+      'Nollapäivällä symmetrinen suhde saavuttaa 200 prosentin kattonsa riippumatta siitä kuinka lähellä ennuste oli. Mittari lasketaan, mutta se on merkitty epäluotettavaksi aina kun testijaksolla on nollapäiviä.',
+    limitYearlyStrong: 'Vuosikausivaihtelusta ei voi sanoa mitään.',
+    limitYearlyBody:
+      'Aineistoa on noin kahdeksan kuukautta yhdeltä vuodelta. Vertailu toiseen vuoteen ei ole mahdollinen, eivätkä mallien vuosikausikomponentit ole arvioitavissa.',
+    limitsSource: 'Koko luku on dokumentissa docs/EVALUATION.md.',
   },
 
   about: {

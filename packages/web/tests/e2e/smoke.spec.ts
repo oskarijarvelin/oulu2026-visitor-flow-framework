@@ -54,6 +54,12 @@ const PAGES: PageUnderTest[] = [
     minCharts: 4,
   },
   {
+    path: '/accuracy',
+    title: { fi: 'Tarkkuus', en: 'Accuracy' },
+    heading: { fi: /Ennustemallin tarkkuustestit/, en: /Forecast accuracy tests/ },
+    minCharts: 6,
+  },
+  {
     path: '/about',
     title: { fi: 'Tietoja', en: 'About' },
     heading: { fi: /Mistä data tulee/, en: /Where the data comes from/ },
@@ -251,3 +257,78 @@ for (const lang of LANGS) {
     );
   });
 }
+
+/**
+ * Ajovalitsin. Sivu renderoi jokaisen ajon palvelimella ja piilottaa muut kuin valitun,
+ * joten valitsimen on vaihdettava sisalto ilman uutta pyyntoa. Hash-linkin on avattava
+ * sama nakyma suoraan.
+ */
+const RUNS_LABEL: Record<Lang, string> = { fi: 'Valitse arviointiajo', en: 'Choose an evaluation run' };
+const SWEEP_RUN = 'eval_v1_sweep_monthly_2026-04-01_2026-08-25_baseline';
+const APRIL_RUN = 'eval_v1_2026-03-31_2026-04-01_2026-04-30_baseline';
+
+for (const lang of LANGS) {
+  test(`[${lang}] ajovalitsin vaihtaa nakyman ja paivittaa osoitteen`, async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto(localized('/accuracy', lang));
+
+    const selector = page.getByRole('navigation', { name: RUNS_LABEL[lang] });
+    const links = selector.getByRole('link');
+    await expect(links).toHaveCount(await links.count());
+    expect(await links.count()).toBeGreaterThanOrEqual(6);
+
+    // Kooste on ensimmaisena ja valittuna ilman hashia.
+    const first = links.first();
+    await expect(first).toHaveAttribute('aria-current', 'true');
+    await expect(first).toHaveAttribute('href', `#run=${SWEEP_RUN}`);
+    expect(await page.locator('html').getAttribute('data-accuracy-run')).toBe(SWEEP_RUN);
+
+    const april = selector.locator(`[data-run-link="${APRIL_RUN}"]`);
+    await april.scrollIntoViewIfNeeded();
+    await april.click();
+
+    await expect(page).toHaveURL(new RegExp(`#run=${APRIL_RUN}$`));
+    await expect(april).toHaveAttribute('aria-current', 'true');
+    await expect(first).toHaveAttribute('aria-current', 'false');
+    expect(await page.locator('html').getAttribute('data-accuracy-run')).toBe(APRIL_RUN);
+
+    // Vain valitun ajon lohkot ovat nakyvissa.
+    await expect(page.locator(`[data-run="${APRIL_RUN}"]`).first()).toBeVisible();
+    await expect(page.locator(`[data-run="${SWEEP_RUN}"]`).first()).toBeHidden();
+
+    expect(errors, errors.join(' | ')).toEqual([]);
+  });
+
+  test(`[${lang}] hash-linkki avaa oikean ajon suoraan`, async ({ page }) => {
+    await page.goto(`${localized('/accuracy', lang)}#run=${APRIL_RUN}`);
+
+    expect(await page.locator('html').getAttribute('data-accuracy-run')).toBe(APRIL_RUN);
+    await expect(page.locator(`[data-run="${APRIL_RUN}"]`).first()).toBeVisible();
+    await expect(page.locator(`[data-run="${SWEEP_RUN}"]`).first()).toBeHidden();
+    await expect(
+      page.getByRole('navigation', { name: RUNS_LABEL[lang] }).locator(`[data-run-link="${APRIL_RUN}"]`),
+    ).toHaveAttribute('aria-current', 'true');
+  });
+
+  test(`[${lang}] tuntematon hash palaa uusimpaan koosteeseen`, async ({ page }) => {
+    await page.goto(`${localized('/accuracy', lang)}#run=ei-tallennettu`);
+    expect(await page.locator('html').getAttribute('data-accuracy-run')).toBe(SWEEP_RUN);
+    await expect(page.locator(`[data-run="${SWEEP_RUN}"]`).first()).toBeVisible();
+  });
+}
+
+test('kooste esittaa verdiktin sellaisenaan myos mallia vastaan', async ({ page }) => {
+  await page.goto('/accuracy');
+
+  // Kooste on mallia vastaan molemmilla venueilla, eika otsikkoon nosteta parasta ikkunaa.
+  const verdicts = page.locator(`[data-run="${SWEEP_RUN}"]`).getByText(/huonompi kuin vertailukohta/);
+  expect(await verdicts.count()).toBeGreaterThanOrEqual(2);
+});
+
+test('"ei havaittavaa eroa" kantaa aina MDE-lauseen', async ({ page }) => {
+  await page.goto(`/accuracy#run=${APRIL_RUN}`);
+
+  const panel = page.locator(`[data-run="${APRIL_RUN}"]`);
+  await expect(panel.getByText(/ei havaittavaa eroa/).first()).toBeVisible();
+  await expect(panel.getByText(/olisi erottanut vasta/).first()).toBeVisible();
+});

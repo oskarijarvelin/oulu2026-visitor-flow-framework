@@ -1,6 +1,6 @@
 # Claude Code -promptit: Oulu2026 Visitor Flow Framework
 
-Viisi valmista promptia: kolme päälle osiolle ja kaksi lisäominaisuudelle. Kukin on
+Kuusi valmista promptia: kolme päälle osiolle ja kolme lisäominaisuudelle. Kukin on
 itsenäinen ja ajetaan omassa Claude Code -istunnossaan repon juuressa.
 
 ## Käyttöohje
@@ -15,6 +15,9 @@ työvaiheen, jossa lippudata syötetään käsin.
 **Prompti 5 (arviointikehikko) edellyttää että osio 3 on valmis.** Se laajentaa
 forecast-pakettia komennolla, jolla ennusteita voi luoda mielivaltaisille aikaikkunoille
 ja verrata niitä automaattisesti toteumaan.
+
+**Prompti 6 (tarkkuustestien visualisointi) edellyttää osiot 2 ja 3 sekä promptin 5.**
+Se lisää sivustolle näkymän, jolla arviointiajojen tulokset luetaan selaimessa.
 
 **Ennen ensimmäistä promptia**, luo repo ja kopioi dokumentaatio:
 
@@ -38,7 +41,7 @@ claude
 
 ---
 
-## Prompti 1 / 5: ingest-osio (Python)
+## Prompti 1 / 6: ingest-osio (Python)
 
 ````text
 Rakennat Oulu2026 Visitor Flow Frameworkin ensimmäisen osion: datan hakevan
@@ -247,7 +250,7 @@ tests/fixtures/*.json -tiedostoiksi ja testaa niitä vasten:
 
 ---
 
-## Prompti 2 / 5: forecast-osio (Python)
+## Prompti 2 / 6: forecast-osio (Python)
 
 ````text
 Rakennat Oulu2026 Visitor Flow Frameworkin kolmannen osion: ennustepaketin. Repossa on
@@ -453,7 +456,7 @@ satunnaisuuksia. Sama syöte tuottaa saman tuloksen.
 
 ---
 
-## Prompti 3 / 5: web-osio (Astro)
+## Prompti 3 / 6: web-osio (Astro)
 
 ````text
 Rakennat Oulu2026 Visitor Flow Frameworkin toisen osion: staattisen web-käyttöliittymän.
@@ -602,7 +605,7 @@ lämpökartta) vierii omassa säiliössään eikä koko sivu vaakasuunnassa.
 
 ---
 
-## Prompti 4 / 5: lipputyökalu (itsenäinen HTML)
+## Prompti 4 / 6: lipputyökalu (itsenäinen HTML)
 
 Tämä on apuväline, ei osa päivittäistä automaattiajoa. Sen voi toteuttaa milloin tahansa,
 myös ennen osioita 2 ja 3. Se korvaa nykyisen manuaalisen työvaiheen, jossa
@@ -954,7 +957,7 @@ maininta työkalusta repon juuren README.md:hen.
 
 ---
 
-## Prompti 5 / 5: arviointikehikko (Python, laajentaa osiota 3)
+## Prompti 5 / 6: arviointikehikko (Python, laajentaa osiota 3)
 
 Edellyttää että osio 3 (`packages/forecast`) on valmis. Tämä lisää siihen komennon, jolla
 ennusteita voi luoda mille tahansa aikaikkunalle ja verrata ne automaattisesti toteumaan,
@@ -1319,6 +1322,208 @@ raportin ensimmäisessä kappaleessa.
 
 ---
 
+## Prompti 6 / 6: tarkkuustestien visualisointi (Astro, laajentaa osiota 2)
+
+Edellyttää että osiot 2 ja 3 sekä prompti 5 ovat valmiit, ja että hakemistossa
+`data/evaluations/` on ainakin yksi ajo. Tämä lisää sivustolle näkymän, jolla
+arviointiajojen tulokset luetaan selaimessa taulukoiden ja kuvaajien kautta.
+
+````text
+Laajennat Oulu2026 Visitor Flow Frameworkin web-osiota näkymällä, joka visualisoi
+ennustemallin tarkkuustestit.
+
+# Lue ensin
+
+- README.md luku "Part 3: measuring forecast accuracy": mitä arviointi tekee
+- docs/EVALUATION.md: verdiktien merkitys, MDE, sään kolme tilaa, mitä tuloksista ei voi
+  päätellä. Luku 11 on tämän näkymän tekstisisällön perusta.
+- packages/web/scripts/build-data.ts ja scripts/lib/: miten data paketoidaan build-aikana
+- packages/web/src/views/QualityView.astro: lähin olemassa oleva vastine
+- packages/web/src/charts/: Observable Plot -saarekkeiden nykyinen rakenne
+- data/evaluations/index.json ja yhden ajon verdicts.json: lähdedatan muoto
+
+# Tehtävä
+
+Lisää sivustolle uusi sivu `/accuracy` (ja `/en/accuracy`), jolla voi selata kaikkia
+tallennettuja arviointiajoja. Sivu on julkinen ja se linkitetään navigaatioon.
+
+# Suhde nykyiseen /quality-sivuun
+
+Näitä on nyt kaksi ja ne vastaavat eri kysymyksiin. Sekaannus on todennäköinen, joten
+molemmille sivuille tulee lyhyt selite ja ristiviittaus toiseen:
+
+- `/quality` mittaa **tuotantoputkea**: liukuvan origon backtest, josta johdetaan
+  ennustevälit joita julkaistu ennuste kantaa. Se päivittyy joka ajolla.
+- `/accuracy` mittaa **valittuja ikkunoita**: kouluta tähän asti, ennusta tämä jakso,
+  voittiko malli yksinkertaisen säännön. Se päivittyy kun joku ajaa arvioinnin.
+
+# Datan paketointi
+
+Laajenna `scripts/build-data.ts` tuottamaan uusi tiedosto `src/data/accuracy.json`.
+
+Lähteet:
+- `data/evaluations/index.json`: ajoluettelo
+- `data/evaluations/{run_id}/verdicts.json`: kaikki mitä verdiktin esittämiseen tarvitaan
+- `data/evaluations/{run_id}/predictions.csv`: sarakkeet
+  `venue_id, date, horizon_days, model, weather_mode, y_true, p10, p50, p90`
+
+`verdicts.json` on rakenteeltaan valmis: se sisältää `window` tai `sweep`-metatiedot,
+`summary_fi`, `family_size`, ja venuekohtaisesti `baseline_mae`, sekä mallikohtaisesti
+`comparison` (mean_difference, ci_low, ci_high, verdict, model_mae, reference_mae,
+skill_score, mde, mde_pct, dm_*), `bias`, `calibration`, `total` ja
+`weather_sensitivity`. Sweep-ajossa on lisäksi `windows[]` ja mallikohtainen `pooled`
+sekä `per_window[]`. Älä laske näitä uudelleen selaimessa, lue ne sellaisenaan.
+
+Karsinta, jotta paketti pysyy pienenä:
+- ota `predictions.csv`:stä vain rivit joiden `weather_mode` on ajon
+  `primary_weather_mode`
+- ota aikasarjat enintään 12 uusimmasta ikkuna-ajosta, ja aina kaikista ajoista joihin
+  jokin sweep viittaa
+- verdiktit otetaan kaikista ajoista
+- pyöristä liukuluvut: kävijämäärät yhteen desimaaliin, osuudet kolmeen
+- tavoitekoko alle 150 kB
+
+Tyypitä sopimus tiedostoon `src/lib/types.ts` ja validoi se buildissa samalla tavalla
+kuin muutkin paketit.
+
+## Kaksi poikkeusta nykyisiin build-portteihin
+
+1. **Puuttuva arviointidata ei saa kaataa buildia.** Jos `data/evaluations/` puuttuu tai
+   on tyhjä, kirjoita `accuracy.json`, jossa on tyhjä `runs`-lista, ja anna sivun
+   renderöidä tyhjä tila. Arviointi on valinnainen työvaihe, toisin kuin ingest ja
+   forecast.
+2. **`schema_version` tarkistetaan.** Jos jonkin ajon `verdicts.json` ei ole `v1`, build
+   kaatuu selkeällä viestillä, joka kertoo minkä ajon ja minkä version se näki. Hiljainen
+   väärin renderöinti on pahempi kuin epäonnistunut build.
+
+# Sivun rakenne
+
+## Ajovalitsin
+
+Ylimpänä valitsin, joka listaa tallennetut ajot: koosteet ensin, sitten yksittäiset
+ikkunat, kummatkin uusin ensin. Jokaisesta näkyy testijakso, laji, mallit ja verdikti
+lyhyesti.
+
+Valittu ajo tallentuu osoitteen hash-osaan, esimerkiksi
+`#run=eval_v1_2026-03-31_2026-04-01_2026-04-30_baseline`, jotta yksittäisen ajon voi
+jakaa linkkinä. Sivun on toimittava myös ilman JavaScriptiä: renderöi uusimman koosteen
+sisältö staattisesti ja anna valitsimen vaihtaa näkymää vasta saarekkeen latauduttua.
+
+## Verdiktipalkki
+
+Heti valitsimen alla, venuekohtaisesti:
+- verdikti sanana, väri ja ikoni sen mukaan (parempi, ei havaittavaa eroa, huonompi)
+- keskiero ja sen 95 % väli
+- päävertailukohdan nimi ja molempien MAE
+- MDE-lause aina mukana kun verdikti on "ei havaittavaa eroa"
+
+Verdikti esitetään sellaisenaan myös silloin kun se on mallia vastaan. Älä nosta
+otsikkoon parasta ikkunaa, jos kooste on toista mieltä.
+
+## Kuvaajat
+
+Kaikki Observable Plotilla, `src/charts/`-hakemistoon, samalla saarekekuviolla kuin
+nykyiset. Jokaisella on tekstivastine tai taulukkonäkymä.
+
+1. **Ennuste vs. toteuma.** x = päivä, y = kävijää. Toteuma yhtenäisenä viivana,
+   mallin p50 katkoviivana, p10-p90 vaaleana alueena. Vertailukohdat ohuina viivoina,
+   oletuksena piilossa, valittavissa. Pyhäpäivät pystyviivoina.
+2. **Virhe horisontin mukaan.** Ryhmitellyt pylväät: MAE horisonttikoreittain
+   (1-7, 8-14, 15-30), malli ja kolme vertailukohtaa rinnakkain. Tämä näyttää missä
+   kohtaa horisonttia ennuste hajoaa.
+3. **Ero vertailukohtaan luottamusväleineen.** Piste ja väli -kuvaaja: keskiero d ja sen
+   95 % väli, nollaviiva korostettuna. Tämä on koko sivun tärkein kuva, koska siitä
+   verdikti luetaan suoraan. Sweep-ajossa yksi rivi per ikkuna plus kooste alimpana.
+4. **Jakson kokonaismäärä.** Ennuste ja toteuma pylväinä, simuloitu 80 % väli mukana.
+   Jos ajon `total.is_thin` tai `total.is_drifted` on tosi, näytä varoitus ja kerro että
+   väliä ei pidä lukea, vaan ero ja bias erikseen.
+5. **Kalibrointi.** Peittävyys ja sen Clopper-Pearson-väli, tavoiteviiva 0,80.
+6. **Sään kolme tilaa.** perfect, operational ja climatology MAE pylväinä. Merkitse
+   `perfect` selvästi ylärajaksi, ei tulokseksi.
+
+## Taulukot
+
+- Päivätason mittarit: malli ja vertailukohdat riveinä, MAE, RMSE, MASE, bias,
+  pinball, peittävyys, sMAPE. sMAPE merkitään epäluotettavaksi jos testijaksolla on
+  nollapäiviä.
+- Sweep-ajossa ikkunataulukko: testijakso, vertailukohta, mallin MAE, vertailun MAE,
+  keskiero, väli, verdikti, MDE.
+- Pahiten menneet päivät: viisi suurinta virhettä, päivä, viikonpäivä, toteuma, ennuste,
+  virhe ja pyhäpäivämerkintä. Laske tämä `predictions.csv`:stä build-aikana.
+
+## Selittävät tekstit
+
+Jokaisen kuvaajan yhteydessä yksi tai kaksi lausetta siitä mitä siitä luetaan. Sivun
+loppuun osio "mitä tästä ei voi päätellä", joka tiivistää `docs/EVALUATION.md` luvun 11.
+Vähintään nämä kolme:
+- yhden ikkunan tulos on kuvaileva, ei todistava
+- "ei havaittavaa eroa" ei tarkoita samanveroisuutta, katso MDE
+- `perfect`-sään luku on yläraja, ei saavutettu tulos
+
+# Kaksikielisyys
+
+Kaikki tekstit `src/i18n/ui/fi.ts` ja `en.ts` -tiedostoihin nykyisellä kuviolla.
+Verdiktisanat käännetään, mutta `verdicts.json`:in `summary_fi` on valmis suomenkielinen
+kappale: näytä se suomeksi sellaisenaan ja kirjoita englanninkielinen vastine samoista
+rakenteisista kentistä, älä käännä merkkijonoa selaimessa.
+
+Navigaatioon uusi linkki `/accuracy` `/quality`-linkin jälkeen, `src/components/SiteNav.astro`.
+
+# Tekniset reunaehdot
+
+- Noudata nykyisiä kuvioita: `src/charts/base.ts`, `src/lib/colors.ts`,
+  `src/lib/format.ts`, `Figure`, `TableScroll`, `Callout`, `client:visible`
+- Ei uusia riippuvuuksia, Observable Plot riittää
+- Ei ajonaikaista datanhakua, kaikki build-aikaista
+- Mobiili 375 px toimii, leveät taulukot vierivät omassa säiliössään
+- Väriskaalat toimivat harmaasävyisenä ja punavihervärisokealle. Verdikti ei saa erottua
+  pelkällä värillä, mukaan ikoni tai sana
+- Vältä pitkää ajatusviivaa leipätekstissä
+
+# Testit
+
+- vitest: `accuracy.json`:in rakennus, karsintasäännöt, pyöristys, tyhjä tila,
+  `schema_version`-portin laukeaminen
+- vitest: pahiten menneiden päivien laskenta tunnetulla syötteellä
+- Playwright: `/accuracy` ja `/en/accuracy` latautuvat ilman konsolivirheitä, ajovalitsin
+  vaihtaa näkymää, ja hash-linkki avaa oikean ajon
+- schema-testi, joka kaatuu jos `verdicts.json`:in rakenne muuttuu
+
+# Hyväksymiskriteerit
+
+Nykyisellä datalla (kuusi ajoa: viisi kuukausi-ikkunaa ja yksi kooste):
+
+1. Ajovalitsin listaa kuusi ajoa, kooste ensimmäisenä.
+2. Kooste `eval_v1_sweep_monthly_2026-04-01_2026-08-25_baseline` näyttää verdiktin
+   "huonompi kuin vertailukohta" molemmille venueille: venue 1 keskiero +60,0
+   (väli +3,1 … +124,4), venue 2 +17,1 (väli +3,7 … +32,7), ja ikkunajakauman
+   1 puolesta / 4 vastaan.
+3. Huhtikuun ikkuna näyttää venue 1:lle verdiktin "ei havaittavaa eroa", keskiero +6,7
+   (väli -3,2 … +30,7), MDE 34,5 eli 35,9 %, ja venue 2:lle verdiktin "huonompi",
+   keskiero +20,4.
+4. Huhtikuun vertailukohtien MAE venue 1:llä: seasonal_naive 129,5,
+   moving_average_28d 197,6, climatology_dow 96,2.
+5. Huhtikuun kokonaismäärä venue 1:llä: ennuste 13 639, toteuma 13 189, ero +3,4 %.
+6. Tyhjä `data/evaluations/` tuottaa toimivan sivun tyhjällä tilalla, ei kaatunutta
+   buildia.
+7. `accuracy.json` alle 150 kB, sivun paino alle 500 kB.
+8. npm run build, vitest ja Playwright menevät läpi.
+9. Päivitä README.md:n Part 2 -osioon uusi sivu ja sen suhde `/quality`-sivuun.
+
+# Älä tee näitä
+
+- Älä laske tilastoja uudelleen selaimessa, `verdicts.json` on laskettu jo
+- Älä kaada buildia puuttuvaan arviointidataan
+- Älä esitä `perfect`-sään lukua tuloksena
+- Älä valitse otsikkoon parasta ikkunaa kun kooste on mallia vastaan
+- Älä jätä MDE:tä pois kun verdikti on "ei havaittavaa eroa"
+- Älä lisää CDN-skriptejä tai uusia npm-riippuvuuksia
+- Älä käännä `summary_fi`-kappaletta selaimessa, rakenna englanninkielinen vastine
+  kentistä
+````
+
+---
+
 ## Yhteenveto: mitä kukin osio tuottaa
 
 | Osio | Teknologia | Syöte | Tuotos | Ajo |
@@ -1328,3 +1533,4 @@ raportin ensimmäisessä kappaleessa.
 | 2. web | Astro 5, TypeScript, Observable Plot | `data/processed/` + `data/forecasts/` | Staattinen sivusto | Build pushissa, Cloudflare Pages |
 | 4. lipputyökalu | Yksi HTML-tiedosto, vanilla JS | Aukiolotiimin kävijätilasto-CSV (cp1252, puolipiste) | `data/raw/tickets/venue_{id}/tickets.csv` | Käsin, viikoittain |
 | 5. arviointi | Python, laajentaa osiota 3 | `data/processed/` + valittu aikaikkuna | `data/evaluations/{run_id}/` | Käsin, mallin kehityksen tahdissa |
+| 6. tarkkuusnäkymä | Astro, laajentaa osiota 2 | `data/evaluations/` | Sivu `/accuracy` | Build pushissa |

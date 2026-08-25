@@ -1,0 +1,37 @@
+{
+  "kind": "window",
+  "schema_version": "v1",
+  "run_id": "eval_v1_2026-07-31_2026-08-01_2026-08-31_baseline-prophet_xgb",
+  "window": {
+    "origin": "2026-07-31",
+    "test_start": "2026-08-01",
+    "test_end": "2026-08-31",
+    "horizon_days": 31,
+    "train_window": "all"
+  },
+  "models": [
+    "baseline",
+    "prophet_xgb"
+  ],
+  "baselines": [
+    "seasonal_naive",
+    "moving_average_28d",
+    "climatology_dow"
+  ],
+  "weather_modes": [
+    "perfect",
+    "operational",
+    "climatology"
+  ],
+  "primary_weather_mode": "operational",
+  "reference": "best",
+  "venues": null,
+  "train_window": "all",
+  "n_resamples": 10000,
+  "seed": 20260101,
+  "nested_backtest": {
+    "step_days": 7,
+    "max_origins": 12,
+    "min_training_days": 45
+  }
+}

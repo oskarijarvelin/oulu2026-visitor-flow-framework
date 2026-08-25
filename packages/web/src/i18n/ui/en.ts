@@ -27,6 +27,7 @@ export const en: Translation = {
     weather: 'Weather',
     forecast: 'Forecast',
     quality: 'Quality',
+    accuracy: 'Accuracy',
     about: 'About',
     languageLabel: 'Language',
     switchTo: (language: string) => `Switch language to ${language}`,
@@ -398,6 +399,11 @@ export const en: Translation = {
     benchmarkCaption: (venue: string) => `${venue}: ratio against the benchmarks`,
     benchmarkColumn: (benchmark: string) => `MAE ratio: ${benchmark}`,
 
+    crossRefTitle: 'This page measures the production pipeline',
+    crossRefBody:
+      'The figures on the quality page come from a rolling origin backtest, and the prediction intervals the published forecast carries are derived from them. They move on every run. The question "did the model beat a simple rule over the chosen period" is answered on the accuracy page, whose figures move only when somebody runs an evaluation.',
+    crossRefLink: 'Go to the accuracy page',
+
     limitsHeading: 'Known limits',
     limitsLead:
       'These are recorded in the do_not_trust field of each venue metrics.json. They are not guesses about what might go wrong, but a list of situations where the measured accuracy does not hold.',
@@ -411,6 +417,219 @@ export const en: Translation = {
       'At horizons 1 to 16 the backtest uses observed weather, while production uses a weather forecast. The error of the weather forecast therefore does not appear in these numbers. This is a known optimism.',
     limitYearly:
       'Neither model learns yearly seasonality, because the data does not hold a single full year. The seasonal features here measure the progress of spring, not a yearly cycle.',
+  },
+
+  accuracy: {
+    title: 'Accuracy',
+    heading: 'Forecast accuracy tests',
+    description:
+      'Stored evaluation runs: train up to here, forecast that period, did the model beat a simple rule.',
+    lead: 'Every run on this page answers one question: the model was trained on everything up to the origin, then asked to forecast the chosen period, and the result was compared against a simple rule. The verdict was computed in the evaluation run itself and is shown here as it stands, including when it goes against the model.',
+
+    compareTitle: 'This page and the quality page answer different questions',
+    compareAccuracy:
+      'This page measures chosen windows: train up to here, forecast that period, did the model beat a simple rule. It moves when somebody runs an evaluation.',
+    compareQuality:
+      'The quality page measures the production pipeline: the rolling origin backtest that the published prediction intervals are derived from. It moves on every run.',
+    compareLink: 'Go to the quality page',
+
+    emptyTitle: 'No evaluation runs have been stored',
+    emptyBody:
+      'Evaluation is an optional step, unlike fetching the data and running the forecast. Once the first run is stored under data/evaluations it appears on this page in the next build.',
+    emptyHint: 'One month at a time, or a sweep across several windows:',
+
+    runsHeading: 'Stored evaluation runs',
+    runsLead:
+      'Sweeps first, then individual windows, newest first in both groups. The selected run is kept in the address, so a single run can be shared as a link.',
+    runsLabel: 'Choose an evaluation run',
+    sweepBadge: (windows: string) => `Sweep, ${windows} windows`,
+    windowBadge: 'Single window',
+    runModels: (models: string) => `Models: ${models}`,
+    runSelected: 'Showing',
+    runFallbackNote:
+      'Without JavaScript the page shows the newest sweep. The selector starts switching views as soon as the page scripts have loaded.',
+
+    verdictBetter: 'better than the reference',
+    verdictNoDifference: 'no detectable difference',
+    verdictWorse: 'worse than the reference',
+    verdictBetterShort: 'better',
+    verdictNoDifferenceShort: 'no difference',
+    verdictWorseShort: 'worse',
+
+    verdictHeading: 'Verdict',
+    verdictAria: (venue: string) => `${venue}: the verdict and the numbers behind it`,
+    meanDifferenceLabel: 'Mean difference',
+    meanDifferenceHelp:
+      'The model mean daily error minus the reference one. Negative means the model is closer.',
+    intervalLabel: (low: string, high: string) => `95% interval ${low} to ${high}`,
+    referenceLine: (reference: string) => `Main reference: ${reference}`,
+    maePair: (model: string, modelMae: string, reference: string, referenceMae: string) =>
+      `${model} ${modelMae}, ${reference} ${referenceMae} visitor events per day`,
+    referenceMaeOnly: (mae: string) => `MAE ${mae} visitor events per day`,
+    mdeNote: (mde: string, pct: string) =>
+      `This sample would only have separated a difference of ${mde} visitors, which is ${pct} of the reference MAE. So "no detectable difference" does not mean the two are equally good.`,
+    windowSplit: (favouring: string, opposing: string, neutral: string) =>
+      `The model was better in ${favouring} and worse in ${opposing} windows, with no difference detected in ${neutral}.`,
+    pooledScope: (windows: string, days: string) => `${windows} windows, ${days} days`,
+    windowScope: (days: string) => `${days} days`,
+    skillScore: (value: string) => `Skill score ${value}`,
+    biasLine: (value: string, low: string, high: string) => `Bias ${value} (95% interval ${low} to ${high})`,
+    familySize: (size: string) => `Multiple comparison correction: family size ${size}.`,
+    holmLine: (raw: string, holm: string) => `p-value ${raw}, ${holm} after the Holm correction`,
+
+    summaryHeading: 'The verdict in words',
+    summaryWindowIntro: (from: string, to: string, days: string, origin: string, train: string, mode: string) =>
+      `Window ${from} to ${to} (${days} days), training ends ${origin}, training window ${train}, weather mode ${mode}.`,
+    summarySweepIntro: (sweep: string, windows: string, from: string, to: string, mode: string, reference: string) =>
+      `Sweep (${sweep}): ${windows} windows, ${from} to ${to}, weather mode ${mode}, main reference ${reference}.`,
+    summaryVenueWindow: (venue: string, model: string, modelMae: string, reference: string, referenceMae: string) =>
+      `${venue}: model ${model} was off by ${modelMae} visitors on an average day, the main reference ${reference} by ${referenceMae}.`,
+    summaryVenueSweep: (venue: string, model: string, reference: string, windows: string, days: string) =>
+      `${venue}: model ${model} against ${reference}, ${windows} windows (${days} days).`,
+    summaryBetter: (difference: string, low: string, high: string) =>
+      `The model beats the reference statistically: difference ${difference} visitors per day (95% interval ${low} to ${high}).`,
+    summaryNoDifference: (difference: string, low: string, high: string) =>
+      `No difference was detected: ${difference} visitors per day (95% interval ${low} to ${high}).`,
+    summaryWorse: (difference: string, low: string, high: string) =>
+      `The model loses to the reference statistically: difference ${difference} visitors per day (95% interval ${low} to ${high}).`,
+    summaryMde: (n: string, mde: string, pct: string) =>
+      `This sample (${n}) would only have separated a difference of ${mde} visitors, which is ${pct} of the reference MAE.`,
+    summaryTotal: (predicted: string, actual: string, pct: string) =>
+      `Period total: forecast ${predicted}, actual ${actual}, difference ${pct}.`,
+    summaryWindowClosing:
+      'A single window is descriptive rather than conclusive: the actual evidence comes from a sweep across several windows.',
+    summarySweepClosing:
+      'The dataset holds about eight months from a single year, so even the pooled result rests on a thin sample.',
+
+    seriesTitle: 'Forecast against actual',
+    seriesDescription:
+      'The actual value as a solid line, the model median forecast dashed, and its p10 to p90 interval as a pale band. The references can be switched on from the selector.',
+    seriesFootnote:
+      'The vertical rules are public holidays. Read this for the direction the forecast drifted and whether the actual stayed inside the interval, not for which model won: that is what the difference against the reference answers.',
+    seriesStitched:
+      'A sweep draws its member windows one after another, each forecast from its own origin. This is not one continuous forecast.',
+    seriesAria: (venue: string) => `Line chart: ${venue}, forecast and actual over the test period.`,
+    seriesMissing:
+      'The daily series for this run is not in the bundle. Series are packaged only for the most recent runs to keep the page light; the verdict and the metrics are still here.',
+    seriesCaption: (venue: string) => `${venue}: daily forecast and actual`,
+
+    horizonTitle: 'Error by horizon',
+    horizonDescription:
+      'Mean absolute error by horizon bucket: the models and all three references side by side.',
+    horizonFootnote:
+      'Read this for the point at which the forecast falls apart. The buckets are small, typically 7 to 16 days, so a single bar wobbles.',
+    horizonAria: (venue: string) => `Grouped bar chart: ${venue}, MAE by horizon bucket and model.`,
+    horizonCaption: (venue: string) => `${venue}: MAE by horizon bucket`,
+
+    diffTitle: 'Difference against the reference, with intervals',
+    diffDescription:
+      'The mean difference and its 95 percent interval. Zero is emphasised: when the whole interval sits on one side of it, the difference has been detected.',
+    diffFootnote:
+      'This is the most important chart on the page, because the verdict is read straight off it. An interval that crosses zero means this sample did not separate the models; read the MDE in that case.',
+    diffAria: (venue: string) => `Dot and range chart: ${venue}, mean difference against the reference with 95 percent intervals.`,
+    diffCaption: (venue: string) => `${venue}: mean difference against the reference`,
+    diffZeroLabel: 'Zero: no difference',
+    diffPooledRow: 'Pooled',
+
+    totalTitle: 'Period total',
+    totalDescription:
+      'Forecast and actual totals for the whole period, with the 80 percent interval of the forecast. This is a different question from daily accuracy.',
+    totalFootnote:
+      'The interval is not summed from the daily intervals but simulated from a backtest run inside the training window. The sum of the daily p10 and p90 values would be far too wide for this.',
+    totalAria: (venue: string) => `Bar chart: ${venue}, forecast and actual period totals.`,
+    totalCaption: (venue: string) => `${venue}: period total`,
+    totalWarningTitle: 'Do not read the total interval here',
+    totalWarningThin: 'The nested backtest had too few origins.',
+    totalWarningDrifted:
+      'The nested models carry a level shift rather than mere scatter, and the interval inherits it.',
+    totalWarningBody: 'Read the difference in the total and the bias separately instead of the interval.',
+
+    calibrationTitle: 'Calibration',
+    calibrationDescription:
+      'The share of days whose actual value fell inside the p10 to p90 interval, with the exact Clopper-Pearson binomial interval around it. The target line is 0.80.',
+    calibrationFootnote:
+      'Calibrated means 0.80 fits inside the interval. The sample is small and the share sits near the edge of the unit interval, so the interval is wide and must not be read as precise.',
+    calibrationAria: (venue: string) => `Dot and range chart: ${venue}, coverage of the prediction intervals.`,
+    calibrationCaption: (venue: string) => `${venue}: coverage and its interval`,
+    calibrationTarget: 'Target 0.80',
+
+    weatherTitle: 'The three weather modes',
+    weatherDescription:
+      'The same window scored three times: on the observed weather, on a weather forecast, and on climatology. The verdict always comes from the middle one.',
+    weatherFootnote:
+      'Perfect is an upper bound rather than a result: it says what the model could do if the weather were known in advance. The gap between perfect and climatology is the share of the accuracy that rests on knowing the weather.',
+    weatherAria: (venue: string) => `Bar chart: ${venue}, MAE in the three weather modes.`,
+    weatherCaption: (venue: string) => `${venue}: MAE in the three weather modes`,
+    weatherPerfect: 'perfect, upper bound',
+    weatherOperational: 'operational, the verdict rests on this',
+    weatherClimatology: 'climatology, lower bound',
+    weatherGap: (value: string, pct: string) => `What the weather was worth in this window: ${value} (${pct}).`,
+
+    calibrationCalibrated: 'calibrated',
+    calibrationTooNarrow: 'too narrow',
+    calibrationTooWide: 'too wide',
+    biasUnbiased: 'no systematic bias',
+    biasOver: 'systematically too high',
+    biasUnder: 'systematically too low',
+
+    metricsTitle: 'Daily metrics',
+    metricsLead:
+      'Models and references on the same rows. These are computed from the prediction rows in the main weather mode of the run; MAE is the headline metric and the verdict rests on it.',
+    metricsCaption: (venue: string) => `${venue}: daily metrics by model`,
+    smapeUnreliable: 'sMAPE is marked unreliable: the test period contains days with zero visitors.',
+    smapeUnreliableShort: 'unreliable',
+    zeroDays: (days: string) => `${days} days with zero visitors`,
+
+    windowsTitle: 'The windows in the sweep',
+    windowsLead:
+      'One row per window. The pooled result is not their average: it resamples whole windows, because two days from the same window share a training set.',
+    windowsCaption: (venue: string) => `${venue}: verdicts window by window`,
+
+    worstTitle: 'The days that went worst',
+    worstLead:
+      'The five largest daily errors, largest first. A positive error means the model overestimated that day.',
+    worstCaption: (venue: string) => `${venue}: the five largest daily errors`,
+
+    colTestPeriod: 'Test period',
+    colReference: 'Reference',
+    colModelMae: 'Model MAE',
+    colReferenceMae: 'Reference MAE',
+    colDifference: 'Mean difference',
+    colInterval: '95% interval',
+    colTotalInterval: '80% interval',
+    colVerdict: 'Verdict',
+    colMde: 'MDE',
+    colWeekday: 'Weekday',
+    colActual: 'Actual',
+    colForecast: 'Forecast',
+    colError: 'Error',
+    colNote: 'Note',
+    colPinball: 'Pinball 0.1 / 0.5 / 0.9',
+    colSmape: 'sMAPE',
+    colCoverage: 'Coverage 80%',
+
+    limitsHeading: 'What this does not prove',
+    limitsLead:
+      'This is the most important chapter of the evaluation, condensed here from docs/EVALUATION.md. Every item is a limit that, ignored, produces a wrong conclusion from correct numbers.',
+    limitSingleWindowStrong: 'A single window is descriptive, not conclusive.',
+    limitSingleWindowBody:
+      'The thirty or so errors from one origin share a training set and one month of weather, so they are nowhere near thirty independent observations. The actual evidence is a sweep across several windows, where the resampling works on whole windows.',
+    limitNoDifferenceStrong: '"No detectable difference" does not mean the two are equally good.',
+    limitNoDifferenceBody:
+      'It means this sample did not separate them. Only the MDE tells an honest tie apart from a sample too small to decide, and on this data a single month has an MDE of roughly a third of the reference MAE. Small but real improvements therefore stay invisible.',
+    limitPerfectStrong: 'The perfect weather figure is an upper bound, not a result that was reached.',
+    limitPerfectBody:
+      'It scores the model on the weather that actually happened, which is not available at forecast time. Operational is a best guess rather than a measurement: it assumes a good weather forecast instead of using the forecast that was genuinely available at the origin.',
+    limitTotalStrong: 'A good period total proves nothing about daily accuracy, and the reverse holds too.',
+    limitTotalBody:
+      'Daily errors of opposite sign cancel each other in the sum. In April a plain weekday mean hit venue 1 monthly total to within one percent while its daily error was about a fifth of the daily mean.',
+    limitSmapeStrong: 'sMAPE cannot carry a verdict on this data.',
+    limitSmapeBody:
+      'On a day with zero visitors the symmetric ratio reaches its ceiling of 200 percent no matter how close the forecast was. The metric is computed, but it is marked unreliable whenever the test period contains such days.',
+    limitYearlyStrong: 'Nothing can be said about year-on-year variation.',
+    limitYearlyBody:
+      'The dataset covers about eight months from a single year. A comparison against another year is not possible, and the yearly seasonal components of the models cannot be evaluated.',
+    limitsSource: 'The full chapter is in docs/EVALUATION.md.',
   },
 
   about: {

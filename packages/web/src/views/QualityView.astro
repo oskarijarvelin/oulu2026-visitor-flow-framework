@@ -8,7 +8,7 @@ import TableScroll from '../components/TableScroll.astro';
 import forecastData from '../data/forecast.json';
 import metaData from '../data/meta.json';
 import qualityData from '../data/quality.json';
-import type { Lang } from '../i18n/index.ts';
+import { localizedPath, type Lang } from '../i18n/index.ts';
 import { ui } from '../i18n/ui/index.ts';
 import { modelStyle } from '../lib/colors.ts';
 import { formatters } from '../lib/format.ts';
@@ -100,6 +100,15 @@ const headlineMae = firstQuality?.metrics[defaultModel]?.['1-7']?.mae ?? 0;
           f.int(firstVenue.mean_daily),
           f.int((headlineMae / Math.max(1, firstVenue.mean_daily)) * 100),
         )}
+      </p>
+    </Callout>
+  </div>
+
+  <div class="mt-4">
+    <Callout title={t.quality.crossRefTitle}>
+      <p>
+        {t.quality.crossRefBody}{' '}
+        <a class="underline" href={localizedPath('/accuracy', lang)}>{t.quality.crossRefLink}</a>.
       </p>
     </Callout>
   </div>
