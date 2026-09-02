@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Callable
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -63,6 +63,10 @@ from .evaluation.windows import (
     DEFAULT_MAX_WINDOWS,
     DEFAULT_ROLLING_HORIZON_DAYS,
     DEFAULT_ROLLING_STEP_DAYS,
+    MIN_TRAINING_DAYS,
+    Window,
+    month_bounds,
+    parse_month,
 )
 from .export import (
     LATEST_DIR,
@@ -81,6 +85,25 @@ from .features import build_future_frame, build_training_frame
 from .intervals import BUCKET_LABELS, Band, apply_bands, bands_to_dict
 from .models.base import BENCHMARK_NAMES, MODEL_NAMES, ForecastModel, resolve_models
 from .profile import build_profile
+from .quiet import (
+    DEFAULT_QUIET_SHARE,
+    DEFAULT_SCORE_MODEL,
+    SCORE_MODELS,
+    QuietBacktestConfig,
+    QuietForecastConfig,
+    next_month,
+    quiet_backtest,
+    quiet_forecast,
+    quiet_history_bounds,
+    resolve_score_models,
+)
+from .quiet import list_runs as list_quiet_runs
+from .quiet import load_run as load_quiet_run
+from .quiet import monthly_sweep as quiet_monthly_sweep
+from .quiet import rolling_sweep as quiet_rolling_sweep
+from .quiet import utc_now as quiet_utc_now
+from .quiet.backtest import SWEEP_SIMULATIONS
+from .quiet.model import N_SIMULATIONS
 
 EXIT_OK = 0
 EXIT_PARTIAL = 1
@@ -486,6 +509,173 @@ def command_evaluate_list(data: ProcessedData, args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def command_quiet(data: ProcessedData, args: argparse.Namespace) -> int:
+    """Name the quietest days of one month and store the answer."""
+    try:
+        year, month = _quiet_month(data, args)
+        config = QuietForecastConfig(
+            score_model=args.score_model,
+            quiet_share=_quiet_share(args.quiet_share),
+            top_k=_top_k(args.top_k),
+            venues=tuple(args.venue) if args.venue else None,
+            n_simulations=args.simulations,
+            seed=args.seed,
+        )
+    except (WindowError, KeyError, ValueError) as exc:
+        log_event("error", "quiet", "Could not build the forecast", error=str(exc))
+        print(f"virhe: {exc}")
+        return EXIT_FAILED
+    result = quiet_forecast(data, year, month, config, moment=quiet_utc_now())
+    if not result.produced_anything:
+        return EXIT_FAILED
+    print()
+    print(result.summary)
+    print()
+    print(f"  tallennettu: data/quiet/{result.run_id}/")
+    return EXIT_PARTIAL if result.failed_venues else EXIT_OK
+
+
+def command_quiet_backtest(data: ProcessedData, args: argparse.Namespace) -> int:
+    """Slide a window over the history and measure what the recommendation was worth."""
+    try:
+        config = QuietBacktestConfig(
+            score_models=resolve_score_models(_split(args.models)),
+            quiet_share=_quiet_share(args.quiet_share),
+            top_k=_top_k(args.top_k),
+            venues=tuple(args.venue) if args.venue else None,
+            n_resamples=args.resamples,
+            n_simulations=args.simulations,
+            seed=args.seed,
+        )
+        windows, sweep_kind = _quiet_windows(data, args, config)
+    except (WindowError, KeyError, ValueError) as exc:
+        log_event("error", "quiet", "Could not build the sweep", error=str(exc))
+        print(f"virhe: {exc}")
+        return EXIT_FAILED
+    result = quiet_backtest(data, windows, config, sweep_kind=sweep_kind, moment=quiet_utc_now())
+    if not result.produced_anything:
+        print("yhtään ikkunaa ei voitu pisteyttää")
+        return EXIT_FAILED
+    print()
+    print(result.summary)
+    print()
+    print(f"  tallennettu: data/quiet/{result.run_id}/")
+    return EXIT_OK
+
+
+def command_quiet_report(data: ProcessedData, args: argparse.Namespace) -> int:
+    """Print a stored quiet-day report."""
+    run_id = args.id
+    if not run_id and args.latest:
+        runs = list_quiet_runs(data.root)
+        run_id = str(runs[0]["run_id"]) if runs else None
+    if not run_id:
+        print("anna joko --id <run_id> tai --latest")
+        return EXIT_FAILED
+    artifacts = load_quiet_run(data.root, run_id)
+    if artifacts is None:
+        print(f"tuntematon ajo: {run_id}")
+        return EXIT_FAILED
+    print(artifacts.report)
+    return EXIT_OK
+
+
+def command_quiet_list(data: ProcessedData, args: argparse.Namespace) -> int:
+    """List the stored quiet-day runs, newest first."""
+    runs = list_quiet_runs(data.root)
+    if not runs:
+        print("ei tallennettuja hiljaisten päivien ajoja")
+        return EXIT_FAILED
+    print(f"{'run_id':<64}{'laji':>10}{'luotu':>22}  sisältö")
+    for entry in runs[: args.limit]:
+        if entry.get("kind") == "backtest":
+            detail = ", ".join(
+                f"v{item['venue_id']}/{item['model']}: {item['verdict']}"
+                for item in entry.get("verdicts", [])
+            )
+        else:
+            detail = "; ".join(
+                f"v{venue_id}: {', '.join(days)}"
+                for venue_id, days in (entry.get("quiet_days") or {}).items()
+            )
+        print(
+            f"{entry.get('run_id', '')!s:<64}{entry.get('kind', '')!s:>10}"
+            f"{entry.get('created_at', '')!s:>22}  {detail}"
+        )
+    return EXIT_OK
+
+
+def _quiet_month(data: ProcessedData, args: argparse.Namespace) -> tuple[int, int]:
+    """The month to rank: what ``--month`` says, or the one after the last observation."""
+    if args.month:
+        return parse_month(args.month)
+    _, last_day = quiet_history_bounds(data, tuple(args.venue) if args.venue else None)
+    return next_month(last_day)
+
+
+def _quiet_share(value: float) -> float:
+    """Validate ``--quiet-share`` as a share strictly inside (0, 1)."""
+    if not 0.0 < value < 1.0:
+        raise ValueError(f"--quiet-share on osuus välillä 0-1, ei {value}.")
+    return value
+
+
+def _top_k(value: int | None) -> int | None:
+    """Validate ``--top-k`` as a positive day count."""
+    if value is not None and value <= 0:
+        raise ValueError(f"--top-k on positiivinen päivien lukumäärä, ei {value}.")
+    return value
+
+
+def _quiet_windows(
+    data: ProcessedData, args: argparse.Namespace, config: QuietBacktestConfig
+) -> tuple[list[Window], str]:
+    """The windows a sweep runs, defaulting to every month the history can support.
+
+    Monthly is the default because the question is monthly: "the quietest days of the
+    month" is answered once per month, and calendar months do not overlap, so the pooled
+    interval does not have to apologise for reusing days.
+    """
+    first_day, last_day = quiet_history_bounds(data, config.venues)
+    if args.sweep == "rolling":
+        return (
+            quiet_rolling_sweep(
+                history_first_day=first_day,
+                history_last_day=last_day,
+                step_days=args.step,
+                horizon_days=args.horizon,
+                max_windows=args.max_windows,
+            ),
+            "rolling",
+        )
+    first_month = args.from_month or _first_evaluable_month(first_day)
+    last_month = args.to_month or f"{last_day.year}-{last_day.month:02d}"
+    windows = [
+        window
+        for window in quiet_monthly_sweep(
+            first_month=first_month, last_month=last_month, history_last_day=last_day
+        )
+        if window.training_days(first_day) >= MIN_TRAINING_DAYS
+    ]
+    if not windows:
+        raise WindowError(
+            f"Yksikään kuukausi välillä {first_month}-{last_month} ei saa {MIN_TRAINING_DAYS} "
+            "päivän opetusjaksoa."
+        )
+    return windows, "monthly"
+
+
+def _first_evaluable_month(history_first_day: date) -> str:
+    """The earliest month whose origin already has a long enough training window."""
+    year, month = history_first_day.year, history_first_day.month
+    for _ in range(24):
+        year, month = (year + 1, 1) if month == 12 else (year, month + 1)
+        origin = month_bounds(year, month)[0] - timedelta(days=1)
+        if (origin - history_first_day).days + 1 >= MIN_TRAINING_DAYS:
+            return f"{year}-{month:02d}"
+    raise WindowError("Historiassa ei ole yhtään kuukautta, jolle mahtuu opetusjakso.")
+
+
 def _evaluation_plan(
     data: ProcessedData, args: argparse.Namespace
 ) -> tuple[EvaluationConfig, list[Any], str | None]:
@@ -656,7 +846,85 @@ def build_parser() -> argparse.ArgumentParser:
     report_parser.set_defaults(handler=command_report)
 
     _add_evaluate_parser(subparsers)
+    _add_quiet_parser(subparsers)
     return parser
+
+
+def _add_quiet_parser(subparsers: Any) -> None:
+    """Wire ``quiet``, plus its ``backtest``, ``report`` and ``list`` sub-actions."""
+    parser = subparsers.add_parser(
+        "quiet", help="Name the quietest days of a month and measure what that is worth"
+    )
+    parser.add_argument(
+        "--month", default=None, help="Target month YYYY-MM; defaults to the month after the last observation"
+    )
+    parser.add_argument(
+        "--score-model",
+        choices=list(SCORE_MODELS),
+        default=DEFAULT_SCORE_MODEL,
+        help="Ranking rule",
+    )
+    parser.add_argument(
+        "--quiet-share",
+        type=float,
+        default=DEFAULT_QUIET_SHARE,
+        help="Share of the month's eligible days the quiet set holds",
+    )
+    parser.add_argument(
+        "--top-k", type=int, default=None, help="Fixed number of quiet days, overriding --quiet-share"
+    )
+    parser.add_argument("--venue", action="append", type=int, default=None, help="Limit to one venue")
+    parser.add_argument(
+        "--simulations", type=int, default=N_SIMULATIONS, help="Simulations behind each probability"
+    )
+    parser.add_argument("--seed", type=int, default=RANDOM_SEED, help="Simulation seed")
+    parser.set_defaults(handler=command_quiet, id=None, latest=False, limit=20)
+
+    actions = parser.add_subparsers(dest="quiet_action", required=False)
+    backtest_action = actions.add_parser(
+        "backtest", help="Measure the ranking on a sliding window of the history"
+    )
+    backtest_action.add_argument(
+        "--sweep", choices=["monthly", "rolling"], default="monthly", help="Window shape"
+    )
+    backtest_action.add_argument("--from", dest="from_month", default=None, help="First month, YYYY-MM")
+    backtest_action.add_argument("--to", dest="to_month", default=None, help="Last month, YYYY-MM")
+    backtest_action.add_argument(
+        "--step", type=int, default=DEFAULT_ROLLING_STEP_DAYS, help="Days between rolling origins"
+    )
+    backtest_action.add_argument(
+        "--horizon", type=int, default=DEFAULT_ROLLING_HORIZON_DAYS, help="Rolling test period length"
+    )
+    backtest_action.add_argument(
+        "--max-windows", type=int, default=DEFAULT_MAX_WINDOWS, help="Cap on rolling windows"
+    )
+    backtest_action.add_argument(
+        "--models", default=None, help=f"Comma separated rules: {', '.join(SCORE_MODELS)}"
+    )
+    backtest_action.add_argument(
+        "--quiet-share", type=float, default=DEFAULT_QUIET_SHARE, help="Share of days in the quiet set"
+    )
+    backtest_action.add_argument("--top-k", type=int, default=None, help="Fixed quiet-set size")
+    backtest_action.add_argument(
+        "--venue", action="append", type=int, default=None, help="Limit to one venue"
+    )
+    backtest_action.add_argument("--resamples", type=int, default=N_RESAMPLES, help="Bootstrap resamples")
+    backtest_action.add_argument(
+        "--simulations", type=int, default=SWEEP_SIMULATIONS, help="Simulations per window"
+    )
+    backtest_action.add_argument(
+        "--seed", type=int, default=RANDOM_SEED, help="Bootstrap and simulation seed"
+    )
+    backtest_action.set_defaults(handler=command_quiet_backtest)
+
+    report_action = actions.add_parser("report", help="Print a stored quiet-day report")
+    report_action.add_argument("--id", default=None, help="Run id to print")
+    report_action.add_argument("--latest", action="store_true", help="Print the newest stored run")
+    report_action.set_defaults(handler=command_quiet_report)
+
+    list_action = actions.add_parser("list", help="List the stored quiet-day runs")
+    list_action.add_argument("--limit", type=int, default=20, help="How many runs to show")
+    list_action.set_defaults(handler=command_quiet_list)
 
 
 def _add_evaluate_parser(subparsers: Any) -> None:

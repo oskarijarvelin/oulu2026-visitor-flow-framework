@@ -8,6 +8,9 @@ Tämä dokumentti täydentää lukua `docs/FORECAST_MODEL.md` luku 5. Siinä mis
 `evaluate` vastaa yhteen kysymykseen kerrallaan: **kouluta tähän päivään asti, ennusta
 tämä jakso, kerro osuiko se ja onko ero vertailukohtaan todellinen.**
 
+Kysymys on tason ennustaminen. Kuukauden hiljaisimpien päivien *järjestys* on eri
+kysymys, ja sillä on oma työkalunsa ja oma mittauksensa: `docs/QUIET_DAYS.md`.
+
 ---
 
 ## 1. Nopea aloitus

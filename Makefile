@@ -4,6 +4,7 @@ BIN := $(VENV)/bin
 
 .PHONY: help venv install install-prophet ingest ingest-full climatology verify \
         forecast forecast-baseline backtest report evaluate evaluate-sweep evaluate-list \
+        quiet quiet-backtest quiet-list \
         test lint typecheck check clean \
         web-install web-data web web-dev web-preview web-check web-test web-e2e all
 
@@ -21,6 +22,9 @@ help:
 	@echo "make evaluate     Evaluate one window: train to 31.3., forecast April"
 	@echo "make evaluate-sweep   Monthly sweep 2026-04..2026-08 plus the pooled verdict"
 	@echo "make evaluate-list    List the stored evaluation runs"
+	@echo "make quiet-backtest   Measure the quiet-day ranking on every month the history allows"
+	@echo "make quiet        Name next month's quietest days (run quiet-backtest first)"
+	@echo "make quiet-list       List the stored quiet-day runs"
 	@echo "make test         pytest"
 	@echo "make lint         ruff check"
 	@echo "make typecheck    mypy"
@@ -84,6 +88,19 @@ evaluate-sweep:
 
 evaluate-list:
 	$(BIN)/python -m ovf_forecast evaluate list
+
+# The quietest days of a month. Measure first, recommend second: a forecast quotes the
+# newest stored sweep and says so when there is none. See docs/QUIET_DAYS.md.
+# The rule list here is the one the README's table is produced with.
+quiet-backtest:
+	$(BIN)/python -m ovf_forecast quiet backtest \
+	  --models quiet_calendar,climatology_dow,seasonal_naive,moving_average_28d,baseline
+
+quiet:
+	$(BIN)/python -m ovf_forecast quiet
+
+quiet-list:
+	$(BIN)/python -m ovf_forecast quiet list
 
 test:
 	$(BIN)/python -m pytest

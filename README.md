@@ -6,7 +6,7 @@ here:
 | Part | Package | What it does |
 | --- | --- | --- |
 | 1 | `packages/ingest` | Fetches three external APIs, caches every response unmodified, rebuilds the canonical CSV tables plus a run manifest |
-| 3 | `packages/forecast` | Reads those tables and writes 7-day hourly and 30-day daily forecasts for two models, with measured quality metrics |
+| 3 | `packages/forecast` | Reads those tables and writes 7-day hourly and 30-day daily forecasts for two models, with measured quality metrics, plus the quiet-day recommendation |
 | 2 | `packages/web` | Astro site that packages those files into JSON at build time and publishes a static, bilingual (Finnish and English) dashboard |
 
 The parts share no code. Their only connection is the file contract in
@@ -102,9 +102,26 @@ python -m ovf_forecast evaluate report --pooled                   # every stored
 python -m ovf_forecast evaluate list                              # what has been evaluated
 ```
 
+The quiet-day tool answers a different question with the same tables: **which days of next
+month will be the quietest ones**, so an activation event can be put where the free
+capacity is. Results accumulate under `data/quiet/`.
+[Part 4 below](#part-4-the-quietest-days-of-the-month) is the usage guide;
+[docs/QUIET_DAYS.md](docs/QUIET_DAYS.md) has where the threshold comes from, how the
+probabilities are simulated and what the measured results do not prove.
+
+```bash
+python -m ovf_forecast quiet backtest                             # measure first
+python -m ovf_forecast quiet                                      # then ask for next month
+python -m ovf_forecast quiet --month 2026-10 --top-k 3            # a three-day shortlist
+python -m ovf_forecast quiet backtest --sweep rolling --step 14   # a second window shape
+python -m ovf_forecast quiet report --latest                      # a stored report
+python -m ovf_forecast quiet list                                 # what has been produced
+```
+
 Or through the Makefile: `make ingest`, `make ingest-full`, `make climatology`,
 `make verify`, `make forecast`, `make forecast-baseline`, `make backtest`,
 `make report`, `make evaluate`, `make evaluate-sweep`, `make evaluate-list`,
+`make quiet`, `make quiet-backtest`, `make quiet-list`,
 `make test`, `make lint`, `make typecheck`, `make check`.
 
 | Flag | Meaning |
@@ -562,6 +579,114 @@ currently know that anything is happening on a given day.
 
 [`docs/EVALUATION.md`](docs/EVALUATION.md) covers the leakage rules, the statistics and,
 in chapter 11, what these results specifically do not prove.
+
+---
+
+## Part 4: the quietest days of the month
+
+`python -m ovf_forecast quiet` answers the question the forecast does not:
+**which days of next month will be the quietest ones**, so a customer activation event can
+be scheduled where the free capacity is.
+
+It is a ranking problem rather than a level problem, and that is why it is a separate
+command rather than a flag on `run`. A level forecast has to know how busy October will
+be; a ranking only has to know which Wednesday in October is the slow one. Every number
+the command produces is divided by the month's own median day, so an error in the level
+cancels instead of accumulating.
+
+Everything it prints and writes is in Finnish, as with `evaluate`. Only this README and
+the code are in English.
+
+### Measure before you recommend
+
+```bash
+python -m ovf_forecast quiet backtest    # slide a window over the history and score it
+python -m ovf_forecast quiet             # then name next month's quiet days
+```
+
+In that order. The forecast quotes whatever the newest stored sweep measured for that
+venue and rule, and when nothing has been measured it says so instead of implying it has
+been validated.
+
+### What counts as a quiet day
+
+Three decisions, all in `ovf_forecast.quiet.threshold`:
+
+1. **Which days can be chosen.** A day the venue is closed is the quietest day of every
+   month and useless for an event. A weekday whose median sits below 15 % of the venue's
+   own median is treated as closed — venue 2's Mondays land at 14 % — and so are public
+   holidays at a venue that shuts on them. On the truth side two more exclusions apply,
+   because both need the observation: a day with no visitors at all, and a day the counter
+   did not answer for the whole of.
+2. **Where the line falls.** The quiet set is the lowest 20 % of a month's eligible days,
+   clamped to between 3 and 10 days. On the committed history that line sits at 0.70 x the
+   month's median day.
+3. **Whether the answer is worth acting on.** A set that is less than 15 % below the month
+   median is reported as a month the model cannot separate, not as a recommendation.
+
+The 20 % is a measured trade-off rather than a constant, and
+[docs/QUIET_DAYS.md](docs/QUIET_DAYS.md) chapter 3 has the table behind it. A tighter
+threshold gives quieter days and a shorter list: at 10 % the chosen days average 41 %
+below the median day against 26 % at 20 %. If you only need one or two dates, ask for
+`--top-k 3`.
+
+### What you get back
+
+The report is the whole month, not six dates. Whoever schedules the event has constraints
+the model knows nothing about, and the sixth-quietest day being nearly as good as the
+second is what lets them trade one against the other. Every eligible day carries:
+
+- its **rank** and its ratio to the month's median day,
+- a **selection probability**: how often it landed in the quiet set across 10 000
+  simulated months, drawn by block bootstrap from the rule's own measured errors,
+- a **tie count**, because the default rule gives every Sunday of a month the same score.
+  Tied days share one probability, and when the cut runs through a tie group the report
+  says the choice among them is yours,
+- the forecast **weather**, as context. It is deliberately not in the score: it was tested
+  and did not improve the ranking.
+
+Each run writes `report.md`, `days.csv`, `metrics.json`, `verdicts.json` and `config.json`
+under `data/quiet/{run_id}/`, plus a line in `index.json`. A sweep also writes
+`windows.csv`. Run ids are deterministic, so re-running a month overwrites its own
+directory, and nothing inside one carries a wall clock time.
+
+### The test tool
+
+`quiet backtest` trains to the end of a month, names that month's quiet days, and opens
+the month only then. The default sweep is monthly because the question is monthly and
+calendar months do not overlap; `--sweep rolling` is available and the report discloses
+that its windows share days.
+
+The headline is **benefit**: `1 - (mean of the named days / the month's median day)`, with
+a 95 % bootstrap interval that resamples whole windows rather than days. Alongside it the
+report gives the hit rate against what naming days at random would score, the share of the
+achievable quietness captured, a rank correlation, and a calibration table that checks the
+published probabilities against how often those days really landed in the quiet set.
+
+### Where the numbers stand
+
+Monthly sweep, April to August 2026, committed under `data/quiet/`:
+
+| Venue | Benefit | 95 % interval | Hit rate | Chance | Captured | Verdict |
+| --- | ---: | --- | ---: | ---: | ---: | --- |
+| Pekuri (1) | 7 % | -1 % to 17 % | 40 % | 21 % | 20 % | no detectable benefit |
+| Kaupungintalo (2) | 45 % | 25 % to 65 % | 67 % | 22 % | 72 % | **useful** |
+
+**On venue 2 the method works.** The named days were 45 % quieter than a median day, which
+is 72 % of everything hindsight could have collected. Most of that signal is calendar
+structure: the closed Mondays are filtered out of the candidates, and the days around
+public holidays are genuinely and predictably quiet.
+
+**On venue 1 it does not.** The interval spans zero. The hit rate of 40 % is well clear of
+the 21 % a guess would score, but it does not convert into benefit, because when the rule
+misses it misses onto busy days. The reason is in the data: weekday explains 22 % of venue
+1's within-month variation and 5 % of venue 2's, and the rest is day-level variation this
+dataset has nothing to explain with — weather correlates about 0.1 with the residual, and
+there is no event calendar. The same conclusion Part 3 reached about the level forecast.
+
+That is a result, not a broken pipeline, and the verdict says so every time venue 1's next
+month is asked for. [docs/QUIET_DAYS.md](docs/QUIET_DAYS.md) chapters 7 and 11 cover it,
+and chapter 12 lists what would move it.
 
 ---
 

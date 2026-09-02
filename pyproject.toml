@@ -38,7 +38,14 @@ dev = [
 
 [tool.setuptools]
 package-dir = { ovf_ingest = "packages/ingest/src/ovf_ingest", ovf_forecast = "packages/forecast/src/ovf_forecast" }
-packages = ["ovf_ingest", "ovf_ingest.clients", "ovf_forecast", "ovf_forecast.models"]
+packages = [
+  "ovf_ingest",
+  "ovf_ingest.clients",
+  "ovf_forecast",
+  "ovf_forecast.models",
+  "ovf_forecast.evaluation",
+  "ovf_forecast.quiet",
+]
 
 [tool.ruff]
 line-length = 110
@@ -52,10 +59,12 @@ ignore = ["B008"]
 [tool.ruff.lint.per-file-ignores]
 "packages/ingest/tests/*" = ["S101"]
 "packages/forecast/tests/*" = ["S101"]
-# The evaluation package writes its report in Finnish and uses the typography Finnish
-# asks for: an en dash for ranges and a non-breaking space between thousands. Both are
-# what the rendered text should contain, so the ambiguous-character rule is off there.
+# The evaluation and quiet packages write their reports in Finnish and use the typography
+# Finnish asks for: an en dash for ranges, a minus sign for negation and a non-breaking
+# space between thousands. All of that is what the rendered text should contain, so the
+# ambiguous-character rule is off there.
 "packages/forecast/src/ovf_forecast/evaluation/*" = ["RUF001"]
+"packages/forecast/src/ovf_forecast/quiet/*" = ["RUF001"]
 
 [tool.mypy]
 python_version = "3.12"

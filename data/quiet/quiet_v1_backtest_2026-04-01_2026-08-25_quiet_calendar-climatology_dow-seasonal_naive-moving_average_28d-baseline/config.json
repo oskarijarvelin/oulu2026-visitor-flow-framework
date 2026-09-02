@@ -1,0 +1,17 @@
+{
+  "score_models": [
+    "quiet_calendar",
+    "climatology_dow",
+    "seasonal_naive",
+    "moving_average_28d",
+    "baseline"
+  ],
+  "quiet_share": 0.2,
+  "top_k": null,
+  "venues": null,
+  "n_resamples": 10000,
+  "n_simulations": 2000,
+  "seed": 20260101,
+  "kind": "backtest",
+  "schema_version": "v1"
+}

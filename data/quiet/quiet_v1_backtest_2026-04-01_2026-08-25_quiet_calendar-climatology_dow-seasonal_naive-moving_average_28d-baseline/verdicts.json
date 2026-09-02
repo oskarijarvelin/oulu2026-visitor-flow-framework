@@ -1,0 +1,638 @@
+{
+  "schema_version": "v1",
+  "kind": "backtest",
+  "run_id": "quiet_v1_backtest_2026-04-01_2026-08-25_quiet_calendar-climatology_dow-seasonal_naive-moving_average_28d-baseline",
+  "pooled": [
+    {
+      "venue_id": 1,
+      "venue_name": "Pekuri",
+      "model": "baseline",
+      "n_windows": 5,
+      "n_days": 147,
+      "benefit": 0.105,
+      "benefit_ci_low": -0.011,
+      "benefit_ci_high": 0.224,
+      "benefit_mde": 0.195,
+      "verdict": "no_detectable_benefit",
+      "realized_ratio": 0.895,
+      "oracle_ratio": 0.652,
+      "capture": 0.302,
+      "hit_rate": 0.43,
+      "chance_rate": 0.21,
+      "hit_gap_ci_low": 0.118,
+      "hit_gap_ci_high": 0.327,
+      "hit_verdict": "better_than_chance",
+      "spearman": 0.295,
+      "top1_ratio": 0.902,
+      "windows_favouring": 4,
+      "windows_opposing": 1,
+      "calibration": [
+        {
+          "bucket": "0.00-0.10",
+          "n": 51,
+          "predicted": 0.047,
+          "observed": 0.157
+        },
+        {
+          "bucket": "0.10-0.25",
+          "n": 39,
+          "predicted": 0.161,
+          "observed": 0.154
+        },
+        {
+          "bucket": "0.25-0.50",
+          "n": 47,
+          "predicted": 0.361,
+          "observed": 0.255
+        },
+        {
+          "bucket": "0.50-0.75",
+          "n": 10,
+          "predicted": 0.537,
+          "observed": 0.5
+        },
+        {
+          "bucket": "0.75-0.90",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        },
+        {
+          "bucket": "0.90-1.00",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        }
+      ],
+      "resampling_unit": "window"
+    },
+    {
+      "venue_id": 1,
+      "venue_name": "Pekuri",
+      "model": "climatology_dow",
+      "n_windows": 5,
+      "n_days": 147,
+      "benefit": 0.075,
+      "benefit_ci_low": -0.007,
+      "benefit_ci_high": 0.166,
+      "benefit_mde": 0.139,
+      "verdict": "no_detectable_benefit",
+      "realized_ratio": 0.925,
+      "oracle_ratio": 0.652,
+      "capture": 0.215,
+      "hit_rate": 0.396,
+      "chance_rate": 0.21,
+      "hit_gap_ci_low": 0.103,
+      "hit_gap_ci_high": 0.293,
+      "hit_verdict": "better_than_chance",
+      "spearman": 0.351,
+      "top1_ratio": 0.851,
+      "windows_favouring": 3,
+      "windows_opposing": 2,
+      "calibration": [
+        {
+          "bucket": "0.00-0.10",
+          "n": 40,
+          "predicted": 0.033,
+          "observed": 0.2
+        },
+        {
+          "bucket": "0.10-0.25",
+          "n": 55,
+          "predicted": 0.166,
+          "observed": 0.109
+        },
+        {
+          "bucket": "0.25-0.50",
+          "n": 48,
+          "predicted": 0.386,
+          "observed": 0.312
+        },
+        {
+          "bucket": "0.50-0.75",
+          "n": 4,
+          "predicted": 0.513,
+          "observed": 0.5
+        },
+        {
+          "bucket": "0.75-0.90",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        },
+        {
+          "bucket": "0.90-1.00",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        }
+      ],
+      "resampling_unit": "window"
+    },
+    {
+      "venue_id": 1,
+      "venue_name": "Pekuri",
+      "model": "moving_average_28d",
+      "n_windows": 5,
+      "n_days": 147,
+      "benefit": -0.117,
+      "benefit_ci_low": -0.222,
+      "benefit_ci_high": -0.012,
+      "benefit_mde": 0.167,
+      "verdict": "harmful",
+      "realized_ratio": 1.117,
+      "oracle_ratio": 0.652,
+      "capture": -0.336,
+      "hit_rate": 0.216,
+      "chance_rate": 0.21,
+      "hit_gap_ci_low": -0.133,
+      "hit_gap_ci_high": 0.191,
+      "hit_verdict": "like_chance",
+      "spearman": null,
+      "top1_ratio": 0.934,
+      "windows_favouring": 2,
+      "windows_opposing": 3,
+      "calibration": [
+        {
+          "bucket": "0.00-0.10",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        },
+        {
+          "bucket": "0.10-0.25",
+          "n": 138,
+          "predicted": 0.208,
+          "observed": 0.203
+        },
+        {
+          "bucket": "0.25-0.50",
+          "n": 9,
+          "predicted": 0.259,
+          "observed": 0.333
+        },
+        {
+          "bucket": "0.50-0.75",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        },
+        {
+          "bucket": "0.75-0.90",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        },
+        {
+          "bucket": "0.90-1.00",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        }
+      ],
+      "resampling_unit": "window"
+    },
+    {
+      "venue_id": 1,
+      "venue_name": "Pekuri",
+      "model": "quiet_calendar",
+      "n_windows": 5,
+      "n_days": 147,
+      "benefit": 0.07,
+      "benefit_ci_low": -0.012,
+      "benefit_ci_high": 0.166,
+      "benefit_mde": 0.143,
+      "verdict": "no_detectable_benefit",
+      "realized_ratio": 0.93,
+      "oracle_ratio": 0.652,
+      "capture": 0.201,
+      "hit_rate": 0.396,
+      "chance_rate": 0.21,
+      "hit_gap_ci_low": 0.103,
+      "hit_gap_ci_high": 0.293,
+      "hit_verdict": "better_than_chance",
+      "spearman": 0.374,
+      "top1_ratio": 0.905,
+      "windows_favouring": 2,
+      "windows_opposing": 3,
+      "calibration": [
+        {
+          "bucket": "0.00-0.10",
+          "n": 37,
+          "predicted": 0.029,
+          "observed": 0.189
+        },
+        {
+          "bucket": "0.10-0.25",
+          "n": 56,
+          "predicted": 0.165,
+          "observed": 0.107
+        },
+        {
+          "bucket": "0.25-0.50",
+          "n": 53,
+          "predicted": 0.38,
+          "observed": 0.34
+        },
+        {
+          "bucket": "0.50-0.75",
+          "n": 1,
+          "predicted": 0.53,
+          "observed": 0.0
+        },
+        {
+          "bucket": "0.75-0.90",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        },
+        {
+          "bucket": "0.90-1.00",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        }
+      ],
+      "resampling_unit": "window"
+    },
+    {
+      "venue_id": 1,
+      "venue_name": "Pekuri",
+      "model": "seasonal_naive",
+      "n_windows": 5,
+      "n_days": 147,
+      "benefit": 0.1,
+      "benefit_ci_low": -0.02,
+      "benefit_ci_high": 0.189,
+      "benefit_mde": 0.174,
+      "verdict": "no_detectable_benefit",
+      "realized_ratio": 0.9,
+      "oracle_ratio": 0.652,
+      "capture": 0.287,
+      "hit_rate": 0.423,
+      "chance_rate": 0.21,
+      "hit_gap_ci_low": 0.136,
+      "hit_gap_ci_high": 0.281,
+      "hit_verdict": "better_than_chance",
+      "spearman": 0.336,
+      "top1_ratio": 0.842,
+      "windows_favouring": 4,
+      "windows_opposing": 1,
+      "calibration": [
+        {
+          "bucket": "0.00-0.10",
+          "n": 51,
+          "predicted": 0.022,
+          "observed": 0.118
+        },
+        {
+          "bucket": "0.10-0.25",
+          "n": 45,
+          "predicted": 0.19,
+          "observed": 0.2
+        },
+        {
+          "bucket": "0.25-0.50",
+          "n": 39,
+          "predicted": 0.369,
+          "observed": 0.231
+        },
+        {
+          "bucket": "0.50-0.75",
+          "n": 12,
+          "predicted": 0.577,
+          "observed": 0.583
+        },
+        {
+          "bucket": "0.75-0.90",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        },
+        {
+          "bucket": "0.90-1.00",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        }
+      ],
+      "resampling_unit": "window"
+    },
+    {
+      "venue_id": 2,
+      "venue_name": "Kaupungintalo",
+      "model": "baseline",
+      "n_windows": 5,
+      "n_days": 138,
+      "benefit": 0.338,
+      "benefit_ci_low": 0.07,
+      "benefit_ci_high": 0.571,
+      "benefit_mde": 0.396,
+      "verdict": "useful",
+      "realized_ratio": 0.662,
+      "oracle_ratio": 0.371,
+      "capture": 0.538,
+      "hit_rate": 0.61,
+      "chance_rate": 0.225,
+      "hit_gap_ci_low": 0.238,
+      "hit_gap_ci_high": 0.513,
+      "hit_verdict": "better_than_chance",
+      "spearman": 0.456,
+      "top1_ratio": 0.318,
+      "windows_favouring": 4,
+      "windows_opposing": 1,
+      "calibration": [
+        {
+          "bucket": "0.00-0.10",
+          "n": 29,
+          "predicted": 0.077,
+          "observed": 0.103
+        },
+        {
+          "bucket": "0.10-0.25",
+          "n": 78,
+          "predicted": 0.156,
+          "observed": 0.115
+        },
+        {
+          "bucket": "0.25-0.50",
+          "n": 15,
+          "predicted": 0.307,
+          "observed": 0.267
+        },
+        {
+          "bucket": "0.50-0.75",
+          "n": 9,
+          "predicted": 0.639,
+          "observed": 1.0
+        },
+        {
+          "bucket": "0.75-0.90",
+          "n": 3,
+          "predicted": 0.792,
+          "observed": 1.0
+        },
+        {
+          "bucket": "0.90-1.00",
+          "n": 4,
+          "predicted": 0.977,
+          "observed": 0.75
+        }
+      ],
+      "resampling_unit": "window"
+    },
+    {
+      "venue_id": 2,
+      "venue_name": "Kaupungintalo",
+      "model": "climatology_dow",
+      "n_windows": 5,
+      "n_days": 138,
+      "benefit": 0.454,
+      "benefit_ci_low": 0.252,
+      "benefit_ci_high": 0.648,
+      "benefit_mde": 0.324,
+      "verdict": "useful",
+      "realized_ratio": 0.546,
+      "oracle_ratio": 0.371,
+      "capture": 0.722,
+      "hit_rate": 0.672,
+      "chance_rate": 0.225,
+      "hit_gap_ci_low": 0.265,
+      "hit_gap_ci_high": 0.637,
+      "hit_verdict": "better_than_chance",
+      "spearman": 0.433,
+      "top1_ratio": 0.325,
+      "windows_favouring": 5,
+      "windows_opposing": 0,
+      "calibration": [
+        {
+          "bucket": "0.00-0.10",
+          "n": 50,
+          "predicted": 0.076,
+          "observed": 0.1
+        },
+        {
+          "bucket": "0.10-0.25",
+          "n": 64,
+          "predicted": 0.146,
+          "observed": 0.125
+        },
+        {
+          "bucket": "0.25-0.50",
+          "n": 8,
+          "predicted": 0.324,
+          "observed": 0.375
+        },
+        {
+          "bucket": "0.50-0.75",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        },
+        {
+          "bucket": "0.75-0.90",
+          "n": 4,
+          "predicted": 0.889,
+          "observed": 1.0
+        },
+        {
+          "bucket": "0.90-1.00",
+          "n": 12,
+          "predicted": 0.972,
+          "observed": 0.917
+        }
+      ],
+      "resampling_unit": "window"
+    },
+    {
+      "venue_id": 2,
+      "venue_name": "Kaupungintalo",
+      "model": "moving_average_28d",
+      "n_windows": 5,
+      "n_days": 138,
+      "benefit": -0.16,
+      "benefit_ci_low": -0.43,
+      "benefit_ci_high": 0.109,
+      "benefit_mde": 0.433,
+      "verdict": "no_detectable_benefit",
+      "realized_ratio": 1.16,
+      "oracle_ratio": 0.371,
+      "capture": -0.255,
+      "hit_rate": 0.176,
+      "chance_rate": 0.225,
+      "hit_gap_ci_low": -0.192,
+      "hit_gap_ci_high": 0.094,
+      "hit_verdict": "like_chance",
+      "spearman": null,
+      "top1_ratio": 0.962,
+      "windows_favouring": 2,
+      "windows_opposing": 3,
+      "calibration": [
+        {
+          "bucket": "0.00-0.10",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        },
+        {
+          "bucket": "0.10-0.25",
+          "n": 133,
+          "predicted": 0.223,
+          "observed": 0.218
+        },
+        {
+          "bucket": "0.25-0.50",
+          "n": 5,
+          "predicted": 0.256,
+          "observed": 0.4
+        },
+        {
+          "bucket": "0.50-0.75",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        },
+        {
+          "bucket": "0.75-0.90",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        },
+        {
+          "bucket": "0.90-1.00",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        }
+      ],
+      "resampling_unit": "window"
+    },
+    {
+      "venue_id": 2,
+      "venue_name": "Kaupungintalo",
+      "model": "quiet_calendar",
+      "n_windows": 5,
+      "n_days": 138,
+      "benefit": 0.454,
+      "benefit_ci_low": 0.252,
+      "benefit_ci_high": 0.648,
+      "benefit_mde": 0.324,
+      "verdict": "useful",
+      "realized_ratio": 0.546,
+      "oracle_ratio": 0.371,
+      "capture": 0.722,
+      "hit_rate": 0.672,
+      "chance_rate": 0.225,
+      "hit_gap_ci_low": 0.265,
+      "hit_gap_ci_high": 0.637,
+      "hit_verdict": "better_than_chance",
+      "spearman": 0.419,
+      "top1_ratio": 0.325,
+      "windows_favouring": 5,
+      "windows_opposing": 0,
+      "calibration": [
+        {
+          "bucket": "0.00-0.10",
+          "n": 50,
+          "predicted": 0.075,
+          "observed": 0.1
+        },
+        {
+          "bucket": "0.10-0.25",
+          "n": 65,
+          "predicted": 0.149,
+          "observed": 0.123
+        },
+        {
+          "bucket": "0.25-0.50",
+          "n": 7,
+          "predicted": 0.331,
+          "observed": 0.429
+        },
+        {
+          "bucket": "0.50-0.75",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        },
+        {
+          "bucket": "0.75-0.90",
+          "n": 3,
+          "predicted": 0.886,
+          "observed": 1.0
+        },
+        {
+          "bucket": "0.90-1.00",
+          "n": 13,
+          "predicted": 0.967,
+          "observed": 0.923
+        }
+      ],
+      "resampling_unit": "window"
+    },
+    {
+      "venue_id": 2,
+      "venue_name": "Kaupungintalo",
+      "model": "seasonal_naive",
+      "n_windows": 5,
+      "n_days": 138,
+      "benefit": 0.294,
+      "benefit_ci_low": 0.009,
+      "benefit_ci_high": 0.549,
+      "benefit_mde": 0.44,
+      "verdict": "useful",
+      "realized_ratio": 0.706,
+      "oracle_ratio": 0.371,
+      "capture": 0.467,
+      "hit_rate": 0.502,
+      "chance_rate": 0.225,
+      "hit_gap_ci_low": 0.088,
+      "hit_gap_ci_high": 0.46,
+      "hit_verdict": "better_than_chance",
+      "spearman": 0.243,
+      "top1_ratio": 0.383,
+      "windows_favouring": 4,
+      "windows_opposing": 1,
+      "calibration": [
+        {
+          "bucket": "0.00-0.10",
+          "n": 53,
+          "predicted": 0.066,
+          "observed": 0.17
+        },
+        {
+          "bucket": "0.10-0.25",
+          "n": 56,
+          "predicted": 0.159,
+          "observed": 0.089
+        },
+        {
+          "bucket": "0.25-0.50",
+          "n": 13,
+          "predicted": 0.35,
+          "observed": 0.385
+        },
+        {
+          "bucket": "0.50-0.75",
+          "n": 5,
+          "predicted": 0.701,
+          "observed": 1.0
+        },
+        {
+          "bucket": "0.75-0.90",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        },
+        {
+          "bucket": "0.90-1.00",
+          "n": 11,
+          "predicted": 0.957,
+          "observed": 0.636
+        }
+      ],
+      "resampling_unit": "window"
+    }
+  ],
+  "summary_fi": "- Pekuri (1) / `baseline`: valitut päivät olivat 10 % mediaanipäivää hiljaisempia (95 % väli -1 % … 22 %, 5 ikkunaa), hyötyä ei ole todennettu; osuvuus 43 % kun satunnaisvalinta antaisi 21 %.\n- Pekuri (1) / `climatology_dow`: valitut päivät olivat 8 % mediaanipäivää hiljaisempia (95 % väli -1 % … 17 %, 5 ikkunaa), hyötyä ei ole todennettu; osuvuus 40 % kun satunnaisvalinta antaisi 21 %.\n- Pekuri (1) / `moving_average_28d`: valitut päivät olivat -12 % mediaanipäivää hiljaisempia (95 % väli -22 % … -1 %, 5 ikkunaa), valinta osuu keskimääräistä vilkkaampiin päiviin; osuvuus 22 % kun satunnaisvalinta antaisi 21 %.\n- Pekuri (1) / `quiet_calendar`: valitut päivät olivat 7 % mediaanipäivää hiljaisempia (95 % väli -1 % … 17 %, 5 ikkunaa), hyötyä ei ole todennettu; osuvuus 40 % kun satunnaisvalinta antaisi 21 %.\n- Pekuri (1) / `seasonal_naive`: valitut päivät olivat 10 % mediaanipäivää hiljaisempia (95 % väli -2 % … 19 %, 5 ikkunaa), hyötyä ei ole todennettu; osuvuus 42 % kun satunnaisvalinta antaisi 21 %.\n- Kaupungintalo (2) / `baseline`: valitut päivät olivat 34 % mediaanipäivää hiljaisempia (95 % väli 7 % … 57 %, 5 ikkunaa), hyöty on todennettu; osuvuus 61 % kun satunnaisvalinta antaisi 22 %.\n- Kaupungintalo (2) / `climatology_dow`: valitut päivät olivat 45 % mediaanipäivää hiljaisempia (95 % väli 25 % … 65 %, 5 ikkunaa), hyöty on todennettu; osuvuus 67 % kun satunnaisvalinta antaisi 22 %.\n- Kaupungintalo (2) / `moving_average_28d`: valitut päivät olivat -16 % mediaanipäivää hiljaisempia (95 % väli -43 % … 11 %, 5 ikkunaa), hyötyä ei ole todennettu; osuvuus 18 % kun satunnaisvalinta antaisi 22 %.\n- Kaupungintalo (2) / `quiet_calendar`: valitut päivät olivat 45 % mediaanipäivää hiljaisempia (95 % väli 25 % … 65 %, 5 ikkunaa), hyöty on todennettu; osuvuus 67 % kun satunnaisvalinta antaisi 22 %.\n- Kaupungintalo (2) / `seasonal_naive`: valitut päivät olivat 29 % mediaanipäivää hiljaisempia (95 % väli 1 % … 55 %, 5 ikkunaa), hyöty on todennettu; osuvuus 50 % kun satunnaisvalinta antaisi 22 %."
+}
