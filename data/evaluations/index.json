@@ -49,40 +49,6 @@
       "created_at": "2026-08-25T20:14:33Z"
     },
     {
-      "run_id": "eval_v1_2026-03-31_2026-04-01_2026-04-30_baseline",
-      "kind": "window",
-      "window": {
-        "origin": "2026-03-31",
-        "test_start": "2026-04-01",
-        "test_end": "2026-04-30",
-        "horizon_days": 30,
-        "train_window": "all"
-      },
-      "sweep": null,
-      "windows": null,
-      "models": [
-        "baseline"
-      ],
-      "reference_rule": "best",
-      "primary_weather_mode": "operational",
-      "verdicts": [
-        {
-          "venue_id": 1,
-          "model": "baseline",
-          "reference": "climatology_dow",
-          "verdict": "no_difference"
-        },
-        {
-          "venue_id": 2,
-          "model": "baseline",
-          "reference": "climatology_dow",
-          "verdict": "worse"
-        }
-      ],
-      "members": [],
-      "created_at": "2026-08-25T21:17:44Z"
-    },
-    {
       "run_id": "eval_v1_2026-04-30_2026-05-01_2026-05-31_baseline",
       "kind": "window",
       "window": {
@@ -339,6 +305,40 @@
       ],
       "members": [],
       "created_at": "2026-08-25T21:20:30Z"
+    },
+    {
+      "run_id": "eval_v1_2026-03-31_2026-04-01_2026-04-30_baseline",
+      "kind": "window",
+      "window": {
+        "origin": "2026-03-31",
+        "test_start": "2026-04-01",
+        "test_end": "2026-04-30",
+        "horizon_days": 30,
+        "train_window": "all"
+      },
+      "sweep": null,
+      "windows": null,
+      "models": [
+        "baseline"
+      ],
+      "reference_rule": "best",
+      "primary_weather_mode": "operational",
+      "verdicts": [
+        {
+          "venue_id": 1,
+          "model": "baseline",
+          "reference": "climatology_dow",
+          "verdict": "no_difference"
+        },
+        {
+          "venue_id": 2,
+          "model": "baseline",
+          "reference": "climatology_dow",
+          "verdict": "worse"
+        }
+      ],
+      "members": [],
+      "created_at": "2026-09-02T21:50:16Z"
     }
   ]
 }

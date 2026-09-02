@@ -1,0 +1,137 @@
+{
+  "schema_version": "v1",
+  "kind": "forecast",
+  "run_id": "quiet_v1_forecast_2026-10_2026-09-03_quiet_calendar",
+  "month": "2026-10",
+  "reliability": [
+    {
+      "venue_id": 1,
+      "venue_name": "Pekuri",
+      "model": "quiet_calendar",
+      "n_windows": 5,
+      "n_days": 153,
+      "benefit": 0.023,
+      "benefit_ci_low": -0.012,
+      "benefit_ci_high": 0.088,
+      "benefit_mde": 0.09,
+      "verdict": "no_detectable_benefit",
+      "realized_ratio": 0.977,
+      "oracle_ratio": 0.665,
+      "capture": 0.069,
+      "hit_rate": 0.362,
+      "chance_rate": 0.215,
+      "hit_gap_ci_low": 0.103,
+      "hit_gap_ci_high": 0.189,
+      "hit_verdict": "better_than_chance",
+      "spearman": 0.38,
+      "top1_ratio": 0.917,
+      "windows_favouring": 1,
+      "windows_opposing": 4,
+      "calibration": [
+        {
+          "bucket": "0.00-0.10",
+          "n": 38,
+          "predicted": 0.03,
+          "observed": 0.184
+        },
+        {
+          "bucket": "0.10-0.25",
+          "n": 59,
+          "predicted": 0.172,
+          "observed": 0.119
+        },
+        {
+          "bucket": "0.25-0.50",
+          "n": 55,
+          "predicted": 0.385,
+          "observed": 0.345
+        },
+        {
+          "bucket": "0.50-0.75",
+          "n": 1,
+          "predicted": 0.53,
+          "observed": 0.0
+        },
+        {
+          "bucket": "0.75-0.90",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        },
+        {
+          "bucket": "0.90-1.00",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        }
+      ],
+      "resampling_unit": "window",
+      "run_id": "quiet_v1_backtest_2026-04-01_2026-08-31_quiet_calendar-climatology_dow-seasonal_naive-moving_average_28d-baseline"
+    },
+    {
+      "venue_id": 2,
+      "venue_name": "Kaupungintalo",
+      "model": "quiet_calendar",
+      "n_windows": 5,
+      "n_days": 143,
+      "benefit": 0.454,
+      "benefit_ci_low": 0.252,
+      "benefit_ci_high": 0.648,
+      "benefit_mde": 0.323,
+      "verdict": "useful",
+      "realized_ratio": 0.546,
+      "oracle_ratio": 0.349,
+      "capture": 0.698,
+      "hit_rate": 0.652,
+      "chance_rate": 0.224,
+      "hit_gap_ci_low": 0.223,
+      "hit_gap_ci_high": 0.618,
+      "hit_verdict": "better_than_chance",
+      "spearman": 0.4,
+      "top1_ratio": 0.326,
+      "windows_favouring": 5,
+      "windows_opposing": 0,
+      "calibration": [
+        {
+          "bucket": "0.00-0.10",
+          "n": 50,
+          "predicted": 0.075,
+          "observed": 0.1
+        },
+        {
+          "bucket": "0.10-0.25",
+          "n": 70,
+          "predicted": 0.152,
+          "observed": 0.129
+        },
+        {
+          "bucket": "0.25-0.50",
+          "n": 7,
+          "predicted": 0.342,
+          "observed": 0.429
+        },
+        {
+          "bucket": "0.50-0.75",
+          "n": 0,
+          "predicted": null,
+          "observed": null
+        },
+        {
+          "bucket": "0.75-0.90",
+          "n": 3,
+          "predicted": 0.886,
+          "observed": 1.0
+        },
+        {
+          "bucket": "0.90-1.00",
+          "n": 13,
+          "predicted": 0.967,
+          "observed": 0.923
+        }
+      ],
+      "resampling_unit": "window",
+      "run_id": "quiet_v1_backtest_2026-04-01_2026-08-31_quiet_calendar-climatology_dow-seasonal_naive-moving_average_28d-baseline"
+    }
+  ],
+  "summary_fi": "Pekuri (1), lokakuu 2026: hiljaisimmat päivät ovat su 4.10., ma 5.10., su 11.10., ma 12.10., su 18.10., ma 19.10., su 25.10.. Kynnys on kuukauden hiljaisin viidennes, 7 päivää 31 ehdokkaasta, ja malli erottaa ne 14 % mediaanipäivän alapuolelle. Varmin valinta on su 4.10., jonka todennäköisyys kuulua hiljaisimpiin on 48 %. Malli ei kuitenkaan erottele kuukauden päiviä merkittävästi: hiljaisin viidennes jää alle 15 % mediaanipäivän alapuolelle, joten järjestys kannattaa lukea suuntaa antavana. Mitattu luotettavuus (5 ikkunaa, ajo `quiet_v1_backtest_2026-04-01_2026-08-31_quiet_calendar-climatology_dow-seasonal_naive-moving_average_28d-baseline`): valitut päivät olivat keskimäärin 2 % (95 % väli -1 % … 9 %) mediaanipäivää hiljaisempia, eli hyötyä ei ole todennettu.\n\nKaupungintalo (2), lokakuu 2026: hiljaisimmat päivät ovat to 1.10., su 4.10., to 8.10., su 11.10., su 18.10., su 25.10.. Kynnys on kuukauden hiljaisin viidennes, 6 päivää 27 ehdokkaasta, ja malli erottaa ne 16 % mediaanipäivän alapuolelle. Varmin valinta on su 4.10., jonka todennäköisyys kuulua hiljaisimpiin on 37 %. Mitattu luotettavuus (5 ikkunaa, ajo `quiet_v1_backtest_2026-04-01_2026-08-31_quiet_calendar-climatology_dow-seasonal_naive-moving_average_28d-baseline`): valitut päivät olivat keskimäärin 45 % (95 % väli 25 % … 65 %) mediaanipäivää hiljaisempia, eli hyöty on todennettu."
+}
