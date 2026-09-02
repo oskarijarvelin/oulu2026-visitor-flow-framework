@@ -677,12 +677,19 @@ is 72 % of everything hindsight could have collected. Most of that signal is cal
 structure: the closed Mondays are filtered out of the candidates, and the days around
 public holidays are genuinely and predictably quiet.
 
-**On venue 1 it does not.** The interval spans zero. The hit rate of 40 % is well clear of
-the 21 % a guess would score, but it does not convert into benefit, because when the rule
-misses it misses onto busy days. The reason is in the data: weekday explains 22 % of venue
-1's within-month variation and 5 % of venue 2's, and the rest is day-level variation this
-dataset has nothing to explain with — weather correlates about 0.1 with the residual, and
-there is no event calendar. The same conclusion Part 3 reached about the level forecast.
+**On venue 1 it does not.** The interval spans zero, and the reason is not that venue 1's
+weekly rhythm is weaker — it is stronger. It goes in three steps. There is less to win:
+1.4 % of venue 1's candidate days fall below half the month's median and none below 0.3 x,
+against 14.5 % and 11.6 % at venue 2, so perfect hindsight would collect 35 % rather than
+63 %. Weekday carries less of what is there: a rule that knew the month's true weekday
+means in advance would get 17 % of that 35 %, against 44 % of 63 %. And the rule does not
+reach even that ceiling, because venue 1's weekday rhythm drifts — Monday is the quietest
+day of January at 0.56 x the median and among the busiest of July at 1.36 x — so a mean
+over the training window describes a rhythm the forecast month no longer has. The
+remainder is day-level variation this dataset cannot explain: weather correlates about 0.1
+with the residual, and there is no event calendar. Venue 1's three busiest days are
+Fridays at 319 %, 302 % and 252 % of the median, and nothing in the data marks them.
+[docs/QUIET_DAYS.md](docs/QUIET_DAYS.md) chapter 7.1 has the decomposition.
 
 That is a result, not a broken pipeline, and the verdict says so every time venue 1's next
 month is asked for. [docs/QUIET_DAYS.md](docs/QUIET_DAYS.md) chapters 7 and 11 cover it,

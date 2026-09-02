@@ -1,0 +1,10 @@
+{
+  "score_model": "quiet_calendar",
+  "quiet_share": 0.2,
+  "top_k": 3,
+  "venues": null,
+  "n_simulations": 10000,
+  "seed": 20260101,
+  "kind": "forecast",
+  "schema_version": "v1"
+}

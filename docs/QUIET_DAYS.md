@@ -441,11 +441,60 @@ kalenterirakennetta: suljetut maanantait rajautuvat ehdokkaista pois, ja pyhäp�
 ympäristö on aidosti ja ennustettavasti hiljainen.
 
 **Pekurilla ei toimi.** Hyöty on 7 % ja väli sisältää nollan. Osuvuus 40 % on selvästi
-satunnaisvalinnan 21 % yläpuolella, mutta se ei muutu hyödyksi: kun sääntö ohittaa, se
-ohittaa vilkkaisiin päiviin. Syy näkyy datassa suoraan. Kuukauden sisäisestä suhteellisesta
-hajonnasta viikonpäivä selittää Pekurilla 22 % ja Kaupungintalolla 5 %, ja loppu on
-päiväkohtaista vaihtelua, jonka selittäjää ei tässä aineistossa ole: sään korrelaatio
-jäännökseen on 0,1 ja tapahtumakalenteria ei ole olemassa.
+satunnaisvalinnan 21 % yläpuolella, mutta se ei muutu hyödyksi.
+
+### 7.1 Miksi Pekuri on vaikea
+
+Ero ei ole siinä, että Pekurin viikkorytmi olisi heikompi — se on itse asiassa vahvempi.
+Ero syntyy kolmessa vaiheessa, ja jokainen niistä vie osansa.
+
+| Vaihe | Pekuri | Kaupungintalo |
+| --- | ---: | ---: |
+| Paljonko kuukaudesta on voitettavissa (täysi oraakkeli) | 35 % | 63 % |
+| Paras mahdollinen viikonpäiväsääntö | 17 % | 44 % |
+| Mitattu malli | 7 % | 45 % |
+
+**Vaihe 1: Pekurissa ei ole hiljaisia päiviä löydettäväksi.** Ehdokaspäivistä 1,4 % jää
+alle puoleen kuukauden mediaanipäivästä ja **yksikään ei jää alle 0,3-kertaiseksi**.
+Kaupungintalolla vastaavat luvut ovat 14,5 % ja 11,6 %: siellä on joka kuukausi joukko
+lähes tyhjiä päiviä. Pekurin kuukausi on pohjastaan tasainen, joten täydellinenkin
+jälkiviisaus tuottaisi vain 35 %:n hyödyn 63 %:n sijaan. Puolet erosta on tässä, eikä
+sille voi tehdä mitään mallilla.
+
+**Vaihe 2: viikonpäivä kantaa Pekurissa vain puolet siitä, mikä on löydettävissä.** Jos
+sääntö tuntisi etukäteen kuukauden todelliset viikonpäiväkeskiarvot, se saisi Pekurissa
+17 % eli 49 % kaikesta saatavilla olevasta; Kaupungintalolla 44 % eli 70 %. Loppu on
+päiväkohtaista vaihtelua, jonka selittäjää tässä aineistossa ei ole: sään korrelaatio
+jäännökseen on 0,10–0,12 ja tapahtumakalenteria ei ole olemassa.
+
+**Vaihe 3: Pekurissa malli ei saa edes omaa viikonpäiväkattoaan.** Mitattu 7 % on 41 %
+katosta 17 %. Kaupungintalolla 45 % on jo koko katto 44 % — sieltä ei ole enää mitään
+irti paremmalla viikonpäiväarviolla. Syy on rytmin liukuminen. Pekurin maanantai on
+tammikuussa kuukauden hiljaisin päivä (0,56 × mediaani) ja heinäkuussa sen vilkkaimpia
+(1,36):
+
+| | ma | ti | ke | to | pe | la | su |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| tammikuu | 0,56 | 1,09 | 0,57 | 0,84 | 1,04 | 1,99 | 0,89 |
+| huhtikuu | 0,73 | 0,84 | 0,95 | 1,24 | 1,36 | 1,78 | 0,88 |
+| heinäkuu | 1,36 | 1,29 | 1,07 | 0,97 | 0,96 | 1,23 | 0,81 |
+
+Viikonpäivien välinen hajonta on 0,24 ja *saman* viikonpäivän kuukausivaihtelu 0,18. Koko
+opetusikkunan keskiarvo kuvaa siis rytmiä, jota ennustettavassa kuukaudessa ei enää ole.
+Tuoreusikkuna ei korjaa tätä (luku 5.3): kahdeksassa viikossa on kahdeksan havaintoa per
+arkipäivä, ja keskiarvon keskivirhe 0,41 / √8 ≈ 0,15 on samaa suuruusluokkaa kuin
+liukuminen itse. Harha vaihtuu varianssiin yksi yhteen.
+
+**Ja huti maksaa.** Molemmilla kohteilla noin 19 % päivistä on yli 1,5 × mediaani, mutta
+Pekurissa oikeat osumat ovat vain 0,7 × mediaani eivätkä siksi kompensoi väärää valintaa,
+kun taas Kaupungintalon osumat ovat 0,2–0,3 × ja imevät hudin. Pekurin pahimmat valinnat
+mitatuissa ikkunoissa olivat su 10.5. (174 % mediaanista), ma 22.6. (168 %) ja ma 6.7.
+(150 %). Kyse ei ole yhdestä kummajaisesta: kolmen pahimman valinnan poistaminen nostaisi
+hyödyn 7 %:sta vain 13 %:iin.
+
+Pekurin kaksitoista vilkkainta päivää eivät ole yhtään ylläpidetyssä kalenterissa. Kolme
+vilkkainta ovat perjantait 15.5. (319 % mediaanista), 12.6. (302 %) ja 14.8. (252 %).
+Datassa ei ole mitään, mikä erottaisi ne tavallisesta perjantaista.
 
 Tämä on tulos eikä rikkinäinen putki. Työkalun tehtävä on kertoa se, ja ennusteen
 verdiktikappale kertoo sen joka kerta kun Pekurin syyskuuta kysytään.
