@@ -1,5 +1,7 @@
 # Lippudatan muunnosraportti
 
+*In English: [`MUUNNOSRAPORTTI.en.md`](MUUNNOSRAPORTTI.en.md).*
+
 Ajettu 24.8.2026. Lähteenä aukiolotiimin kävijätilasto-CSV:t, jotka ovat repossa
 polussa `tools/fixtures/`.
 

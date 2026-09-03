@@ -1,5 +1,7 @@
 # Claude Code -promptit: Oulu2026 Visitor Flow Framework
 
+*In English: [`CLAUDE_CODE_PROMPTS.en.md`](CLAUDE_CODE_PROMPTS.en.md).*
+
 Kuusi valmista promptia: kolme päälle osiolle ja kolme lisäominaisuudelle. Kukin on
 itsenäinen ja ajetaan omassa Claude Code -istunnossaan repon juuressa.
 

@@ -1,5 +1,7 @@
 # Oulu2026 Visitor Flow Framework: tekninen suunnitelma
 
+*In English: [`FRAMEWORK_PLAN.en.md`](FRAMEWORK_PLAN.en.md).*
+
 Uusi kolmiosainen sovellus, joka korvaa nykyisen `oulu2026-visitor-flow-prediction-tool`
 -repon toiminnallisuuden selkeämmällä vastuunjaolla, kevyemmillä riippuvuuksilla ja
 julkaistavalla web-käyttöliittymällä.

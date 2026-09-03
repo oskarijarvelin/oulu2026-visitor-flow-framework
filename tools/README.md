@@ -1,5 +1,7 @@
 # tools
 
+*In English: [`README.en.md`](README.en.md).*
+
 Apuvälineitä, jotka eivät kuulu ingest- tai web-osioon. Nämä ajetaan käsin.
 
 - [`tickets-parser.html`](#kävijätilastojen-muunnin) muuntaa aukiolotiimin

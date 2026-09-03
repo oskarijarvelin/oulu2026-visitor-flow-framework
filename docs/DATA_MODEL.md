@@ -1,5 +1,7 @@
 # Tietomalli: rajapinnat ja data
 
+*In English: [`DATA_MODEL.en.md`](DATA_MODEL.en.md).*
+
 Tämä dokumentti kuvaa Visitor Forecast -repon käyttämät ulkoiset rajapinnat, levylle
 tallennetut datajoukot ja niiden skeemat. Dokumentti on tarkoitettu lähtötiedoksi, kun
 olemassa olevan kävijä- ja säädatan päälle rakennetaan uusi visualisointisovellus.

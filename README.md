@@ -20,6 +20,11 @@ contract changes. Run order is **1 → 3 → 2**.
 `packages/web` calls nothing at all, at build time or in the browser. It reads the same
 two directories from disk, writes six JSON files, and renders them into static HTML.
 
+The documents under `docs/` and `tools/` are written in Finnish. Each one has an English
+translation next to it under the same name with an `.en.md` suffix, for example
+[`docs/EVALUATION.en.md`](docs/EVALUATION.en.md). The Finnish file is the source of truth:
+when one changes, update the translation with it.
+
 ---
 
 ## Installation
@@ -966,7 +971,9 @@ data/raw/        immutable per-day response cache
 data/processed/  canonical tables and manifest.json
 data/reference/  climatology
 data/forecasts/  latest/ plus one dated archive per run
-docs/            DATA_MODEL.md, FRAMEWORK_PLAN.md, FORECAST_MODEL.md, EVALUATION.md
+docs/            DATA_MODEL.md, FRAMEWORK_PLAN.md, FORECAST_MODEL.md, EVALUATION.md,
+                 QUIET_DAYS.md, CLAUDE_CODE_PROMPTS.md, MUUNNOSRAPORTTI.md
+                 every one of them also as <NAME>.en.md, an English translation
 tools/
   tickets-parser.html            browser tool: opening-team CSV export -> per-venue tickets file
   README.md                      column mappings, known source-data problems, regression results

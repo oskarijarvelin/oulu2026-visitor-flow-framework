@@ -1,5 +1,7 @@
 # Ennustemallit
 
+*In English: [`FORECAST_MODEL.en.md`](FORECAST_MODEL.en.md).*
+
 Tämä dokumentti kuvaa `packages/forecast`-osion kaksi mallia: niiden rakenteen,
 piirteet, vahvuudet, heikkoudet ja sen, milloin ennustetta ei pidä uskoa.
 

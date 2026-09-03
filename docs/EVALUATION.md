@@ -1,5 +1,7 @@
 # Ennusteiden arviointi
 
+*In English: [`EVALUATION.en.md`](EVALUATION.en.md).*
+
 Miten `python -m ovf_forecast evaluate` ajetaan, miten sen tulokset luetaan ja mitä
 niistä **ei** voi päätellä.
 

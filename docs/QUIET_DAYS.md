@@ -1,5 +1,7 @@
 # Kuukauden hiljaisimmat päivät
 
+*In English: [`QUIET_DAYS.en.md`](QUIET_DAYS.en.md).*
+
 Miten `python -m ovf_forecast quiet` löytää kuukauden hiljaisimmat päivät, mistä kynnys
 tulee, miten mallin luotettavuus mitataan ja mitä tuloksesta **ei** voi päätellä.
 
