@@ -24,6 +24,7 @@ import numpy as np
 import pandas as pd
 
 from .. import log_event
+from ..i18n import DEFAULT_LANG, LANGUAGES, normalise
 from .runner import WEATHER_MODES, EvaluationConfig
 from .windows import TRAIN_WINDOW_ALL, Window
 
@@ -34,6 +35,16 @@ PREDICTIONS_NAME = "predictions.csv"
 METRICS_NAME = "metrics.json"
 VERDICTS_NAME = "verdicts.json"
 REPORT_NAME = "report.md"
+
+
+def report_name(lang: str = DEFAULT_LANG) -> str:
+    """``report.md`` for the default language, ``report.en.md`` for the others.
+
+    The default language keeps the plain name so that every path already written down —
+    in a document, in a script, in somebody's shell history — still resolves.
+    """
+    code = normalise(lang)
+    return REPORT_NAME if code == DEFAULT_LANG else f"report.{code}.md"
 
 SCHEMA_VERSION = "v1"
 RUN_PREFIX = "eval"
@@ -49,8 +60,15 @@ class RunArtifacts:
     predictions: pd.DataFrame
     metrics: dict[str, Any]
     verdicts: dict[str, Any]
-    report: str
+    reports: dict[str, str]
     members: list[str] = field(default_factory=list)
+
+    def report(self, lang: str = DEFAULT_LANG) -> str:
+        """One rendered report, falling back to whichever language the run has."""
+        code = normalise(lang)
+        if self.reports.get(code):
+            return self.reports[code]
+        return next((value for value in self.reports.values() if value), "")
 
 
 def evaluations_root(root: Path) -> Path:
@@ -121,7 +139,8 @@ def write_run(root: Path, artifacts: RunArtifacts) -> Path:
     _write_predictions(directory / PREDICTIONS_NAME, artifacts.predictions)
     _write_json(directory / METRICS_NAME, artifacts.metrics)
     _write_json(directory / VERDICTS_NAME, artifacts.verdicts)
-    (directory / REPORT_NAME).write_text(artifacts.report, encoding="utf-8", newline="\n")
+    for lang, rendered in artifacts.reports.items():
+        (directory / report_name(lang)).write_text(rendered, encoding="utf-8", newline="\n")
     log_event(
         "info", "evaluation.store", "Wrote evaluation run", run_id=artifacts.run_id, path=str(directory)
     )
@@ -211,9 +230,7 @@ def load_run(root: Path, run_id: str) -> RunArtifacts | None:
         predictions=predictions,
         metrics=_read_json(directory / METRICS_NAME),
         verdicts=_read_json(directory / VERDICTS_NAME),
-        report=(directory / REPORT_NAME).read_text(encoding="utf-8")
-        if (directory / REPORT_NAME).is_file()
-        else "",
+        reports=_read_reports(directory),
     )
 
 
@@ -231,6 +248,16 @@ def load_window_runs(root: Path) -> list[RunArtifacts]:
         if loaded is not None and not loaded.predictions.empty:
             artifacts.append(loaded)
     return artifacts
+
+
+def _read_reports(directory: Path) -> dict[str, str]:
+    """Every rendered report a run directory holds, keyed by language."""
+    found: dict[str, str] = {}
+    for lang in LANGUAGES:
+        path = directory / report_name(lang)
+        if path.is_file():
+            found[lang] = path.read_text(encoding="utf-8")
+    return found
 
 
 def _read_predictions(path: Path) -> pd.DataFrame:

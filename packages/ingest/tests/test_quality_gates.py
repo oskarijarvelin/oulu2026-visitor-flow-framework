@@ -110,7 +110,7 @@ def test_a_day_over_capacity_times_96_fails(config: AppConfig) -> None:
     tables = _visitor_tables(missing_hours=set(), per_hour=400.0)
     gate = _gate(run_quality_gates(config, tables), "daily_capacity")
     assert gate.passed is False
-    assert "15360" in gate.detail
+    assert all("15360" in detail for detail in gate.detail.values())
 
 
 def test_a_plausible_day_passes_the_capacity_gate(config: AppConfig) -> None:

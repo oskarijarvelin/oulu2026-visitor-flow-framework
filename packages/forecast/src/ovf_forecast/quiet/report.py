@@ -1,4 +1,4 @@
-"""The human-readable output, in Finnish, built from exactly what gets stored.
+"""The human-readable output, in either language, built from exactly what gets stored.
 
 The renderer reads the same ``config``, ``metrics`` and ``verdicts`` payloads that are
 written to disk, so the prose and the JSON cannot drift apart. Nothing is recomputed
@@ -9,114 +9,75 @@ because that is the question. The probability sits next to every date, because a
 six dates with no probability invites the reader to treat the first one as certain. The
 measured reliability comes before the tables, because a recommendation from a rule that
 has never beaten chance on this venue should be read differently from one that has.
+
+One renderer serves both languages. The words are in :mod:`.strings`, the numbers and the
+dates in :class:`~ovf_forecast.i18n.Format`, and a date is where the two languages differ
+most visibly: ``ma 5.10.`` and ``Mon 5 Oct`` are the same day, and neither reads in the
+other language.
 """
 
 from __future__ import annotations
 
-from datetime import date
 from typing import Any
 
-from ..evaluation.report import NA, integer, number, percent, signed
-
-FORECAST_TITLE = "Kuukauden hiljaisimmat päivät"
-BACKTEST_TITLE = "Hiljaisten päivien ennustemallin luotettavuus"
-
-WEEKDAY_SHORT_FI = ("ma", "ti", "ke", "to", "pe", "la", "su")
-MONTH_NAMES_FI = (
-    "tammikuu",
-    "helmikuu",
-    "maaliskuu",
-    "huhtikuu",
-    "toukokuu",
-    "kesäkuu",
-    "heinäkuu",
-    "elokuu",
-    "syyskuu",
-    "lokakuu",
-    "marraskuu",
-    "joulukuu",
-)
-
-VERDICT_PHRASES = {
-    "useful": "hyöty on todennettu",
-    "no_detectable_benefit": "hyötyä ei ole todennettu",
-    "harmful": "valinta osuu keskimääräistä vilkkaampiin päiviin",
-}
-CHANCE_PHRASES = {
-    "better_than_chance": "osuvuus ylittää satunnaisvalinnan",
-    "like_chance": "osuvuus ei eroa satunnaisvalinnasta",
-    "worse_than_chance": "osuvuus jää satunnaisvalinnan alle",
-}
-STATUS_PHRASES = {
-    "open": "ehdokas",
-    "closed_weekday": "suljettu arkipäivä",
-    "closed_holiday": "suljettu pyhäpäivä",
-    "no_visitors": "ei kävijöitä",
-    "incomplete_day": "vajaa mittauspäivä",
-    "unobserved": "ei havaintoa",
-}
-
-
-def fi_month(year: int, month: int) -> str:
-    """``lokakuu 2026``."""
-    return f"{MONTH_NAMES_FI[month - 1]} {year}"
-
-
-def fi_day(day: date) -> str:
-    """``ma 5.10.``, the shape a Finnish calendar entry takes."""
-    return f"{WEEKDAY_SHORT_FI[day.weekday()]} {day.day}.{day.month}."
-
-
-def parse_day(text: Any) -> date | None:
-    """Read an ISO day back out of a stored payload."""
-    try:
-        return date.fromisoformat(str(text))
-    except (TypeError, ValueError):
-        return None
-
+from ..evaluation.report import localised
+from ..i18n import DEFAULT_LANG, NA, Format, Lang, formats, normalise, parse_day, table_header
+from .strings import CHANCE_PHRASES, STATUS_PHRASES, VERDICT_PHRASES, WEEKDAY_NAMES, text
 
 # --------------------------------------------------------------------------------------
 # Forecast
 # --------------------------------------------------------------------------------------
 
 
-def forecast_summary_fi(venue: dict[str, Any], reliability: dict[str, Any] | None) -> str:
+def forecast_summary(
+    venue: dict[str, Any], reliability: dict[str, Any] | None, lang: Lang = DEFAULT_LANG
+) -> str:
     """The one paragraph the command prints: the dates, the threshold, the confidence."""
+    fmt = formats(lang)
     quiet = venue.get("quiet_set", {})
     days = [parse_day(item) for item in quiet.get("dates", [])]
-    listed = ", ".join(fi_day(day) for day in days if day is not None) or "ei yhtään ehdokasta"
-    month = str(venue.get("month", ""))
-    year, _, month_number = month.partition("-")
-    label = fi_month(int(year), int(month_number)) if month_number.isdigit() else month
+    listed = fmt.join(
+        [fmt.day(day) for day in days if day is not None], text(lang, "sum_no_candidates")
+    )
     gap = quiet.get("mean_ratio")
-    quieter = percent((1.0 - float(gap)) * 100.0, 0) if isinstance(gap, int | float) else NA
+    quieter = fmt.share_percent(1.0 - float(gap)) if isinstance(gap, int | float) else NA
     sentences = [
-        f"{venue.get('venue_name')} ({venue.get('venue_id')}), {label}: hiljaisimmat päivät ovat "
-        f"{listed}.",
-        f"Kynnys on kuukauden hiljaisin viidennes, {integer(quiet.get('k'))} päivää "
-        f"{integer(quiet.get('n_eligible'))} ehdokkaasta, ja malli erottaa ne {quieter} "
-        "mediaanipäivän alapuolelle.",
+        text(
+            lang,
+            "sum_days",
+            venue_name=venue.get("venue_name"),
+            venue_id=venue.get("venue_id"),
+            month=fmt.month_label(venue.get("month", "")),
+            days=listed,
+        ),
+        text(
+            lang,
+            "sum_threshold",
+            k=fmt.integer(quiet.get("k")),
+            n=fmt.integer(quiet.get("n_eligible")),
+            gap=quieter,
+        ),
     ]
     best = _most_certain(venue)
     if best is not None:
         day, probability = best
         sentences.append(
-            f"Varmin valinta on {fi_day(day)}, jonka todennäköisyys kuulua hiljaisimpiin on "
-            f"{percent(probability * 100.0, 0)}."
+            text(
+                lang,
+                "sum_best",
+                day=fmt.day(day),
+                probability=fmt.share_percent(probability),
+            )
         )
     if not quiet.get("is_material", False):
-        sentences.append(
-            "Malli ei kuitenkaan erottele kuukauden päiviä merkittävästi: hiljaisin viidennes jää "
-            "alle 15 % mediaanipäivän alapuolelle, joten järjestys kannattaa lukea suuntaa "
-            "antavana."
-        )
-    sentences.append(_reliability_sentence(venue, reliability))
+        sentences.append(text(lang, "sum_not_material"))
+    sentences.append(_reliability_sentence(reliability, lang, fmt))
     return " ".join(sentences)
 
 
-def _most_certain(venue: dict[str, Any]) -> tuple[date, float] | None:
+def _most_certain(venue: dict[str, Any]) -> tuple[Any, float] | None:
     """The quiet day with the highest selection probability."""
-    best: tuple[date, float] | None = None
+    best: tuple[Any, float] | None = None
     for row in venue.get("days", []):
         if not row.get("is_quiet"):
             continue
@@ -129,56 +90,66 @@ def _most_certain(venue: dict[str, Any]) -> tuple[date, float] | None:
     return best
 
 
-def _reliability_sentence(venue: dict[str, Any], reliability: dict[str, Any] | None) -> str:
+def _reliability_sentence(
+    reliability: dict[str, Any] | None, lang: Lang, fmt: Format
+) -> str:
     """What the stored sweep says about this venue and this rule, if anything."""
     if reliability is None:
-        return (
-            "Mallin luotettavuutta ei ole mitattu tässä repositoriossa: aja "
-            "'python -m ovf_forecast quiet backtest' ennen kuin suositukseen nojataan."
-        )
-    verdict = str(reliability.get("verdict", ""))
+        return text(lang, "reliability_missing")
     benefit = _scale(reliability.get("benefit"))
     low = _scale(reliability.get("benefit_ci_low"))
     high = _scale(reliability.get("benefit_ci_high"))
     measured = (
-        f"{percent(benefit, 0)} (95 % väli {percent(low, 0)} … {percent(high, 0)})"
+        text(
+            lang,
+            "reliability_value",
+            benefit=fmt.percent(benefit, 0),
+            low=fmt.percent(low, 0),
+            high=fmt.percent(high, 0),
+        )
         if all(value == value for value in (benefit, low, high))
         else NA
     )
-    return (
-        f"Mitattu luotettavuus ({integer(reliability.get('n_windows'))} ikkunaa, ajo "
-        f"`{reliability.get('run_id', '')}`): valitut päivät olivat keskimäärin {measured} "
-        f"mediaanipäivää hiljaisempia, eli {VERDICT_PHRASES.get(verdict, verdict)}."
+    return text(
+        lang,
+        "reliability_measured",
+        windows=fmt.integer(reliability.get("n_windows")),
+        run_id=reliability.get("run_id", ""),
+        measured=measured,
+        verdict=fmt.phrase(VERDICT_PHRASES, reliability.get("verdict", "")),
     )
 
 
 def render_forecast_report(
-    config: dict[str, Any], metrics: dict[str, Any], verdicts: dict[str, Any]
+    config: dict[str, Any],
+    metrics: dict[str, Any],
+    verdicts: dict[str, Any],
+    lang: str = DEFAULT_LANG,
 ) -> str:
     """The full markdown report for one month."""
+    code = normalise(lang)
+    fmt = formats(code)
     lines: list[str] = [
-        f"# {FORECAST_TITLE}: {_month_label(metrics)}",
+        text(
+            code,
+            "forecast_heading",
+            title=text(code, "forecast_title"),
+            month=fmt.month_label(metrics.get("month", "")),
+        ),
         "",
-        f"Ajon tunniste: `{verdicts.get('run_id', '')}`",
+        text(code, "run_id", run_id=verdicts.get("run_id", "")),
         "",
-        "## 1. Vastaus",
+        text(code, "h_answer"),
         "",
     ]
     for venue in metrics.get("venues", []):
-        lines.append(forecast_summary_fi(venue, _reliability_for(verdicts, venue)))
+        lines.append(forecast_summary(venue, _reliability_for(verdicts, venue), code))
         lines.append("")
-    lines += _forecast_method_section(config)
+    lines += _forecast_method_section(config, code, fmt)
     for venue in metrics.get("venues", []):
-        lines += _forecast_venue_section(venue)
-    lines += _forecast_limits_section()
+        lines += _forecast_venue_section(venue, code, fmt)
+    lines += _forecast_limits_section(code)
     return "\n".join(lines).rstrip() + "\n"
-
-
-def _month_label(metrics: dict[str, Any]) -> str:
-    """``lokakuu 2026`` from the stored month string."""
-    month = str(metrics.get("month", ""))
-    year, _, number_text = month.partition("-")
-    return fi_month(int(year), int(number_text)) if number_text.isdigit() else month
 
 
 def _reliability_for(verdicts: dict[str, Any], venue: dict[str, Any]) -> dict[str, Any] | None:
@@ -190,125 +161,128 @@ def _reliability_for(verdicts: dict[str, Any], venue: dict[str, Any]) -> dict[st
     return None
 
 
-def _forecast_method_section(config: dict[str, Any]) -> list[str]:
+def _forecast_method_section(config: dict[str, Any], lang: Lang, fmt: Format) -> list[str]:
     """How the answer was produced, in enough detail to reproduce it."""
     return [
-        "## 2. Miten luku on muodostettu",
+        text(lang, "h_method"),
         "",
-        f"- Pisteytyssääntö: `{config.get('score_model')}`",
-        f"- Kynnys: kuukauden hiljaisin {percent(float(config.get('quiet_share', 0.2)) * 100.0, 0)} "
-        "ehdokaspäivistä, vähintään 3 ja enintään 10 päivää",
-        f"- Simulaatioita todennäköisyyttä kohden: {integer(config.get('n_simulations'))}",
-        f"- Siemenluku: {integer(config.get('seed'))}",
+        text(lang, "method_model", model=config.get("score_model")),
+        text(
+            lang,
+            "method_threshold",
+            share=fmt.share_percent(float(config.get("quiet_share", 0.2))),
+        ),
+        text(lang, "method_simulations", simulations=fmt.integer(config.get("n_simulations"))),
+        text(lang, "method_seed", seed=fmt.integer(config.get("seed"))),
         "",
-        "Pisteluku on kävijämäärän suuruusluokassa, mutta se on järjestysluku eikä ennuste: "
-        "kaikki alla olevat suhdeluvut on jaettu kuukauden mediaanipäivällä, jolloin tason "
-        "virhe kumoutuu eikä vaikuta järjestykseen.",
+        text(lang, "method_note_score"),
         "",
-        "Mallin erottelu ja toteutuva ero ovat kaksi eri lukua, eikä toinen ennusta toista. "
-        "Pisteluku on ehdollinen keskiarvo, joten se on aina toteumaa tasaisempi: alla oleva "
-        "suhdeluku kertoo, kuinka kauas malli päivät erottaa, ei kuinka hiljaisia ne "
-        "toteutuvat olemaan. Toteutuvan eron arvio saadaan vain mittaamalla, ja se on "
-        "komennon `quiet backtest` tulos.",
+        text(lang, "method_note_separation"),
         "",
     ]
 
 
-def _forecast_venue_section(venue: dict[str, Any]) -> list[str]:
+def _forecast_venue_section(venue: dict[str, Any], lang: Lang, fmt: Format) -> list[str]:
     """One venue's quiet set, whole month table and setup."""
     quiet = venue.get("quiet_set", {})
     eligibility = venue.get("eligibility", {})
     residuals = venue.get("residuals", {})
     lines = [
-        f"## 3. {venue.get('venue_name')} ({venue.get('venue_id')})",
+        text(
+            lang,
+            "h_venue",
+            venue_name=venue.get("venue_name"),
+            venue_id=venue.get("venue_id"),
+        ),
         "",
-        f"Origo {venue.get('origin')}, sääntö `{venue.get('score_model')}`. "
-        f"Ehdokaspäiviä {integer(quiet.get('n_eligible'))}, hiljaisia päiviä "
-        f"{integer(quiet.get('k'))}. Kynnysarvo on {number(quiet.get('cut'))} kävijätapahtumaa, "
-        f"eli {number(float(quiet.get('cut_ratio', float('nan'))) * 100.0, 0)} % "
-        "mediaanipäivästä.",
+        text(
+            lang,
+            "venue_intro",
+            origin=venue.get("origin"),
+            model=venue.get("score_model"),
+            n=fmt.integer(quiet.get("n_eligible")),
+            k=fmt.integer(quiet.get("k")),
+            cut=fmt.number(quiet.get("cut")),
+            cut_ratio=fmt.number(float(quiet.get("cut_ratio", float("nan"))) * 100.0, 0),
+        ),
         "",
-        "### Hiljaisimmat päivät",
+        text(lang, "h_quiet_days"),
         "",
-        "| Päivä | Sija | Suhde mediaaniin | Todennäköisyys | Samanarvoisia | Pyhä | Lämpötila | "
-        "Sade |",
-        "| --- | ---: | ---: | ---: | ---: | --- | ---: | ---: |",
     ]
+    lines += table_header(text(lang, "quiet_table"), align="lrrrrlrr")
     for row in venue.get("days", []):
         if not row.get("is_quiet"):
             continue
-        lines.append(_day_row(row))
-    lines += [
-        "",
-        "### Koko kuukausi",
-        "",
-        "| Päivä | Tila | Sija | Suhde mediaaniin | Todennäköisyys |",
-        "| --- | --- | ---: | ---: | ---: |",
-    ]
+        lines.append(_day_row(row, fmt))
+    lines += ["", text(lang, "h_month"), ""]
+    lines += table_header(text(lang, "month_table"), align="llrrr")
     for row in venue.get("days", []):
-        day = parse_day(row.get("date"))
-        status = STATUS_PHRASES.get(str(row.get("status")), str(row.get("status")))
         lines.append(
-            f"| {fi_day(day) if day else NA} | {status} | {row.get('rank') or NA} | "
-            f"{_ratio(row.get('ratio'))} | {_probability(row.get('probability'))} |"
+            f"| {fmt.day(parse_day(row.get('date')))} "
+            f"| {fmt.phrase(STATUS_PHRASES, row.get('status'))} | {row.get('rank') or NA} "
+            f"| {_ratio(row.get('ratio'), fmt)} | {_ratio(row.get('probability'), fmt)} |"
         )
     closed = eligibility.get("closed_weekdays") or []
     lines += [
         "",
-        "### Lähtötiedot",
+        text(lang, "h_inputs"),
         "",
-        f"- Suljetut arkipäivät: {', '.join(WEEKDAY_SHORT_FI[day] for day in closed) or 'ei yhtään'}",
-        f"- Pyhäpäiväkerroin: {number(eligibility.get('holiday_factor'), 2)} "
-        f"({integer(eligibility.get('holiday_observations'))} havaintoa)",
-        f"- Jäännösjakauma: {'mitattu' if residuals.get('measured') else 'oletushajonta'}, "
-        f"{integer(residuals.get('n'))} havaintoa",
+        text(
+            lang,
+            "input_closed",
+            days=fmt.join([WEEKDAY_NAMES[lang][day] for day in closed], text(lang, "none")),
+        ),
+        text(
+            lang,
+            "input_holiday",
+            factor=fmt.number(eligibility.get("holiday_factor"), 2),
+            n=fmt.integer(eligibility.get("holiday_observations")),
+        ),
+        text(
+            lang,
+            "input_residuals",
+            kind=text(
+                lang,
+                "residuals_measured" if residuals.get("measured") else "residuals_default",
+            ),
+            n=fmt.integer(residuals.get("n")),
+        ),
         "",
     ]
     warnings = venue.get("warnings", [])
     if warnings:
-        lines += ["### Varaukset", ""]
-        lines += [f"- {warning}" for warning in warnings]
+        lines += [text(lang, "h_warnings"), ""]
+        lines += [f"- {localised(warning, lang)}" for warning in warnings]
         lines.append("")
     return lines
 
 
-def _day_row(row: dict[str, Any]) -> str:
+def _day_row(row: dict[str, Any], fmt: Format) -> str:
     """One line of the quiet-set table."""
-    day = parse_day(row.get("date"))
     tie = row.get("tie_size") or 1
     return (
-        f"| {fi_day(day) if day else NA} | {row.get('rank') or NA} | {_ratio(row.get('ratio'))} | "
-        f"{_probability(row.get('probability'))} | {integer(tie) if int(tie) > 1 else NA} | "
-        f"{row.get('holiday_name') or NA} | {number(row.get('temp_mean'))} | "
-        f"{number(row.get('precip_sum'))} |"
+        f"| {fmt.day(parse_day(row.get('date')))} | {row.get('rank') or NA} "
+        f"| {_ratio(row.get('ratio'), fmt)} | {_ratio(row.get('probability'), fmt)} "
+        f"| {fmt.integer(tie) if int(tie) > 1 else NA} | {row.get('holiday_name') or NA} "
+        f"| {fmt.number(row.get('temp_mean'))} | {fmt.number(row.get('precip_sum'))} |"
     )
 
 
-def _ratio(value: Any) -> str:
-    """A within-month ratio as a percentage of the median day."""
-    return NA if not isinstance(value, int | float) else percent(float(value) * 100.0, 0)
+def _ratio(value: Any, fmt: Format) -> str:
+    """A within-month ratio or probability as a percentage."""
+    return NA if not isinstance(value, int | float) else fmt.share_percent(float(value))
 
 
-def _probability(value: Any) -> str:
-    """A selection probability as a percentage."""
-    return NA if not isinstance(value, int | float) else percent(float(value) * 100.0, 0)
-
-
-def _forecast_limits_section() -> list[str]:
+def _forecast_limits_section(lang: Lang) -> list[str]:
     """What the answer does not claim."""
     return [
-        "## 4. Mitä tämä ei kerro",
+        text(lang, "h_forecast_limits"),
         "",
-        "- **Pisteluku ei ole kävijäennuste.** Se on järjestysluku. Tason ennustamiseen on "
-        "`python -m ovf_forecast run`, ja sen tarkkuus mitataan erikseen komennolla `evaluate`.",
-        "- **Todennäköisyys koskee järjestystä, ei kävijämäärää.** \"70 %\" tarkoittaa, että "
-        "päivä päätyi hiljaisimpien joukkoon 70 %:ssa simuloiduista kuukausista.",
-        "- **Malli ei tunne tapahtumakalenteria.** Yksittäinen konsertti tai ryhmävaraus "
-        "kääntää hiljaisen päivän vilkkaaksi, eikä tässä käytetyssä datassa ole tietoa siitä.",
-        "- **Sää on taustatietoa.** Se on taulukossa ihmisen päätöksen tueksi, mutta se ei "
-        "vaikuta järjestykseen: mitattuna se ei parantanut sitä.",
-        "- **Suljetut päivät eivät ole hiljaisia päiviä.** Ne on rajattu ehdokkaista pois, "
-        "koska tapahtumaa ei voi järjestää suljetussa kohteessa.",
+        text(lang, "forecast_limit_score"),
+        text(lang, "forecast_limit_probability"),
+        text(lang, "forecast_limit_events"),
+        text(lang, "forecast_limit_weather"),
+        text(lang, "forecast_limit_closed"),
         "",
     ]
 
@@ -318,26 +292,32 @@ def _forecast_limits_section() -> list[str]:
 # --------------------------------------------------------------------------------------
 
 
-def backtest_summary_fi(pooled: list[dict[str, Any]]) -> str:
+def backtest_summary(pooled: list[dict[str, Any]], lang: Lang = DEFAULT_LANG) -> str:
     """The verdict the sweep prints: one line per venue and rule.
 
     A list rather than a paragraph, because five rules on two venues is ten verdicts and
     a wall of prose is where a reader stops looking for the one that concerns them.
     """
     if not pooled:
-        return "Yhtään ikkunaa ei voitu pisteyttää."
+        return text(lang, "backtest_no_windows")
+    fmt = formats(lang)
     parts: list[str] = []
     for row in pooled:
-        benefit = row.get("benefit")
-        low, high = row.get("benefit_ci_low"), row.get("benefit_ci_high")
-        verdict = VERDICT_PHRASES.get(str(row.get("verdict")), str(row.get("verdict")))
         parts.append(
-            f"- {row.get('venue_name')} ({row.get('venue_id')}) / `{row.get('model')}`: valitut "
-            f"päivät olivat {percent(_scale(benefit), 0)} mediaanipäivää hiljaisempia "
-            f"(95 % väli {percent(_scale(low), 0)} … {percent(_scale(high), 0)}, "
-            f"{integer(row.get('n_windows'))} ikkunaa), {verdict}; osuvuus "
-            f"{percent(_scale(row.get('hit_rate')), 0)} kun satunnaisvalinta antaisi "
-            f"{percent(_scale(row.get('chance_rate')), 0)}."
+            text(
+                lang,
+                "backtest_sum_row",
+                venue_name=row.get("venue_name"),
+                venue_id=row.get("venue_id"),
+                model=row.get("model"),
+                benefit=fmt.percent(_scale(row.get("benefit")), 0),
+                low=fmt.percent(_scale(row.get("benefit_ci_low")), 0),
+                high=fmt.percent(_scale(row.get("benefit_ci_high")), 0),
+                windows=fmt.integer(row.get("n_windows")),
+                verdict=fmt.phrase(VERDICT_PHRASES, row.get("verdict")),
+                hit_rate=fmt.percent(_scale(row.get("hit_rate")), 0),
+                chance_rate=fmt.percent(_scale(row.get("chance_rate")), 0),
+            )
         )
     return "\n".join(parts)
 
@@ -348,180 +328,180 @@ def _scale(value: Any) -> float:
 
 
 def render_backtest_report(
-    config: dict[str, Any], metrics: dict[str, Any], verdicts: dict[str, Any]
+    config: dict[str, Any],
+    metrics: dict[str, Any],
+    verdicts: dict[str, Any],
+    lang: str = DEFAULT_LANG,
 ) -> str:
     """The full markdown report for one sweep."""
+    code = normalise(lang)
+    fmt = formats(code)
     pooled = verdicts.get("pooled", [])
     lines: list[str] = [
-        f"# {BACKTEST_TITLE}",
+        text(code, "backtest_heading", title=text(code, "backtest_title")),
         "",
-        f"Ajon tunniste: `{verdicts.get('run_id', '')}`",
+        text(code, "run_id", run_id=verdicts.get("run_id", "")),
         "",
-        "## 1. Verdikti",
+        text(code, "h_verdict"),
         "",
-        backtest_summary_fi(pooled),
+        _stored_summary(verdicts, code) or backtest_summary(pooled, code),
         "",
     ]
-    lines += _backtest_method_section(config, metrics)
-    lines += _backtest_results_section(pooled)
-    lines += _backtest_windows_section(metrics)
-    lines += _backtest_calibration_section(pooled)
-    lines += _backtest_limits_section(metrics)
+    lines += _backtest_method_section(config, metrics, code, fmt)
+    lines += _backtest_results_section(pooled, code, fmt)
+    lines += _backtest_windows_section(metrics, code, fmt)
+    lines += _backtest_calibration_section(pooled, code, fmt)
+    lines += _backtest_limits_section(metrics, code)
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _backtest_method_section(config: dict[str, Any], metrics: dict[str, Any]) -> list[str]:
+def _stored_summary(verdicts: dict[str, Any], lang: Lang) -> str:
+    """The verdict paragraph the run stored for this language, if it stored one."""
+    return str(verdicts.get(f"summary_{lang}", "") or "")
+
+
+def _backtest_method_section(
+    config: dict[str, Any], metrics: dict[str, Any], lang: Lang, fmt: Format
+) -> list[str]:
     """What was measured and how."""
     windows = metrics.get("windows", [])
     return [
-        "## 2. Menetelmä",
+        text(lang, "h_backtest_method"),
         "",
-        f"- Ikkunoita: {integer(len(windows))} "
-        f"({metrics.get('first_test_day')} – {metrics.get('last_test_day')})",
-        f"- Ikkunatyyppi: {metrics.get('sweep_kind', 'custom')}",
-        f"- Säännöt: {', '.join(f'`{name}`' for name in config.get('score_models', []))}",
-        f"- Kynnys: hiljaisin {percent(float(config.get('quiet_share', 0.2)) * 100.0, 0)} "
-        "ehdokaspäivistä",
-        f"- Bootstrap-toistoja: {integer(config.get('n_resamples'))}, "
-        f"siemenluku {integer(config.get('seed'))}",
+        text(
+            lang,
+            "backtest_windows",
+            windows=fmt.integer(len(windows)),
+            first=metrics.get("first_test_day"),
+            last=metrics.get("last_test_day"),
+        ),
+        text(lang, "backtest_kind", kind=metrics.get("sweep_kind", "custom")),
+        text(
+            lang,
+            "backtest_models",
+            models=", ".join(f"`{name}`" for name in config.get("score_models", [])),
+        ),
+        text(
+            lang,
+            "backtest_threshold",
+            share=fmt.share_percent(float(config.get("quiet_share", 0.2))),
+        ),
+        text(
+            lang,
+            "backtest_bootstrap",
+            resamples=fmt.integer(config.get("n_resamples")),
+            seed=fmt.integer(config.get("seed")),
+        ),
         "",
-        "Jokainen ikkuna opetetaan origoonsa asti, nimetään sen jälkeen jakson hiljaisimmat "
-        "päivät ja avataan vasta sitten toteuma. Luottamusväli arvotaan kokonaisista "
-        "ikkunoista, ei päivistä: saman kuukauden päivät jakavat origon, opetusjakson ja "
-        "sään, eivätkä ole toisistaan riippumattomia havaintoja.",
+        text(lang, "backtest_method_note"),
         "",
     ]
 
 
-def _backtest_results_section(pooled: list[dict[str, Any]]) -> list[str]:
+def _backtest_results_section(
+    pooled: list[dict[str, Any]], lang: Lang, fmt: Format
+) -> list[str]:
     """The pooled table: one line per venue and rule."""
-    lines = [
-        "## 3. Tulokset",
-        "",
-        "| Kohde | Sääntö | Ikkunoita | Hyöty | 95 % väli | Osuvuus | Satunnais | Talteen | "
-        "Spearman | Verdikti |",
-        "| --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | --- |",
-    ]
+    lines = [text(lang, "h_results"), ""]
+    lines += table_header(text(lang, "results_table"), align="llrrlrrrrl")
     for row in pooled:
         lines.append(
-            f"| {row.get('venue_name')} | `{row.get('model')}` | {integer(row.get('n_windows'))} | "
-            f"{percent(_scale(row.get('benefit')), 0)} | "
-            f"{percent(_scale(row.get('benefit_ci_low')), 0)} … "
-            f"{percent(_scale(row.get('benefit_ci_high')), 0)} | "
-            f"{percent(_scale(row.get('hit_rate')), 0)} | "
-            f"{percent(_scale(row.get('chance_rate')), 0)} | "
-            f"{percent(_scale(row.get('capture')), 0)} | {number(row.get('spearman'), 2)} | "
-            f"{VERDICT_PHRASES.get(str(row.get('verdict')), '')} |"
+            f"| {row.get('venue_name')} | `{row.get('model')}` "
+            f"| {fmt.integer(row.get('n_windows'))} "
+            f"| {fmt.percent(_scale(row.get('benefit')), 0)} "
+            f"| {fmt.percent(_scale(row.get('benefit_ci_low')), 0)} … "
+            f"{fmt.percent(_scale(row.get('benefit_ci_high')), 0)} "
+            f"| {fmt.percent(_scale(row.get('hit_rate')), 0)} "
+            f"| {fmt.percent(_scale(row.get('chance_rate')), 0)} "
+            f"| {fmt.percent(_scale(row.get('capture')), 0)} "
+            f"| {fmt.number(row.get('spearman'), 2)} "
+            f"| {fmt.phrase(VERDICT_PHRASES, row.get('verdict'))} |"
         )
-    lines += [
-        "",
-        "**Hyöty** on 1 − (valittujen päivien keskiarvo ÷ kuukauden mediaanipäivä): kuinka "
-        "paljon hiljaisempi suositus oli kuin mielivaltainen päivä. **Talteen** vertaa sitä "
-        "siihen, mikä olisi ollut mahdollista jälkiviisaasti. **Osuvuus** on osuus nimetyistä "
-        "päivistä, jotka todella kuuluivat hiljaisimpiin, ja **satunnais** se, minkä arvaus "
-        "antaisi.",
-        "",
-    ]
+    lines += ["", text(lang, "results_note"), ""]
     for row in pooled:
         if str(row.get("verdict")) == "no_detectable_benefit":
             lines.append(
-                f"- {row.get('venue_name')} / `{row.get('model')}`: pienin havaittava hyöty on "
-                f"{percent(_scale(row.get('benefit_mde')), 0)}, joten "
-                f"{integer(row.get('n_windows'))} ikkunaa erottaa vain tätä suuremman eron. "
-                f"Tulos on \"ei todennettua hyötyä\", ei \"ei hyötyä\". Osuvuudesta verdikti on: "
-                f"{CHANCE_PHRASES.get(str(row.get('hit_verdict')), '')}."
+                text(
+                    lang,
+                    "results_mde",
+                    venue_name=row.get("venue_name"),
+                    model=row.get("model"),
+                    mde=fmt.percent(_scale(row.get("benefit_mde")), 0),
+                    windows=fmt.integer(row.get("n_windows")),
+                    chance_verdict=fmt.phrase(CHANCE_PHRASES, row.get("hit_verdict")),
+                )
             )
     if lines[-1] != "":
         lines.append("")
     return lines
 
 
-def _backtest_windows_section(metrics: dict[str, Any]) -> list[str]:
+def _backtest_windows_section(metrics: dict[str, Any], lang: Lang, fmt: Format) -> list[str]:
     """Every window, so a pooled number can be checked against its parts."""
-    lines = [
-        "## 4. Ikkunakohtaiset tulokset",
-        "",
-        "| Kohde | Sääntö | Jakso | Ehdokkaita | k | Hyöty | Paras mahdollinen | Osuvuus | "
-        "Hiljaisin valinta |",
-        "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
-    ]
+    lines = [text(lang, "h_backtest_windows"), ""]
+    lines += table_header(text(lang, "windows_table"), align="lllrrrrrr")
     for row in metrics.get("window_results", []):
-        benefit = 1.0 - float(row["realized_ratio"]) if row.get("realized_ratio") is not None else None
+        benefit = (
+            1.0 - float(row["realized_ratio"]) if row.get("realized_ratio") is not None else None
+        )
         oracle = 1.0 - float(row["oracle_ratio"]) if row.get("oracle_ratio") is not None else None
         lines.append(
             f"| {row.get('venue_id')} | `{row.get('model')}` | {row.get('test_start')} – "
-            f"{row.get('test_end')} | {integer(row.get('n_eligible'))} | {integer(row.get('k'))} | "
-            f"{percent(_scale(benefit), 0)} | {percent(_scale(oracle), 0)} | "
-            f"{percent(_scale(row.get('hit_rate')), 0)} | "
-            f"{percent(_scale(row.get('top1_ratio')), 0)} |"
+            f"{row.get('test_end')} | {fmt.integer(row.get('n_eligible'))} "
+            f"| {fmt.integer(row.get('k'))} | {fmt.percent(_scale(benefit), 0)} "
+            f"| {fmt.percent(_scale(oracle), 0)} "
+            f"| {fmt.percent(_scale(row.get('hit_rate')), 0)} "
+            f"| {fmt.percent(_scale(row.get('top1_ratio')), 0)} |"
         )
     lines.append("")
     return lines
 
 
-def _backtest_calibration_section(pooled: list[dict[str, Any]]) -> list[str]:
+def _backtest_calibration_section(
+    pooled: list[dict[str, Any]], lang: Lang, fmt: Format
+) -> list[str]:
     """Do the published probabilities mean what they say."""
     lines = [
-        "## 5. Todennäköisyyksien kalibrointi",
+        text(lang, "h_calibration"),
         "",
-        "Jokainen ehdokaspäivä tuottaa yhden parin: mallin antama todennäköisyys ja se, "
-        "kuuluiko päivä lopulta hiljaisimpiin. Hyvin kalibroidussa mallissa sarakkeet ovat "
-        "lähellä toisiaan.",
+        text(lang, "calibration_note"),
         "",
-        "| Kohde | Sääntö | Väli | n | Ennustettu | Toteutunut |",
-        "| --- | --- | --- | ---: | ---: | ---: |",
     ]
+    lines += table_header(text(lang, "calibration_table"), align="lllrrr")
     for row in pooled:
         for bucket in row.get("calibration", []):
             if not bucket.get("n"):
                 continue
             lines.append(
-                f"| {row.get('venue_name')} | `{row.get('model')}` | {bucket.get('bucket')} | "
-                f"{integer(bucket.get('n'))} | {percent(_scale(bucket.get('predicted')), 0)} | "
-                f"{percent(_scale(bucket.get('observed')), 0)} |"
+                f"| {row.get('venue_name')} | `{row.get('model')}` | {bucket.get('bucket')} "
+                f"| {fmt.integer(bucket.get('n'))} "
+                f"| {fmt.percent(_scale(bucket.get('predicted')), 0)} "
+                f"| {fmt.percent(_scale(bucket.get('observed')), 0)} |"
             )
     lines.append("")
     return lines
 
 
-def _backtest_limits_section(metrics: dict[str, Any]) -> list[str]:
+def _backtest_limits_section(metrics: dict[str, Any], lang: Lang) -> list[str]:
     """What the sweep does not prove."""
-    overlapping = bool(metrics.get("windows_overlap"))
     lines = [
-        "## 6. Mitä tämä ei todista",
+        text(lang, "h_backtest_limits"),
         "",
-        "- **Ikkunoita on vähän.** Koko historia on yksi vuosi, ja kuukausi-ikkunoita mahtuu "
-        "siihen kourallinen. Pienin havaittava hyöty on kussakin verdiktissä mukana juuri "
-        "siksi.",
-        "- **Yksi kohde ei kerro toisesta.** Verdikti annetaan kohteittain, koska "
-        "aukioloajat, pyhäpäiväkäytäntö ja kävijäprofiili eroavat.",
-        "- **Sääntövalinta on tehty samalla datalla.** Oletussääntö valittiin näiden samojen "
-        "ikkunoiden perusteella, joten sen etu muihin sääntöihin nähden on yliarvio. "
-        "Kohdekohtainen hyöty sen sijaan on mitattu opetusjakson ulkopuolelta.",
-        "- **Mittaus käyttää kahta jälkiviisautta.** Ehdokasjoukko on ne päivät jotka "
-        "toteutuivat havaittuina, täysinä ja nollaa suurempina, ja `k` otetaan toteuman "
-        "ehdokasmäärästä. Molemmat pätevät samalla tavalla sääntöön ja satunnaisvalintaan, "
-        "mutta sääntöä ei siis rangaista suljetun päivän ehdottamisesta.",
-        "- **Menneisyys ei sisällä tapahtumakalenteria.** Jos kohteessa aletaan järjestää "
-        "aktivointitapahtumia hiljaisina päivinä, ne muuttavat juuri niitä päiviä, joita malli "
-        "ennustaa, ja mittaus on toistettava.",
+        text(lang, "backtest_limit_windows"),
+        text(lang, "backtest_limit_venues"),
+        text(lang, "backtest_limit_selection"),
+        text(lang, "backtest_limit_hindsight"),
+        text(lang, "backtest_limit_events"),
     ]
-    if overlapping:
-        lines.append(
-            "- **Ikkunat menevät päällekkäin.** Liukuvassa pyyhkäisyssä peräkkäiset ikkunat "
-            "jakavat päiviä, joten ne eivät ole riippumattomia ja luottamusväli on todellista "
-            "kapeampi. Kuukausipyyhkäisyssä päällekkäisyyttä ei ole."
-        )
+    if bool(metrics.get("windows_overlap")):
+        lines.append(text(lang, "backtest_limit_overlap"))
     lines.append("")
     return lines
 
 
 __all__ = [
-    "backtest_summary_fi",
-    "fi_day",
-    "fi_month",
-    "forecast_summary_fi",
+    "backtest_summary",
+    "forecast_summary",
     "render_backtest_report",
     "render_forecast_report",
-    "signed",
 ]

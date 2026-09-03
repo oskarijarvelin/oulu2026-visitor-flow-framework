@@ -104,12 +104,13 @@ export function windowLabel(label: string, f: Formatters): string {
 /**
  * Ajon verdikki kappaleena.
  *
- * Suomeksi naytetaan `verdicts.json`:in valmis kappale sellaisenaan. Muilla kielilla
- * sama sisalto kootaan rakenteisista kentista; kappaletta ei kaanneta merkkijonona.
- * Suomenkielinen kokoaja on olemassa varalta, jos ajo on tallennettu ilman kappaletta.
+ * Osio 3 kirjoittaa kappaleen molemmilla kielilla samoista luvuista samana paivana, joten
+ * se naytetaan sellaisenaan. Kappaletta ei kaanneta selaimessa. Ennen kaksikielisyytta
+ * tallennetuilla ajoilla toinen kappale puuttuu, ja se kootaan rakenteisista kentista.
  */
 export function summaryParagraph(run: AccuracyRun, lang: Lang): string {
-  if (lang === 'fi' && run.summary_fi !== '') return run.summary_fi;
+  const stored = lang === 'fi' ? run.summary_fi : run.summary_en;
+  if (stored !== '') return stored;
   return composeSummary(run, lang);
 }
 

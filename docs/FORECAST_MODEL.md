@@ -561,7 +561,9 @@ sellaisenaan; ajo varoittaa erikseen siitä, että origo on 94 päivää vanha.
 
 ## 7. Milloin ennustetta ei pidä uskoa
 
-Nämä on kirjattu myös jokaisen venuen `metrics.json`-tiedoston kenttään `do_not_trust`.
+Nämä on kirjattu myös jokaisen venuen `metrics.json`-tiedoston kenttään `do_not_trust`,
+molemmilla kielillä muodossa `{"fi": ..., "en": ...}`. Sama koskee `warnings`-kenttää:
+sivusto renderöi ne lukijan valitsemalla kielellä eikä arvaa käännöstä.
 
 1. **Horisontti yli 14 vuorokautta.** Sää on klimatologiaa ja taso on lukittu origoon.
 2. **Päivä jolla on ohjelmistoa tai tapahtuma, jota malli ei tunne.** Tämä on suurin
@@ -642,7 +644,8 @@ data/evaluations/{run_id}/config.json          ajon täydelliset parametrit
 data/evaluations/{run_id}/predictions.csv      venue, päivä, horisontti, malli, sään tila, toteuma, p10/p50/p90
 data/evaluations/{run_id}/metrics.json         mittarit, kokonaismäärät, pahiten menneet päivät
 data/evaluations/{run_id}/verdicts.json        verdiktit koneluettavina
-data/evaluations/{run_id}/report.md            ihmisluettava raportti
+data/evaluations/{run_id}/report.md            ihmisluettava raportti, suomeksi
+data/evaluations/{run_id}/report.en.md         sama raportti englanniksi
 ```
 
 `run_id` on deterministinen ja luettava, ja sama ajo samoilla parametreilla korvaa saman

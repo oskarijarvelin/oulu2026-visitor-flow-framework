@@ -22,7 +22,6 @@ from ovf_forecast.evaluation.store import (
     CONFIG_NAME,
     METRICS_NAME,
     PREDICTIONS_NAME,
-    REPORT_NAME,
     VERDICTS_NAME,
     build_run_id,
     build_sweep_id,
@@ -31,11 +30,19 @@ from ovf_forecast.evaluation.store import (
     list_runs,
     load_run,
     read_index,
+    report_name,
     run_dir,
 )
 from ovf_forecast.evaluation.windows import Window, make_window
 
-RUN_FILES = (CONFIG_NAME, PREDICTIONS_NAME, METRICS_NAME, VERDICTS_NAME, REPORT_NAME)
+RUN_FILES = (
+    CONFIG_NAME,
+    PREDICTIONS_NAME,
+    METRICS_NAME,
+    VERDICTS_NAME,
+    report_name("fi"),
+    report_name("en"),
+)
 MOMENT = datetime(2026, 8, 25, 12, 0, tzinfo=UTC)
 
 
@@ -130,8 +137,9 @@ def test_every_stored_file_is_written(
     assert list(artifacts.predictions.columns) == [
         "venue_id", "date", "horizon_days", "model", "weather_mode", "y_true", "p10", "p50", "p90",
     ]
-    assert artifacts.report.startswith("# Ennusteen arviointiraportti")
-    assert "MDE" in artifacts.report
+    assert artifacts.report().startswith("# Ennusteen arviointiraportti")
+    assert artifacts.report("en").startswith("# Forecast evaluation report")
+    assert "MDE" in artifacts.report()
 
 
 def test_the_index_records_the_window_the_models_and_the_verdict(
@@ -169,7 +177,8 @@ def test_a_sweep_stores_every_window_and_a_pooled_run(
     assert sweep is not None
     assert sweep.verdicts["kind"] == "sweep"
     assert [entry["run_id"] for entry in sweep.verdicts["windows"]] == result.run_ids
-    assert "Koosteverdikti" in sweep.report
+    assert "Koosteverdikti" in sweep.report()
+    assert "Pooled verdict" in sweep.report("en")
     kinds = {entry["kind"] for entry in list_runs(synthetic_repo)}
     assert kinds == {"window", "sweep"}
 

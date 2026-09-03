@@ -390,8 +390,20 @@ data/evaluations/
     predictions.csv            venue_id, date, horizon_days, model, weather_mode, y_true, p10, p50, p90
     metrics.json               every metric, the totals, the worst days
     verdicts.json              the verdicts in machine-readable form
-    report.md                  the human-readable report
+    report.md                  the human-readable report, in Finnish
+    report.en.md               the same report in English
 ```
+
+The report is written **in both languages on every run**, from the same numbers at the same
+moment. Neither is translated afterwards: both are rendered from the same stored payload, so
+they cannot drift apart. `verdicts.json` likewise carries both a `summary_fi` and a
+`summary_en` paragraph, and the site reads whichever language the reader chose. The
+machine-readable fields that hold prose — a worst day's cause and its weekday — are stored as
+`{"fi": ..., "en": ...}` too.
+
+What the command itself prints follows the `--lang` option (`fi` by default, `en` the other
+choice). The option only affects what goes to the screen and which stored report
+`evaluate report` prints; both are always written to disk.
 
 The `run_id` is deterministic and readable, for example
 `eval_v1_2026-03-31_2026-04-01_2026-04-30_baseline`. Everything that changes the answer but
@@ -402,7 +414,7 @@ same directory.
 
 ### The structure of the report
 
-1. **The verdict** as a single paragraph in Finnish, without jargon
+1. **The verdict** as a single paragraph in the report's own language, without jargon
 2. The window and the setup
 3. The total for the period
 4. Daily metrics, models and references side by side

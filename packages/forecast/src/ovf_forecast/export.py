@@ -347,7 +347,7 @@ def build_manifest(
     venues: list[dict[str, Any]],
     models: list[str],
     skipped: list[str],
-    warnings: list[str],
+    warnings: list[dict[str, str]],
     ingest_manifest: dict[str, Any] | None,
 ) -> dict[str, Any]:
     """The forecast run manifest, mirroring the ingest one's shape."""

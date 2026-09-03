@@ -23,6 +23,7 @@ import pandas as pd
 
 from .. import log_event
 from ..evaluation.store import clean
+from ..i18n import DEFAULT_LANG, LANGUAGES, normalise
 
 QUIET_DIR = "data/quiet"
 INDEX_NAME = "index.json"
@@ -32,6 +33,12 @@ WINDOWS_NAME = "windows.csv"
 METRICS_NAME = "metrics.json"
 VERDICTS_NAME = "verdicts.json"
 REPORT_NAME = "report.md"
+
+
+def report_name(lang: str = DEFAULT_LANG) -> str:
+    """``report.md`` for the default language, ``report.en.md`` for the others."""
+    code = normalise(lang)
+    return REPORT_NAME if code == DEFAULT_LANG else f"report.{code}.md"
 
 SCHEMA_VERSION = "v1"
 RUN_PREFIX = "quiet"
@@ -50,9 +57,16 @@ class QuietArtifacts:
     days: pd.DataFrame
     metrics: dict[str, Any]
     verdicts: dict[str, Any]
-    report: str
+    reports: dict[str, str]
     windows: pd.DataFrame | None = None
     members: list[str] = field(default_factory=list)
+
+    def report(self, lang: str = DEFAULT_LANG) -> str:
+        """One rendered report, falling back to whichever language the run has."""
+        code = normalise(lang)
+        if self.reports.get(code):
+            return self.reports[code]
+        return next((value for value in self.reports.values() if value), "")
 
 
 def quiet_root(root: Path) -> Path:
@@ -103,7 +117,8 @@ def write_run(root: Path, artifacts: QuietArtifacts) -> Path:
         _write_csv(directory / WINDOWS_NAME, artifacts.windows)
     _write_json(directory / METRICS_NAME, artifacts.metrics)
     _write_json(directory / VERDICTS_NAME, artifacts.verdicts)
-    (directory / REPORT_NAME).write_text(artifacts.report, encoding="utf-8", newline="\n")
+    for lang, rendered in artifacts.reports.items():
+        (directory / report_name(lang)).write_text(rendered, encoding="utf-8", newline="\n")
     log_event(
         "info", "quiet.store", "Wrote quiet-day run", run_id=artifacts.run_id, path=str(directory)
     )
@@ -178,9 +193,7 @@ def load_run(root: Path, run_id: str) -> QuietArtifacts | None:
         days=_read_csv(directory / DAYS_NAME),
         metrics=_read_json(directory / METRICS_NAME),
         verdicts=_read_json(directory / VERDICTS_NAME),
-        report=(directory / REPORT_NAME).read_text(encoding="utf-8")
-        if (directory / REPORT_NAME).is_file()
-        else "",
+        reports=_read_reports(directory),
         windows=_read_csv(windows_path) if windows_path.is_file() else None,
     )
 
@@ -196,6 +209,16 @@ def latest_backtest(root: Path) -> dict[str, Any] | None:
         if entry.get("kind") == KIND_BACKTEST:
             return entry
     return None
+
+
+def _read_reports(directory: Path) -> dict[str, str]:
+    """Every rendered report a run directory holds, keyed by language."""
+    found: dict[str, str] = {}
+    for lang in LANGUAGES:
+        path = directory / report_name(lang)
+        if path.is_file():
+            found[lang] = path.read_text(encoding="utf-8")
+    return found
 
 
 def _read_csv(path: Path) -> pd.DataFrame:

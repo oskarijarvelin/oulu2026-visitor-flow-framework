@@ -31,9 +31,15 @@ def test_config_loads_the_two_documented_venues(config: AppConfig) -> None:
         160,
         178,
     )
+    assert (pekuri.latitude, pekuri.longitude) == (65.0120, 25.4688)
     kaupungintalo = config.venue(2)
-    assert (kaupungintalo.name, kaupungintalo.city, kaupungintalo.capacity) == ("Kaupungintalo", "Espoo", 20)
-    assert (kaupungintalo.latitude, kaupungintalo.longitude) == (60.2055, 24.6558)
+    assert (
+        kaupungintalo.name,
+        kaupungintalo.city,
+        kaupungintalo.capacity,
+        kaupungintalo.location_hierarchy_id,
+    ) == ("Kaupungintalo", "Oulu", 20, 183)
+    assert (kaupungintalo.latitude, kaupungintalo.longitude) == (65.0140, 25.4726)
 
 
 def test_config_loads_the_karjasilta_sensor_map(config: AppConfig) -> None:

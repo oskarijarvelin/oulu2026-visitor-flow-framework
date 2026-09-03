@@ -198,7 +198,8 @@ def test_missing_prophet_leaves_a_usable_run(synthetic_repo: Path, monkeypatch: 
 
     manifest = json.loads((synthetic_repo / LATEST / "manifest.json").read_text())
     assert manifest["skipped_models"] == [PROPHET_XGB]
-    assert any("prophet_xgb" in warning for warning in manifest["warnings"])
+    assert any("prophet_xgb" in warning["fi"] for warning in manifest["warnings"])
+    assert any("prophet_xgb" in warning["en"] for warning in manifest["warnings"])
 
 
 def test_backtest_command_writes_nothing(synthetic_repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -221,8 +222,10 @@ def test_report_command_reads_the_last_run(baseline_run: Path, capsys: pytest.Ca
 def test_report_without_a_run_is_reported_not_crashed(
     synthetic_repo: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """A missing metrics file is a message, not a traceback."""
+    """A missing metrics file is a message, not a traceback, in either language."""
     assert _run(synthetic_repo, "report") == 2
+    assert "ei vielä mittareita" in capsys.readouterr().out
+    assert _run(synthetic_repo, "report", "--lang", "en") == 2
     assert "no metrics yet" in capsys.readouterr().out
 
 

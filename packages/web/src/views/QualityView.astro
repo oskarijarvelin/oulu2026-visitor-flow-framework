@@ -12,7 +12,7 @@ import { localizedPath, type Lang } from '../i18n/index.ts';
 import { ui } from '../i18n/ui/index.ts';
 import { modelStyle } from '../lib/colors.ts';
 import { formatters } from '../lib/format.ts';
-import { horizonBucketLabel, modelLabel, translateWarnings } from '../lib/labels.ts';
+import { horizonBucketLabel, localisedTexts, modelLabel } from '../lib/labels.ts';
 import { toBacktestRows } from '../lib/series.ts';
 import type { ForecastData, Meta, QualityData, VenueQuality } from '../lib/types.ts';
 
@@ -70,7 +70,7 @@ function benchmarkRatio(
   return typeof value === 'number' ? value : null;
 }
 
-const doNotTrust = translateWarnings(panels[0]!.q.do_not_trust, lang);
+const doNotTrust = localisedTexts(panels[0]!.q.do_not_trust, lang);
 const lowCoverage = panels.flatMap(({ venue, q }) =>
   Object.entries(q.metrics).flatMap(([model, buckets]) =>
     Object.entries(buckets)

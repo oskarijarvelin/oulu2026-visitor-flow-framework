@@ -25,6 +25,14 @@ translation next to it under the same name with an `.en.md` suffix, for example
 [`docs/EVALUATION.en.md`](docs/EVALUATION.en.md). The Finnish file is the source of truth:
 when one changes, update the translation with it.
 
+**Everything a run writes is bilingual.** A stored report is `report.md` in Finnish and
+`report.en.md` in English, rendered from the same payload at the same moment rather than
+translated afterwards. The prose that travels inside the data files — the verdict paragraph
+in `verdicts.json`, the caveats in `metrics.json`, the quality-gate warnings in
+`manifest.json` — is stored as `{"fi": ..., "en": ...}`, so the site renders the reader's own
+language instead of guessing a translation from the wording. What a command prints follows
+`--lang fi|en`; both files are always written regardless.
+
 ---
 
 ## Installation
@@ -270,9 +278,10 @@ fields, i.e. `NaN`. Nothing is ever filled with a median or any other estimate.
 `traffic_hourly.csv` is keyed on `site_id`, never on `venue_id`. The previous
 implementation attached the single Karjasilta counter to *both* venues, which made
 identical pedestrian and cycling figures appear as if they described each venue
-(`docs/DATA_MODEL.md` §7.2) — including venue 2, which is in Espoo, roughly 500 km
-away. Karjasilta is one measurement point in Oulu. Any link to a venue belongs in the
-presentation layer and must be labelled as ambient context.
+(`docs/DATA_MODEL.md` §7.2). Karjasilta is one measurement point elsewhere in Oulu, not at
+either venue's door, and the configuration does not even record where it is: `sites.json`
+holds its sensor ids and nothing that would let anyone compute a distance. Any link to a
+venue belongs in the presentation layer and must be labelled as ambient context.
 
 ### `weather_hourly.source`
 
@@ -378,11 +387,14 @@ Venues:
 
 | id | name | city | lat | lon | capacity | `location_hierarchy_id` |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Pekuri | Oulu | 65.0134 | 25.4756 | 160 | 178 |
-| 2 | Kaupungintalo | Espoo | 60.2055 | 24.6558 | 20 | 183 |
+| 1 | Pekuri | Oulu | 65.0120 | 25.4688 | 160 | 178 |
+| 2 | Kaupungintalo | Oulu | 65.0140 | 25.4726 | 20 | 183 |
 
-Venue 2 is named after a city hall but sits in Espoo, so its weather genuinely differs
-from venue 1's. That is not a configuration error.
+Both venues are in central Oulu, a few hundred metres apart. Open-Meteo answers from the
+same grid cell for both, so their weather series are identical value for value. The fetch is
+still per venue, because the contract is per venue and the coordinates could move; the
+consequence for the models is that **weather cannot tell the two venues apart**. Any
+difference between them comes from the calendar, the level and the weekday rhythm.
 
 Ticket CSVs are matched case-insensitively against English and Finnish column aliases:
 `DATE`/`pvm`, `TICKETS`/`liput`, `GROUPS`/`ryhmat`/`ryhmät`, `TOTAL`/`yhteensa`/`yhteensä`.
@@ -483,11 +495,12 @@ Through the Makefile: `make evaluate`, `make evaluate-sweep`, `make evaluate-lis
 ### What you get back
 
 The command prints the verdict as one paragraph and tells you where it was stored. Each
-run writes five files under `data/evaluations/{run_id}/`:
+run writes six files under `data/evaluations/{run_id}/`:
 
 | File | Contents |
 | --- | --- |
-| `report.md` | The readable report, nine sections, verdict first |
+| `report.md` | The readable report, nine sections, verdict first, in Finnish |
+| `report.en.md` | The same report in English |
 | `metrics.json` | Every metric, per venue, model, horizon bucket and weather mode |
 | `verdicts.json` | The same verdicts a machine can read |
 | `predictions.csv` | `venue_id, date, horizon_days, model, weather_mode, y_true, p10, p50, p90` |
@@ -650,9 +663,9 @@ second is what lets them trade one against the other. Every eligible day carries
 - the forecast **weather**, as context. It is deliberately not in the score: it was tested
   and did not improve the ranking.
 
-Each run writes `report.md`, `days.csv`, `metrics.json`, `verdicts.json` and `config.json`
-under `data/quiet/{run_id}/`, plus a line in `index.json`. A sweep also writes
-`windows.csv`. Run ids are deterministic, so re-running a month overwrites its own
+Each run writes `report.md`, `report.en.md`, `days.csv`, `metrics.json`, `verdicts.json`
+and `config.json` under `data/quiet/{run_id}/`, plus a line in `index.json`. A sweep also
+writes `windows.csv`. Run ids are deterministic, so re-running a month overwrites its own
 directory, and nothing inside one carries a wall clock time.
 
 ### The test tool

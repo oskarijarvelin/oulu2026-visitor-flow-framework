@@ -1,15 +1,14 @@
 /**
- * Kielikohtaiset nimet malleille ja lahteille seka Python-osioiden englanninkielisten
- * varoitusten kaannokset.
+ * Kielikohtaiset nimet malleille ja lahteille seka valitsin putken kaksikielisille
+ * teksteille.
  *
- * Osiot 1 ja 3 kirjoittavat varoituksensa englanniksi. Englanninkielisessa
- * kayttoliittymassa ne naytetaan sellaisenaan, suomenkielisessa kaannettyna.
- * Tuntematon varoitus naytetaan aina sellaisenaan: se on parempi kuin varoituksen
- * piilottaminen.
+ * Osiot 1 ja 3 kirjoittavat varoituksensa molemmilla kielilla, joten sivusto valitsee
+ * vain oikean avaimen. Puuttuva kaannos naytetaan toisella kielella: vaaran kielinen
+ * varoitus on parempi kuin piilotettu varoitus.
  */
 
 import type { Lang } from '../i18n/index.ts';
-import type { ModelName } from './types.ts';
+import type { LocalisedText, ModelName } from './types.ts';
 
 const MODEL_LABEL: Record<Lang, Record<string, string>> = {
   fi: {
@@ -103,59 +102,16 @@ export function horizonBucketLabel(bucket: string, lang: Lang): string {
 }
 
 /**
- * Osioiden 1 ja 3 varoitukset ovat englanniksi. Nama ovat tunnetut muodot; muut
- * palautetaan sellaisenaan.
+ * Osioiden 1 ja 3 varoitukset tulevat valmiiksi molemmilla kielilla: putki kirjoittaa
+ * ne muodossa `{ fi, en }`. Aiemmin tassa oli saannollisiin lausekkeisiin perustuva
+ * kaannin, joka arvasi suomennoksen englanninkielisesta muotoilusta ja putosi
+ * englantiin heti kun lause kirjoitettiin uusiksi. Nyt valitaan vain avain.
  */
-const WARNING_PATTERNS: { test: RegExp; render: (match: RegExpExecArray) => string }[] = [
-  {
-    test: /^The last observed day is (\d{4}-\d{2}-\d{2}), (\d+) days before this run\./,
-    render: (match) =>
-      `Viimeisin havaittu päivä on ${fi(match[1]!)}, eli ${match[2]} vuorokautta ennen ajoa. ` +
-      'Ennuste lähtee vanhentuneesta tasosta.',
-  },
-  {
-    test: /^The maintained calendar does not reach (\d{4}-\d{2}-\d{2}); those days assume no holiday\.$/,
-    render: (match) =>
-      `Ylläpidetty pyhäkalenteri ei ulotu päivään ${fi(match[1]!)} asti. Sen jälkeisiä ` +
-      'ennustepäiviä käsitellään arkipäivinä, vaikka joukossa olisi pyhä.',
-  },
-  {
-    test: /^Horizons past (\d+) days: the weather is climatology and the level is frozen at the origin\.$/,
-    render: (match) =>
-      `Yli ${match[1]} vuorokauden horisontit: sää on klimatologiaa ja taso on lukittu ennusteen origoon.`,
-  },
-  {
-    test: /^Days with programming or an event the model has never seen\.$/,
-    render: () => 'Päivät joilla on ohjelmistoa tai tapahtuma, jota malli ei ole nähnyt.',
-  },
-  {
-    test: /^The first two weeks after a new venue or a new sensor comes online\.$/,
-    render: () => 'Kaksi ensimmäistä viikkoa uuden venuen tai uuden sensorin käyttöönotosta.',
-  },
-  {
-    test: /^Periods where the ingest manifest reports a degraded source\.$/,
-    render: () => 'Jaksot joilla ingest-manifesti raportoi heikentyneen lähteen.',
-  },
-  {
-    test: /^School holidays and midsummer, of which this dataset holds at most one observation\.$/,
-    render: () => 'Koulujen loma-ajat ja juhannus, joista aineistossa on korkeintaan yksi havainto.',
-  },
-];
-
-function fi(date: string): string {
-  return `${Number(date.slice(8, 10))}.${Number(date.slice(5, 7))}.${date.slice(0, 4)}`;
+export function localisedText(value: LocalisedText | string, lang: Lang): string {
+  if (typeof value === 'string') return value;
+  return value[lang] || value.fi || value.en || '';
 }
 
-/** Kaantaa tunnetun varoituksen. Englanniksi lahde on jo oikealla kielella. */
-export function translateWarning(warning: string, lang: Lang): string {
-  if (lang === 'en') return warning;
-  for (const pattern of WARNING_PATTERNS) {
-    const match = pattern.test.exec(warning);
-    if (match) return pattern.render(match);
-  }
-  return warning;
-}
-
-export function translateWarnings(warnings: string[], lang: Lang): string[] {
-  return warnings.map((warning) => translateWarning(warning, lang));
+export function localisedTexts(values: (LocalisedText | string)[], lang: Lang): string[] {
+  return values.map((value) => localisedText(value, lang));
 }

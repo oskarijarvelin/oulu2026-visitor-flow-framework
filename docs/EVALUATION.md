@@ -377,8 +377,20 @@ data/evaluations/
     predictions.csv            venue_id, date, horizon_days, model, weather_mode, y_true, p10, p50, p90
     metrics.json               kaikki mittarit, kokonaismäärät, pahiten menneet päivät
     verdicts.json              verdiktit koneluettavassa muodossa
-    report.md                  ihmisluettava raportti
+    report.md                  ihmisluettava raportti, suomeksi
+    report.en.md               sama raportti englanniksi
 ```
+
+Raportti kirjoitetaan **molemmilla kielillä joka ajolla**, samoista luvuista samalla
+hetkellä. Kumpaakaan ei käännetä jälkikäteen: molemmat renderöidään samasta tallennetusta
+payloadista, joten ne eivät voi ajautua erilleen. `verdicts.json` kantaa vastaavasti sekä
+`summary_fi`- että `summary_en`-kappaleen, ja sivusto lukee sen kielen jonka lukija valitsi.
+Myös koneluettavat kentät joissa on proosaa — pahiten menneiden päivien syy ja viikonpäivä —
+ovat muodossa `{"fi": ..., "en": ...}`.
+
+Komennon oma tuloste noudattaa `--lang`-valitsinta (`fi` oletus, `en` toinen vaihtoehto).
+Valitsin vaikuttaa vain siihen mitä ruudulle tulostetaan ja minkä tallennetun raportin
+`evaluate report` näyttää; levylle kirjoitetaan aina molemmat.
 
 `run_id` on deterministinen ja luettava, esimerkiksi
 `eval_v1_2026-03-31_2026-04-01_2026-04-30_baseline`. Kaikki mikä muuttaa vastausta mutta ei
@@ -388,7 +400,7 @@ vertailukohta — liitetään loppuun luettavana päätteenä (`_v1`, `_tw120`, 
 
 ### Raportin rakenne
 
-1. **Verdikti** yhtenä kappaleena suomeksi, ilman jargonia
+1. **Verdikti** yhtenä kappaleena raportin omalla kielellä, ilman jargonia
 2. Ikkuna ja asetelma
 3. Jakson kokonaismäärä
 4. Päivätason mittarit, mallit ja vertailukohdat rinnakkain

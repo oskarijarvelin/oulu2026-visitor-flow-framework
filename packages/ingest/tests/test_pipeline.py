@@ -198,7 +198,9 @@ def test_an_eco_counter_outage_degrades_but_does_not_stop_the_run(
     assert by_name["eco-counter"]["status"] == "failed"
     assert by_name["jaskaretail"]["status"] == "ok"
     assert (repo / "data" / "processed" / "visitors_hourly.csv").is_file()
-    assert any("eco-counter" in warning for warning in manifest_of(repo)["quality_gates"]["warnings"])
+    warnings = manifest_of(repo)["quality_gates"]["warnings"]
+    assert any("eco-counter" in warning["fi"] for warning in warnings)
+    assert any("eco-counter" in warning["en"] for warning in warnings)
 
 
 def test_one_failing_venue_leaves_the_source_degraded(
@@ -249,8 +251,10 @@ def test_a_failing_gate_writes_rejected_and_keeps_the_previous_table(
     assert (processed / "visitors_hourly.csv").read_bytes() == good
     manifest = manifest_of(repo)
     assert manifest["quality_gates"]["passed"] is False
-    assert any("daily_capacity" in warning for warning in manifest["quality_gates"]["warnings"])
-    assert any("rejected tables" in warning for warning in manifest["quality_gates"]["warnings"])
+    warnings = manifest["quality_gates"]["warnings"]
+    assert any("daily_capacity" in warning["en"] for warning in warnings)
+    assert any("rejected tables" in warning["en"] for warning in warnings)
+    assert any("Hylätyt taulut" in warning["fi"] for warning in warnings)
 
 
 def test_unaffected_tables_are_still_written_when_a_gate_fails(
@@ -398,5 +402,7 @@ def test_a_hole_between_two_fetched_windows_becomes_visible_and_trips_the_gate(
 
     manifest = manifest_of(repo)
     assert manifest["quality_gates"]["passed"] is False
-    assert any("visitor_gap" in warning for warning in manifest["quality_gates"]["warnings"])
+    assert any(
+        "visitor_gap" in warning["en"] for warning in manifest["quality_gates"]["warnings"]
+    )
     assert manifest["coverage"]["visitors_hourly"]["missing_hours"] > 48

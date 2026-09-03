@@ -88,6 +88,7 @@ import type {
   HorizonPoint,
   HourlyData,
   HourlySeries,
+  LocalisedText,
   Meta,
   ModelName,
   ProfileData,
@@ -142,6 +143,23 @@ function readVenues(): VenueConfig[] {
   });
 }
 
+/**
+ * Varoituslista sellaisena kuin osiot 1 ja 3 sen kirjoittavat: yksi olio kielta kohden.
+ *
+ * Vanhat ajot kirjoittivat pelkan merkkijonon. Se luetaan yha, samana tekstina molemmilla
+ * kielilla: vanha data nakyy silloin alkukielellaan eika katoa sivulta kokonaan.
+ */
+function localisedList(value: unknown): LocalisedText[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => {
+    if (typeof item === 'string') return { fi: item, en: item };
+    const record = (item ?? {}) as Record<string, unknown>;
+    const fi = typeof record.fi === 'string' ? record.fi : '';
+    const en = typeof record.en === 'string' ? record.en : '';
+    return { fi: fi || en, en: en || fi };
+  });
+}
+
 // --- Laatuportit -----------------------------------------------------------
 
 interface IngestManifest {
@@ -149,7 +167,7 @@ interface IngestManifest {
   version: string;
   sources: SourceStatus[];
   coverage: Record<string, { first: string; last: string; missing_hours: number }>;
-  quality_gates: { passed: boolean; warnings: string[] };
+  quality_gates: { passed: boolean; warnings: LocalisedText[] };
 }
 
 function readIngestManifest(now: Date): IngestManifest & { age_hours: number } {
@@ -186,7 +204,7 @@ function readIngestManifest(now: Date): IngestManifest & { age_hours: number } {
     coverage: (raw.coverage as IngestManifest['coverage']) ?? {},
     quality_gates: {
       passed: gates?.passed === true,
-      warnings: Array.isArray(gates?.warnings) ? (gates.warnings as string[]) : [],
+      warnings: localisedList(gates?.warnings),
     },
     age_hours: round1(age),
   };
@@ -197,7 +215,7 @@ interface ForecastManifestVenue {
   origin_date: string;
   horizon_days: number;
   hourly_days: number;
-  warnings: string[];
+  warnings: LocalisedText[];
 }
 
 interface ForecastManifest {
@@ -205,7 +223,7 @@ interface ForecastManifest {
   version: string;
   models: ModelName[];
   skipped_models: ModelName[];
-  warnings: string[];
+  warnings: LocalisedText[];
   venues: ForecastManifestVenue[];
   age_hours: number;
 }
@@ -231,7 +249,7 @@ function readForecastManifest(now: Date): ForecastManifest {
     version: String(raw.version),
     models,
     skipped_models: Array.isArray(raw.skipped_models) ? (raw.skipped_models as ModelName[]) : [],
-    warnings: Array.isArray(raw.warnings) ? (raw.warnings as string[]) : [],
+    warnings: localisedList(raw.warnings),
     venues,
     age_hours: round1(manifestAgeHours(String(raw.generated_at), now)),
   };
@@ -467,7 +485,7 @@ function main(): void {
       ),
       next7: sumForecast(venueForecast.daily[forecast.default_model] ?? [], 7),
       origin_date: venueForecast.origin_date,
-      warnings: manifestVenue?.warnings ?? [],
+      warnings: localisedList(manifestVenue?.warnings),
     });
   }
 
@@ -773,8 +791,8 @@ function buildVenueQuality(venueId: number): VenueQuality {
     metrics: q.metrics,
     benchmark_comparison: q.benchmark_comparison,
     interval_bands: q.interval_bands,
-    do_not_trust: (metrics.do_not_trust as string[]) ?? [],
-    warnings: (metrics.warnings as string[]) ?? [],
+    do_not_trust: localisedList(metrics.do_not_trust),
+    warnings: localisedList(metrics.warnings),
     backtest: Object.fromEntries(
       Object.entries(splitByModel(allRows.filter((row) => BACKTEST_ROW_MODELS.has(row.model)))).map(
         ([model, rows]) => [model, toBacktestColumns(rows)],
@@ -1154,6 +1172,7 @@ function buildAccuracyRun(
     primary_weather_mode: String(entry['primary_weather_mode']) as WeatherMode,
     family_size: Number(verdicts['family_size'] ?? 0),
     summary_fi: String(verdicts['summary_fi'] ?? ''),
+    summary_en: String(verdicts['summary_en'] ?? ''),
     first_day: window ? window.test_start : String(verdicts['first_day'] ?? ''),
     last_day: window ? window.test_end : String(verdicts['last_day'] ?? ''),
     ...(window ? { window } : {}),

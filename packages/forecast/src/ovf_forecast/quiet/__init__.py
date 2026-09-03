@@ -33,6 +33,7 @@ import pandas as pd
 from .. import log_event
 from ..dataset import ProcessedData, venue_history
 from ..evaluation.windows import Window, WindowError, monthly_sweep, rolling_sweep
+from ..i18n import DEFAULT_LANG, LANGUAGES, normalise
 from .backtest import (
     MIN_ELIGIBLE_DAYS,
     PooledQuiet,
@@ -54,8 +55,8 @@ from .model import (
     resolve_score_models,
 )
 from .report import (
-    backtest_summary_fi,
-    forecast_summary_fi,
+    backtest_summary,
+    forecast_summary,
     render_backtest_report,
     render_forecast_report,
 )
@@ -111,13 +112,20 @@ class QuietResult:
     """What one invocation produced: the run it wrote and what it concluded."""
 
     run_id: str | None = None
-    summary: str = ""
+    summaries: dict[str, str] = field(default_factory=dict)
     failed_venues: list[int] = field(default_factory=list)
 
     @property
     def produced_anything(self) -> bool:
         """Whether anything was written."""
         return self.run_id is not None
+
+    def summary(self, lang: str = DEFAULT_LANG) -> str:
+        """The verdict in one language, falling back to whatever the run produced."""
+        code = normalise(lang)
+        if self.summaries.get(code):
+            return self.summaries[code]
+        return next((value for value in self.summaries.values() if value), "")
 
 
 def utc_now() -> datetime:
@@ -195,9 +203,13 @@ def quiet_forecast(
         "run_id": run_id,
         "month": label,
         "reliability": reliability,
-        "summary_fi": "\n\n".join(
-            forecast_summary_fi(item.to_dict(), _match(reliability, item)) for item in forecasts
-        ),
+        **{
+            f"summary_{lang}": "\n\n".join(
+                forecast_summary(item.to_dict(), _match(reliability, item), lang)
+                for item in forecasts
+            )
+            for lang in LANGUAGES
+        },
     }
     stored = {**config.to_dict(), "kind": KIND_FORECAST, "schema_version": SCHEMA_VERSION}
     artifacts = QuietArtifacts(
@@ -207,7 +219,9 @@ def quiet_forecast(
         days=_forecast_days_frame(forecasts),
         metrics=metrics,
         verdicts=verdicts,
-        report=render_forecast_report(stored, metrics, verdicts),
+        reports={
+            lang: render_forecast_report(stored, metrics, verdicts, lang) for lang in LANGUAGES
+        },
     )
     write_run(data.root, artifacts)
     update_index(
@@ -227,7 +241,7 @@ def quiet_forecast(
         moment=moment,
     )
     result.run_id = run_id
-    result.summary = str(verdicts["summary_fi"])
+    result.summaries = {lang: str(verdicts[f"summary_{lang}"]) for lang in LANGUAGES}
     return result
 
 
@@ -313,7 +327,10 @@ def quiet_backtest(
         "kind": KIND_BACKTEST,
         "run_id": run_id,
         "pooled": [row.to_dict() for row in pooled],
-        "summary_fi": backtest_summary_fi([row.to_dict() for row in pooled]),
+        **{
+            f"summary_{lang}": backtest_summary([row.to_dict() for row in pooled], lang)
+            for lang in LANGUAGES
+        },
     }
     stored = {**config.to_dict(), "kind": KIND_BACKTEST, "schema_version": SCHEMA_VERSION}
     artifacts = QuietArtifacts(
@@ -325,7 +342,9 @@ def quiet_backtest(
         ),
         metrics=metrics,
         verdicts=verdicts,
-        report=render_backtest_report(stored, metrics, verdicts),
+        reports={
+            lang: render_backtest_report(stored, metrics, verdicts, lang) for lang in LANGUAGES
+        },
         windows=pd.DataFrame.from_records([outcome.to_row() for outcome in outcomes]),
     )
     write_run(data.root, artifacts)
@@ -350,7 +369,7 @@ def quiet_backtest(
         moment=moment,
     )
     result.run_id = run_id
-    result.summary = str(verdicts["summary_fi"])
+    result.summaries = {lang: str(verdicts[f"summary_{lang}"]) for lang in LANGUAGES}
     return result
 
 

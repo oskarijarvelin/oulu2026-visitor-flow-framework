@@ -27,6 +27,7 @@ import pandas as pd
 
 from .. import log_event
 from ..dataset import ProcessedData
+from ..i18n import DEFAULT_LANG, LANGUAGES, Lang, formats, normalise, table_header
 from .baselines import BASELINE_NAMES, REFERENCE_CHOICES, resolve_reference
 from .metrics import (
     BUCKET_ALL,
@@ -70,6 +71,7 @@ from .store import (
     update_index,
     write_run,
 )
+from .strings import VERDICT_PHRASES, WEEKDAY_NAMES, text
 from .totals import estimate_total
 from .windows import (
     TRAIN_WINDOW_ALL,
@@ -100,7 +102,6 @@ __all__ = [
     "rolling_sweep",
 ]
 
-WEEKDAY_NAMES_FI = ("maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai", "sunnuntai")
 HEAVY_RAIN_MM = 5.0
 WORST_DAY_LIMIT = 5
 
@@ -111,13 +112,20 @@ class EvaluationResult:
 
     run_ids: list[str] = field(default_factory=list)
     sweep_run_id: str | None = None
-    summary: str = ""
+    summaries: dict[str, str] = field(default_factory=dict)
     failed_venues: list[int] = field(default_factory=list)
 
     @property
     def produced_anything(self) -> bool:
         """Whether at least one window was evaluated."""
         return bool(self.run_ids)
+
+    def summary(self, lang: str = DEFAULT_LANG) -> str:
+        """The verdict paragraph in one language, falling back to whatever exists."""
+        code = normalise(lang)
+        if self.summaries.get(code):
+            return self.summaries[code]
+        return next((value for value in self.summaries.values() if value), "")
 
 
 # --------------------------------------------------------------------------------------
@@ -137,7 +145,7 @@ def evaluate(
     venues = data.select_venues(config.venues)
     result = EvaluationResult()
     executed: list[ExecutedWindow] = []
-    last_summary = ""
+    last_summaries: dict[str, str] = {}
     for window in windows:
         runs: list[VenueWindowRun] = []
         for venue in venues:
@@ -152,7 +160,9 @@ def evaluate(
         run_id = build_run_id(window, config)
         assessments = [_assess(run, config) for run in runs]
         artifacts = _window_artifacts(run_id, window, config, assessments)
-        last_summary = str(artifacts.verdicts.get("summary_fi", ""))
+        last_summaries = {
+            lang: str(artifacts.verdicts.get(f"summary_{lang}", "")) for lang in LANGUAGES
+        }
         write_run(data.root, artifacts)
         update_index(data.root, _index_entry(artifacts, window, config, kind="window"), moment=moment)
         executed.append(ExecutedWindow(window=window, run_id=run_id, assessments=assessments))
@@ -168,9 +178,11 @@ def evaluate(
             moment=moment,
         )
         result.sweep_run_id = sweep.run_id
-        result.summary = str(sweep.verdicts.get("summary_fi", ""))
+        result.summaries = {
+            lang: str(sweep.verdicts.get(f"summary_{lang}", "")) for lang in LANGUAGES
+        }
     else:
-        result.summary = last_summary
+        result.summaries = last_summaries
     return result
 
 
@@ -300,7 +312,7 @@ def _worst_days_payload(run: VenueWindowRun, mode: str, model: str) -> list[dict
         payload.append(
             {
                 "date": day,
-                "weekday": WEEKDAY_NAMES_FI[weekday],
+                "weekday": {lang: WEEKDAY_NAMES[lang][weekday] for lang in LANGUAGES},
                 "y_true": y_true,
                 "p50": float(record["p50"]),
                 "error": float(record["error"]),
@@ -322,23 +334,38 @@ def _context_by_day(context: pd.DataFrame) -> dict[str, dict[str, Any]]:
     }
 
 
-def _explain_day(facts: dict[str, Any], y_true: float, weekday: int, horizon: int) -> str:
-    """A short, honest guess at why one day went wrong."""
+def _explain_day(
+    facts: dict[str, Any], y_true: float, weekday: int, horizon: int
+) -> dict[str, str]:
+    """A short, honest guess at why one day went wrong, in every language.
+
+    Built once per day rather than at render time, because the facts behind it — the
+    holiday name, the weather source — are the run's, not the report's, and re-deriving
+    them per language is how the two would eventually disagree.
+    """
+    return {lang: _explain_day_in(lang, facts, y_true, weekday, horizon) for lang in LANGUAGES}
+
+
+def _explain_day_in(
+    lang: Lang, facts: dict[str, Any], y_true: float, weekday: int, horizon: int
+) -> str:
+    """One day's causes in one language."""
+    fmt = formats(lang)
     reasons: list[str] = []
     holiday = facts.get("holiday_name")
     if holiday is not None and not pd.isna(holiday) and str(holiday).strip():
-        reasons.append(f"pyhäpäivä: {holiday}")
+        reasons.append(text(lang, "cause_holiday", holiday=holiday))
     precipitation = _as_float(facts.get("precip_sum"))
     if np.isfinite(precipitation) and precipitation >= HEAVY_RAIN_MM:
-        reasons.append(f"runsas sade {precipitation:.1f} mm")
+        reasons.append(text(lang, "cause_rain", mm=fmt.number(precipitation, 1)))
     if y_true == 0.0:
-        reasons.append("toteuma 0, venue todennäköisesti kiinni")
+        reasons.append(text(lang, "cause_zero"))
     if str(facts.get("model_weather_source")) == "climatology":
-        reasons.append(f"malli sai klimatologiasään (horisontti {horizon} vrk)")
+        reasons.append(text(lang, "cause_climatology", horizon=horizon))
     if weekday >= 5:
-        reasons.append("viikonloppu")
+        reasons.append(text(lang, "cause_weekend"))
     if not reasons:
-        reasons.append("ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne")
+        reasons.append(text(lang, "cause_unknown"))
     return "; ".join(reasons)
 
 
@@ -381,7 +408,7 @@ def _window_artifacts(
             }
         )
 
-    summary = _window_summary(window, config, verdict_venues)
+    summaries = _summaries(lambda lang: _window_summary(window, config, verdict_venues, lang))
     metrics_payload = {
         "kind": "window",
         "schema_version": SCHEMA_VERSION,
@@ -397,7 +424,8 @@ def _window_artifacts(
         "primary_weather_mode": config.primary_weather_mode,
         "reference_rule": config.reference,
         "family_size": family_size,
-        "summary_fi": summary,
+        "summary_fi": summaries["fi"],
+        "summary_en": summaries["en"],
         "venues": verdict_venues,
     }
     config_payload = {
@@ -413,7 +441,10 @@ def _window_artifacts(
         predictions=_stacked_predictions([item.run for item in assessments]),
         metrics=metrics_payload,
         verdicts=verdicts_payload,
-        report=render_window_report(config_payload, metrics_payload, verdicts_payload),
+        reports={
+            lang: render_window_report(config_payload, metrics_payload, verdicts_payload, lang)
+            for lang in LANGUAGES
+        },
     )
 
 
@@ -477,75 +508,91 @@ def _stacked_predictions(runs: list[VenueWindowRun]) -> pd.DataFrame:
 
 
 # --------------------------------------------------------------------------------------
-# The Finnish verdict paragraphs
+# The verdict paragraphs
 # --------------------------------------------------------------------------------------
 
 
-def _window_summary(window: Window, config: EvaluationConfig, venues: list[dict[str, Any]]) -> str:
-    """One paragraph, in plain Finnish, that can be read without opening the report."""
+def _summaries(builder: Any) -> dict[str, str]:
+    """One paragraph builder run in every language, keyed by language.
+
+    Both paragraphs are built at run time and stored, rather than one being built now and
+    the other translated later. A verdict is the one sentence somebody acts on, and a
+    reader in either language should get it from the same numbers on the same day.
+    """
+    return {lang: builder(lang) for lang in LANGUAGES}
+
+
+def _window_summary(
+    window: Window, config: EvaluationConfig, venues: list[dict[str, Any]], lang: Lang
+) -> str:
+    """One paragraph, in plain language, that can be read without opening the report."""
     sentences = [
-        f"Ikkuna {window.test_start.isoformat()}–{window.test_end.isoformat()} "
-        f"({window.horizon_days} vrk), koulutus päättyy {window.origin.isoformat()}, "
-        f"koulutusikkuna {window.train_window}, sään tila {config.primary_weather_mode}."
+        text(
+            lang,
+            "sum_window_intro",
+            test_start=window.test_start.isoformat(),
+            test_end=window.test_end.isoformat(),
+            days=window.horizon_days,
+            origin=window.origin.isoformat(),
+            train_window=window.train_window,
+            primary=config.primary_weather_mode,
+        )
     ]
     for venue in venues:
         for entry in venue["models"]:
-            sentences.append(_model_sentence(venue, entry))
-    sentences.append(
-        "Yhden ikkunan tulos on kuvaileva, ei todistava: varsinainen näyttö syntyy usean ikkunan "
-        "koosteesta."
-    )
+            sentences.append(_model_sentence(venue, entry, lang))
+    sentences.append(text(lang, "sum_window_tail"))
     return " ".join(sentences)
 
 
-def _model_sentence(venue: dict[str, Any], entry: dict[str, Any]) -> str:
+def _model_sentence(venue: dict[str, Any], entry: dict[str, Any], lang: Lang) -> str:
     """One sentence per model: how it did, against whom, and what that proves."""
+    fmt = formats(lang)
     comparison = entry["comparison"]
     total = entry.get("total", {})
-    model = entry["model"]
-    reference = comparison["reference"]
-    name = f"Venue {venue['venue_id']} ({venue['venue_name']})"
-    model_mae, reference_mae = comparison["model_mae"], comparison["reference_mae"]
     verdict = comparison["verdict"]
-    head = (
-        f"{name}: malli {model} teki keskimäärin {_fi(model_mae)} kävijän päivävirheen, "
-        f"päävertailukohta {reference} {_fi(reference_mae)}."
+    head = text(
+        lang,
+        "sum_model_head",
+        venue=f"Venue {venue['venue_id']} ({venue['venue_name']})",
+        model=entry["model"],
+        model_mae=fmt.number(comparison["model_mae"]),
+        reference=comparison["reference"],
+        reference_mae=fmt.number(comparison["reference_mae"]),
     )
+    shared = {
+        "difference": fmt.signed(comparison["mean_difference"]),
+        "ci_low": fmt.signed(comparison["ci_low"]),
+        "ci_high": fmt.signed(comparison["ci_high"]),
+    }
     if verdict == VERDICT_BETTER:
-        middle = (
-            f" Malli on tilastollisesti parempi: ero {_fi_signed(comparison['mean_difference'])} "
-            f"kävijää päivässä (95 % väli {_fi_signed(comparison['ci_low'])}…"
-            f"{_fi_signed(comparison['ci_high'])}), taitopistemäärä "
-            f"{_fi(comparison['skill_score'], 3)}."
+        middle = text(
+            lang, "sum_model_better", skill=fmt.number(comparison["skill_score"], 3), **shared
         )
     elif verdict == VERDICT_WORSE:
-        middle = (
-            f" Malli häviää vertailukohdalle tilastollisesti: ero "
-            f"{_fi_signed(comparison['mean_difference'])} kävijää päivässä (95 % väli "
-            f"{_fi_signed(comparison['ci_low'])}…{_fi_signed(comparison['ci_high'])}). "
-            f"Yksinkertainen sääntö {reference} on tällä ikkunalla parempi kuin malli."
-        )
+        middle = text(lang, "sum_model_worse", reference=comparison["reference"], **shared)
     else:
-        middle = (
-            f" Eroa ei havaittu: {_fi_signed(comparison['mean_difference'])} kävijää päivässä "
-            f"(95 % väli {_fi_signed(comparison['ci_low'])}…{_fi_signed(comparison['ci_high'])})."
-        )
-    power = (
-        f" Tämä otos ({comparison['n']} päivää) olisi erottanut vasta "
-        f"{_fi(comparison['mde'])} kävijän eron, eli {_fi(comparison['mde_pct'])} % "
-        f"vertailukohdan MAE:sta"
+        middle = text(lang, "sum_model_none", **shared)
+    power = text(
+        lang,
+        "sum_power",
+        n=comparison["n"],
+        mde=fmt.number(comparison["mde"]),
+        mde_pct=fmt.number(comparison["mde_pct"]),
     )
-    power += (
-        "; \"ei eroa\" ei siis tarkoita samanveroisuutta."
-        if verdict == VERDICT_NO_DIFFERENCE
-        else "."
+    power += text(
+        lang, "sum_power_tail_none" if verdict == VERDICT_NO_DIFFERENCE else "sum_power_tail"
     )
     tail = ""
     if total:
-        tail = (
-            f" Jakson kokonaismäärä: ennuste {_fi(total.get('predicted'), 0)}, toteuma "
-            f"{_fi(total.get('actual'), 0)}, ero {_fi_signed(total.get('difference_pct'))} %, "
-            f"80 % väli {_fi(total.get('p10'), 0)}–{_fi(total.get('p90'), 0)}."
+        tail = text(
+            lang,
+            "sum_total",
+            predicted=fmt.number(total.get("predicted"), 0),
+            actual=fmt.number(total.get("actual"), 0),
+            difference_pct=fmt.signed(total.get("difference_pct")),
+            p10=fmt.number(total.get("p10"), 0),
+            p90=fmt.number(total.get("p90"), 0),
         )
     return head + middle + power + tail
 
@@ -558,28 +605,6 @@ def _as_float(value: Any) -> float:
         return float(value)
     except (TypeError, ValueError):
         return float("nan")
-
-
-def _fi(value: Any, digits: int = 1) -> str:
-    """A number with a decimal comma, for the Finnish prose."""
-    try:
-        numeric = float(value)
-    except (TypeError, ValueError):
-        return "–"
-    if numeric != numeric:
-        return "–"
-    return f"{numeric:,.{digits}f}".replace(",", " ").replace(".", ",")
-
-
-def _fi_signed(value: Any, digits: int = 1) -> str:
-    """A signed number with a decimal comma."""
-    try:
-        numeric = float(value)
-    except (TypeError, ValueError):
-        return "–"
-    if numeric != numeric:
-        return "–"
-    return ("+" if numeric >= 0 else "") + _fi(numeric, digits)
 
 
 # --------------------------------------------------------------------------------------
@@ -710,7 +735,7 @@ def _sweep_artifacts(
             }
         )
 
-    summary = _sweep_summary(kind, windows, config, verdict_venues)
+    summaries = _summaries(lambda lang: _sweep_summary(kind, windows, config, verdict_venues, lang))
     window_payload = [
         {"run_id": item.run_id, **item.window.to_dict()} for item in executed
     ]
@@ -724,7 +749,8 @@ def _sweep_artifacts(
         "primary_weather_mode": config.primary_weather_mode,
         "reference_rule": config.reference,
         "family_size": family_size,
-        "summary_fi": summary,
+        "summary_fi": summaries["fi"],
+        "summary_en": summaries["en"],
         "windows": window_payload,
         "venues": verdict_venues,
     }
@@ -753,59 +779,74 @@ def _sweep_artifacts(
         predictions=pd.DataFrame(columns=PREDICTION_COLUMNS),
         metrics=metrics_payload,
         verdicts=verdicts_payload,
-        report=render_sweep_report(config_payload, metrics_payload, verdicts_payload),
+        reports={
+            lang: render_sweep_report(config_payload, metrics_payload, verdicts_payload, lang)
+            for lang in LANGUAGES
+        },
         members=[item.run_id for item in executed],
     )
 
 
 def _sweep_summary(
-    kind: str, windows: list[Window], config: EvaluationConfig, venues: list[dict[str, Any]]
+    kind: str,
+    windows: list[Window],
+    config: EvaluationConfig,
+    venues: list[dict[str, Any]],
+    lang: Lang,
 ) -> str:
-    """The headline paragraph of a sweep: the pooled verdict, in plain Finnish."""
+    """The headline paragraph of a sweep: the pooled verdict, in plain language."""
+    fmt = formats(lang)
     sentences = [
-        f"Kooste ({kind}): {len(windows)} ikkunaa, "
-        f"{windows[0].test_start.isoformat()}–{windows[-1].test_end.isoformat()}, "
-        f"sään tila {config.primary_weather_mode}, päävertailukohta {config.reference}."
+        text(
+            lang,
+            "sum_sweep_intro",
+            kind=kind,
+            windows=len(windows),
+            first_day=windows[0].test_start.isoformat(),
+            last_day=windows[-1].test_end.isoformat(),
+            primary=config.primary_weather_mode,
+            reference=config.reference,
+        )
     ]
     for venue in venues:
         for entry in venue["models"]:
             pooled = entry["pooled"]
-            name = f"Venue {venue['venue_id']} ({venue['venue_name']})"
-            head = (
-                f"{name}: malli {pooled['model']} vastaan {pooled['reference']}, "
-                f"{pooled['n_windows']} ikkunaa ({pooled['n_days']} päivää). "
-                f"Malli oli parempi {pooled['windows_favouring']} ikkunassa ja huonompi "
-                f"{pooled['windows_opposing']} ikkunassa."
+            head = text(
+                lang,
+                "sum_sweep_head",
+                venue=f"Venue {venue['venue_id']} ({venue['venue_name']})",
+                model=pooled["model"],
+                reference=pooled["reference"],
+                windows=pooled["n_windows"],
+                days=pooled["n_days"],
+                favouring=pooled["windows_favouring"],
+                opposing=pooled["windows_opposing"],
             )
+            shared = {
+                "difference": fmt.signed(pooled["mean_difference"]),
+                "ci_low": fmt.signed(pooled["ci_low"]),
+                "ci_high": fmt.signed(pooled["ci_high"]),
+            }
             if pooled["verdict"] == VERDICT_BETTER:
-                body = (
-                    f" Kooste puoltaa mallia: keskiero {_fi_signed(pooled['mean_difference'])} "
-                    f"kävijää päivässä (95 % väli {_fi_signed(pooled['ci_low'])}…"
-                    f"{_fi_signed(pooled['ci_high'])})."
-                )
+                body = text(lang, "sum_sweep_better", **shared)
             elif pooled["verdict"] == VERDICT_WORSE:
-                body = (
-                    f" Kooste on mallia vastaan: malli häviää yksinkertaiselle vertailukohdalle, "
-                    f"keskiero {_fi_signed(pooled['mean_difference'])} kävijää päivässä "
-                    f"(95 % väli {_fi_signed(pooled['ci_low'])}…{_fi_signed(pooled['ci_high'])})."
-                )
+                body = text(lang, "sum_sweep_worse", **shared)
             else:
-                body = (
-                    f" Kooste ei erota malleja: keskiero {_fi_signed(pooled['mean_difference'])} "
-                    f"kävijää päivässä (95 % väli {_fi_signed(pooled['ci_low'])}…"
-                    f"{_fi_signed(pooled['ci_high'])}), ja tämä ikkunamäärä olisi erottanut vasta "
-                    f"{_fi(pooled['mde'])} kävijän eron ({_fi(pooled['mde_pct'])} % vertailukohdan "
-                    "MAE:sta). Tulos ei siis todista malleja yhtä hyviksi."
+                body = text(
+                    lang,
+                    "sum_sweep_none",
+                    mde=fmt.number(pooled["mde"]),
+                    mde_pct=fmt.number(pooled["mde_pct"]),
+                    **shared,
                 )
             sentences.append(head + body)
-    sentences.append(
-        "Aineistoa on noin kahdeksan kuukautta yhdeltä vuodelta, joten myös kooste lepää ohuen "
-        "otoksen varassa. Lisää dataa tai tapahtumakalenteri piirteenä voisi muuttaa tuloksen."
-    )
+    sentences.append(text(lang, "sum_sweep_tail"))
     return " ".join(sentences)
 
 
-def pooled_report(root: Path, config: EvaluationConfig) -> tuple[str, dict[str, Any]] | None:
+def pooled_report(
+    root: Path, config: EvaluationConfig, lang: str = DEFAULT_LANG
+) -> tuple[str, dict[str, Any]] | None:
     """Pool every stored window run into one cross-run verdict.
 
     This is the "follow the model over time" view: evidence from every evaluation ever
@@ -842,18 +883,16 @@ def pooled_report(root: Path, config: EvaluationConfig) -> tuple[str, dict[str, 
                 labels.setdefault(key, []).append(label)
     if not collected:
         return None
+    code = normalise(lang)
+    fmt = formats(code)
     lines = [
-        "# Arviointien kooste kaikista tallennetuista ajoista",
+        text(code, "pooled_title"),
         "",
-        f"Ajoja mukana: {len(artifacts)}.",
+        text(code, "pooled_runs", runs=len(artifacts)),
         "",
-        "| Venue | Malli | Ikkunoita | Päiviä | Keskiero d | 95 % väli | Verdikti | Puolesta "
-        "| Vastaan | MDE | MDE % |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
+    lines += table_header(text(code, "pooled_table"))
     payload: dict[str, Any] = {"kind": "pooled", "runs": [item.run_id for item in artifacts], "venues": []}
-    from .report import VERDICT_PHRASES, number, percent, signed
-
     for (venue_id, model), differences in sorted(collected.items()):
         pooled = pool_windows(
             differences,
@@ -865,21 +904,16 @@ def pooled_report(root: Path, config: EvaluationConfig) -> tuple[str, dict[str, 
         )
         lines.append(
             f"| {venue_id} ({names.get(venue_id, '')}) | {model} | {pooled.n_windows} "
-            f"| {pooled.n_days} | {signed(pooled.mean_difference)} "
-            f"| {signed(pooled.ci_low)} … {signed(pooled.ci_high)} "
-            f"| {VERDICT_PHRASES.get(pooled.verdict, '')} | {pooled.windows_favouring} "
-            f"| {pooled.windows_opposing} | {number(pooled.mde)} | {percent(pooled.mde_pct)} |"
+            f"| {pooled.n_days} | {fmt.signed(pooled.mean_difference)} "
+            f"| {fmt.signed(pooled.ci_low)} … {fmt.signed(pooled.ci_high)} "
+            f"| {fmt.phrase(VERDICT_PHRASES, pooled.verdict)} | {pooled.windows_favouring} "
+            f"| {pooled.windows_opposing} | {fmt.number(pooled.mde)} "
+            f"| {fmt.percent(pooled.mde_pct)} |"
         )
         payload["venues"].append(
             {"venue_id": venue_id, "model": model, "windows": labels[venue_id, model], **pooled.to_dict()}
         )
-    lines += [
-        "",
-        "Kooste bootstrapataan kokonaisina ikkunoina. Ikkunat tulevat eri ajoista ja voivat olla "
-        "päällekkäisiä; päällekkäiset ikkunat eivät ole riippumattomia, joten väli on tältä osin "
-        "optimistinen.",
-        "",
-    ]
+    lines += ["", text(code, "pooled_note"), ""]
     return "\n".join(lines), payload
 
 

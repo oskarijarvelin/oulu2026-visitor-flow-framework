@@ -77,7 +77,8 @@ def test_a_split_tie_is_reported_rather_than_hidden(synthetic_repo: Path) -> Non
     """Four Mondays and a set of six means two of the next weekday get in by date order."""
     result = _forecast(synthetic_repo)
     assert any(day.tie_size > 1 for day in result.quiet_days)
-    assert any("tasapisteryhmän" in warning for warning in result.warnings)
+    assert any("tasapisteryhmän" in warning["fi"] for warning in result.warnings)
+    assert any("tie group" in warning["en"] for warning in result.warnings)
 
 
 def test_days_already_observed_keep_their_real_value(synthetic_repo: Path) -> None:

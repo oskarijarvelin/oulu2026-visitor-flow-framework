@@ -25,6 +25,15 @@ export type HorizonBucket = string;
 // meta.json
 // ---------------------------------------------------------------------------
 
+/**
+ * Yksi teksti molemmilla kielilla. Osiot 1 ja 3 kirjoittavat varoituksensa tassa
+ * muodossa, joten sivusto valitsee vain avaimen eika arvaile kaannosta.
+ */
+export interface LocalisedText {
+  fi: string;
+  en: string;
+}
+
 export interface SourceStatus {
   name: string;
   status: string;
@@ -45,7 +54,7 @@ export interface IngestMeta {
   version: string;
   sources: SourceStatus[];
   coverage: Record<string, CoverageEntry>;
-  quality_gates: { passed: boolean; warnings: string[] };
+  quality_gates: { passed: boolean; warnings: LocalisedText[] };
   /** Lahteet joiden status ei ole "ok". */
   degraded: SourceStatus[];
 }
@@ -56,7 +65,7 @@ export interface ForecastMeta {
   version: string;
   models: ModelName[];
   skipped_models: ModelName[];
-  warnings: string[];
+  warnings: LocalisedText[];
   origin_date: string;
   horizon_days: number;
   hourly_days: number;
@@ -91,7 +100,7 @@ export interface VenueSummary {
   /** Seuraavan 7 vrk summa tuotantomallilla, kvantiileittain. */
   next7: { p10: number; p50: number; p90: number; days: number } | null;
   origin_date: string;
-  warnings: string[];
+  warnings: LocalisedText[];
 }
 
 export interface TrafficSummary {
@@ -363,8 +372,8 @@ export interface VenueQuality {
   metrics: Record<ModelName, Record<HorizonBucket, BucketMetrics>>;
   benchmark_comparison: Record<ModelName, Record<HorizonBucket, Record<string, number | boolean>>>;
   interval_bands: Record<ModelName, IntervalBand[]>;
-  do_not_trust: string[];
-  warnings: string[];
+  do_not_trust: LocalisedText[];
+  warnings: LocalisedText[];
   /** Ennuste vs. toteuma mallin nimella avattuna, vain paamallit. */
   backtest: Record<ModelName, BacktestColumns>;
   /** MAE horisontin funktiona, kaikki mallit ja vertailukohdat. */
@@ -603,8 +612,13 @@ export interface AccuracyRun {
   reference_rule: string;
   primary_weather_mode: WeatherMode;
   family_size: number;
-  /** Valmis suomenkielinen kappale. Englanninkielinen vastine rakennetaan kentista. */
+  /**
+   * Ajon kirjoittama verdikkikappale. Osio 3 kirjoittaa molemmat kielet; ennen
+   * kaksikielisyytta tallennetuilla ajoilla `summary_en` on tyhja, ja se kootaan
+   * silloin rakenteisista kentista.
+   */
   summary_fi: string;
+  summary_en: string;
   first_day: string;
   last_day: string;
   /** Ikkuna-ajo. */

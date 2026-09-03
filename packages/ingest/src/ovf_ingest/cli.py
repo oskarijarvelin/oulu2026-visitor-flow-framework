@@ -60,6 +60,7 @@ from .store import (
     write_raw_day,
     write_table,
 )
+from .strings import message
 from .validate import (
     CALENDAR_DAILY,
     TICKETS_DAILY,
@@ -679,7 +680,9 @@ def command_run(config: AppConfig, args: argparse.Namespace) -> int:
     rejected = write_tables(config, tables, gates)
     manifest = build_manifest(reports, coverage_report(tables), gates)
     if rejected:
-        manifest["quality_gates"]["warnings"].append(f"rejected tables: {', '.join(rejected)}")
+        manifest["quality_gates"]["warnings"].append(
+            message("rejected_tables", tables=", ".join(rejected))
+        )
     write_manifest(processed_path(config, MANIFEST_NAME), manifest)
 
     attempted = [report for report in reports if report.name in _network_source_names(config)]

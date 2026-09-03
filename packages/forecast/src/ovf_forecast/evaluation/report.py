@@ -1,4 +1,4 @@
-"""The human-readable report, in Finnish, built from exactly what gets stored.
+"""The human-readable report, in either language, built from exactly what gets stored.
 
 The renderer reads the same ``config``, ``metrics`` and ``verdicts`` payloads that are
 written to disk, so the prose and the JSON can never drift apart. Nothing is recomputed
@@ -9,82 +9,42 @@ paragraph and it is plain language: whoever runs the command should not have to 
 table to find out whether the model won. And the worst days come last but they are the
 section people actually use — a date, an error and a probable cause is the most direct
 statement of what the model does not know yet.
+
+Both languages come out of one renderer rather than two. A second renderer would drift:
+one of them would gain a caveat the other never got, and the reader with the wrong
+language would be the last to know. The words live in :mod:`.strings`, the numbers in
+:class:`~ovf_forecast.i18n.Format`, and everything below is layout.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-REPORT_TITLE = "Ennusteen arviointiraportti"
-NA = "–"
-
-VERDICT_PHRASES = {
-    "better": "parempi kuin vertailukohta",
-    "worse": "huonompi kuin vertailukohta",
-    "no_difference": "ei havaittavaa eroa vertailukohtaan",
-}
-CALIBRATION_PHRASES = {
-    "calibrated": "kalibroitu",
-    "too_narrow": "liian kapea",
-    "too_wide": "liian leveä",
-}
-BIAS_PHRASES = {
-    "unbiased": "ei systemaattista harhaa",
-    "over_forecast": "yliarvioi systemaattisesti",
-    "under_forecast": "aliarvioi systemaattisesti",
-}
-WEATHER_LABELS = {
-    "perfect": "perfect (toteutunut sää)",
-    "operational": "operational (toteutunut vrk 1-16, klimatologia 17+)",
-    "climatology": "climatology (klimatologia koko jaksolta)",
-}
-
-
-# --------------------------------------------------------------------------------------
-# Number formatting, Finnish conventions
-# --------------------------------------------------------------------------------------
-
-
-def number(value: Any, digits: int = 1) -> str:
-    """A number with a decimal comma, or a dash when it is missing."""
-    if value is None:
-        return NA
-    try:
-        numeric = float(value)
-    except (TypeError, ValueError):
-        return NA
-    if numeric != numeric:
-        return NA
-    return f"{numeric:,.{digits}f}".replace(",", " ").replace(".", ",")
-
-
-def signed(value: Any, digits: int = 1) -> str:
-    """A number with an explicit sign, so a bias reads as a direction."""
-    if value is None:
-        return NA
-    try:
-        numeric = float(value)
-    except (TypeError, ValueError):
-        return NA
-    if numeric != numeric:
-        return NA
-    return ("+" if numeric >= 0 else "") + number(numeric, digits)
-
-
-def percent(value: Any, digits: int = 1) -> str:
-    """A percentage."""
-    formatted = number(value, digits)
-    return NA if formatted == NA else f"{formatted} %"
-
-
-def integer(value: Any) -> str:
-    """A rounded count with a space as the thousands separator."""
-    return number(value, 0)
+from ..i18n import DEFAULT_LANG, NA, Format, Lang, formats, normalise, table_header
+from .strings import (
+    BIAS_PHRASES,
+    CALIBRATION_PHRASES,
+    VERDICT_PHRASES,
+    WEATHER_LABELS,
+    text,
+)
 
 
 def _flag(value: Any) -> bool:
     """Truthiness that survives a JSON round trip."""
     return bool(value) if value is not None else False
+
+
+def localised(value: Any, lang: Lang) -> str:
+    """One stored field that carries its own translations, in this language.
+
+    Payload fields the renderer cannot rebuild — a worst-day cause, a weekday name, a
+    warning — are stored as ``{"fi": ..., "en": ...}``. A run written before that was true
+    stored a bare string; it renders as itself rather than as an error.
+    """
+    if isinstance(value, dict):
+        return str(value.get(lang) or value.get(DEFAULT_LANG) or "")
+    return str(value or "")
 
 
 # --------------------------------------------------------------------------------------
@@ -93,25 +53,53 @@ def _flag(value: Any) -> bool:
 
 
 def render_window_report(
-    config: dict[str, Any], metrics: dict[str, Any], verdicts: dict[str, Any]
+    config: dict[str, Any],
+    metrics: dict[str, Any],
+    verdicts: dict[str, Any],
+    lang: str = DEFAULT_LANG,
 ) -> str:
     """The full markdown report for one window."""
+    code = normalise(lang)
+    fmt = formats(code)
     window = verdicts.get("window", {})
     lines: list[str] = [
-        f"# {REPORT_TITLE}: {window.get('test_start')} – {window.get('test_end')}",
+        text(
+            code,
+            "window_title",
+            title=text(code, "title"),
+            test_start=window.get("test_start"),
+            test_end=window.get("test_end"),
+        ),
         "",
-        f"Ajon tunniste: `{verdicts.get('run_id', '')}`",
+        text(code, "run_id", run_id=verdicts.get("run_id", "")),
         "",
-        "## 1. Verdikti",
+        text(code, "h_verdict"),
         "",
-        verdicts.get("summary_fi", ""),
+        summary_text(verdicts, code),
         "",
     ]
-    lines += _setup_section(config, metrics, verdicts)
+    lines += _setup_section(config, metrics, verdicts, code, fmt)
     for venue_metrics, venue_verdict in _paired_venues(metrics, verdicts):
-        lines += _venue_sections(venue_metrics, venue_verdict, verdicts)
-    lines += _limitations_section(metrics, verdicts)
+        lines += _venue_sections(venue_metrics, venue_verdict, verdicts, code, fmt)
+    lines += _limitations_section(metrics, verdicts, code)
     return "\n".join(lines).rstrip() + "\n"
+
+
+def summary_text(verdicts: dict[str, Any], lang: Lang) -> str:
+    """The stored verdict paragraph in one language, falling back to the other.
+
+    A run stored before a language existed has no paragraph for it. Printing the one it
+    does have beats printing nothing, and it is visibly the wrong language rather than
+    silently missing content.
+    """
+    stored = str(verdicts.get(f"summary_{lang}", "") or "")
+    if stored:
+        return stored
+    for other in ("fi", "en"):
+        fallback = str(verdicts.get(f"summary_{other}", "") or "")
+        if fallback:
+            return fallback
+    return ""
 
 
 def _paired_venues(
@@ -125,28 +113,44 @@ def _paired_venues(
 
 
 def _setup_section(
-    config: dict[str, Any], metrics: dict[str, Any], verdicts: dict[str, Any]
+    config: dict[str, Any],
+    metrics: dict[str, Any],
+    verdicts: dict[str, Any],
+    lang: Lang,
+    fmt: Format,
 ) -> list[str]:
     """Section 2: what was trained on, with what, and what was forecast."""
     window = verdicts.get("window", {})
     lines = [
-        "## 2. Ikkuna ja asetelma",
+        text(lang, "h_setup"),
         "",
-        f"- Origo (viimeinen koulutuspäivä): **{window.get('origin')}**",
-        f"- Testijakso: **{window.get('test_start')} – {window.get('test_end')}** "
-        f"({window.get('horizon_days')} vrk, horisontit 1–{window.get('horizon_days')})",
-        f"- Koulutusikkuna: `{window.get('train_window')}`",
-        f"- Mallit: {', '.join(config.get('models', [])) or NA}",
-        f"- Vertailukohdat: {', '.join(config.get('baselines', []))}",
-        f"- Päävertailukohdan valinta: `{config.get('reference')}`",
-        f"- Sään tilat: {', '.join(config.get('weather_modes', []))} "
-        f"(verdikti tilasta `{config.get('primary_weather_mode')}`)",
-        f"- Bootstrap: {integer(config.get('n_resamples'))} uudelleenotantaa, "
-        f"lohkon pituus 7 vrk, siemen {config.get('seed')}",
+        text(lang, "setup_origin", origin=window.get("origin")),
+        text(
+            lang,
+            "setup_test",
+            test_start=window.get("test_start"),
+            test_end=window.get("test_end"),
+            days=window.get("horizon_days"),
+        ),
+        text(lang, "setup_train_window", train_window=window.get("train_window")),
+        text(lang, "setup_models", models=", ".join(config.get("models", [])) or NA),
+        text(lang, "setup_baselines", baselines=", ".join(config.get("baselines", []))),
+        text(lang, "setup_reference", reference=config.get("reference")),
+        text(
+            lang,
+            "setup_weather",
+            modes=", ".join(config.get("weather_modes", [])),
+            primary=config.get("primary_weather_mode"),
+        ),
+        text(
+            lang,
+            "setup_bootstrap",
+            resamples=fmt.integer(config.get("n_resamples")),
+            seed=config.get("seed"),
+        ),
         "",
-        "| Venue | Koulutus alkaa | Koulutuspäiviä | Nollapäiviä | Sisäkkäisiä origoja | MASE-nimittäjä |",
-        "| --- | --- | --- | --- | --- | --- |",
     ]
+    lines += table_header(text(lang, "setup_table"))
     for entry in metrics.get("venues", []):
         diagnostics = entry.get("diagnostics", {})
         lines.append(
@@ -155,131 +159,124 @@ def _setup_section(
             f"| {diagnostics.get('training_days')} "
             f"| {diagnostics.get('training_zero_days')} "
             f"| {diagnostics.get('nested_origins')} "
-            f"| {number(diagnostics.get('mase_denominator'), 2)} |"
+            f"| {fmt.number(diagnostics.get('mase_denominator'), 2)} |"
         )
-    lines.append("")
-    lines.append(
-        "Ennustevälien kvantiilit tulevat sisäkkäisestä backtestistä, joka ajetaan kokonaan "
-        "koulutusikkunan sisällä: sen viimeinen sisäorigo on origo miinus horisontti, joten "
-        "yksikään sisäennuste ei ylety testijaksoon."
-    )
-    lines.append("")
+    lines += ["", text(lang, "setup_note"), ""]
     return lines
 
 
 def _venue_sections(
-    venue_metrics: dict[str, Any], venue_verdict: dict[str, Any], verdicts: dict[str, Any]
+    venue_metrics: dict[str, Any],
+    venue_verdict: dict[str, Any],
+    verdicts: dict[str, Any],
+    lang: Lang,
+    fmt: Format,
 ) -> list[str]:
     """Sections 3 to 7 and 9 for one venue."""
     primary = verdicts.get("primary_weather_mode", "operational")
-    title = f"Venue {venue_metrics.get('venue_id')} ({venue_metrics.get('venue_name')})"
-    lines = [f"## {title}", ""]
-    lines += _totals_section(venue_metrics, primary)
-    lines += _daily_metrics_section(venue_metrics, primary)
-    lines += _statistics_section(venue_verdict)
-    lines += _calibration_section(venue_verdict)
-    lines += _weather_section(venue_metrics)
-    lines += _worst_days_section(venue_metrics)
+    lines = [
+        text(
+            lang,
+            "venue_heading",
+            venue_id=venue_metrics.get("venue_id"),
+            venue_name=venue_metrics.get("venue_name"),
+        ),
+        "",
+    ]
+    lines += _totals_section(venue_metrics, primary, lang, fmt)
+    lines += _daily_metrics_section(venue_metrics, primary, lang, fmt)
+    lines += _statistics_section(venue_verdict, lang, fmt)
+    lines += _calibration_section(venue_verdict, lang, fmt)
+    lines += _weather_section(venue_metrics, lang, fmt)
+    lines += _worst_days_section(venue_metrics, lang, fmt)
     return lines
 
 
-def _totals_section(venue_metrics: dict[str, Any], primary: str) -> list[str]:
+def _totals_section(
+    venue_metrics: dict[str, Any], primary: str, lang: Lang, fmt: Format
+) -> list[str]:
     """Section 3: the number a producer actually asks for."""
     totals = [row for row in venue_metrics.get("totals", []) if row.get("weather_mode") == primary]
     if not totals:
         return []
-    lines = [
-        "### 3. Jakson kokonaismäärä",
-        "",
-        "| Malli | Ennuste | Toteuma | Ero | Ero % | 80 % väli | Väli osuu | Naiivi päiväsummaväli |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- |",
-    ]
+    lines = [text(lang, "h_totals"), ""]
+    lines += table_header(text(lang, "totals_table"))
     for row in totals:
         lines.append(
-            f"| {row.get('model')} | {integer(row.get('predicted'))} | {integer(row.get('actual'))} "
-            f"| {signed(row.get('difference'), 0)} | {signed(row.get('difference_pct'), 1)} % "
-            f"| {integer(row.get('p10'))} – {integer(row.get('p90'))} "
-            f"| {'kyllä' if _flag(row.get('covers_actual')) else 'ei'} "
-            f"| {integer(row.get('summed_daily_p10'))} – {integer(row.get('summed_daily_p90'))} |"
+            f"| {row.get('model')} | {fmt.integer(row.get('predicted'))} "
+            f"| {fmt.integer(row.get('actual'))} "
+            f"| {fmt.signed(row.get('difference'), 0)} "
+            f"| {fmt.signed(row.get('difference_pct'), 1)} % "
+            f"| {fmt.integer(row.get('p10'))} – {fmt.integer(row.get('p90'))} "
+            f"| {fmt.yes_no(row.get('covers_actual'))} "
+            f"| {fmt.integer(row.get('summed_daily_p10'))} – "
+            f"{fmt.integer(row.get('summed_daily_p90'))} |"
         )
-    lines += [
-        "",
-        "Kokonaismäärän väli on simuloitu: koulutusikkunan sisäisen backtestin päivätason "
-        "suhteellisia virheitä bootstrapataan lohkoina kokonaisiksi jaksoiksi, jokainen simuloitu "
-        "polku summataan ja väli luetaan summien jakaumasta. Viimeinen sarake näyttää, mihin "
-        "päivien p10- ja p90-arvojen summaaminen olisi johtanut; se olettaa kaikkien päivien "
-        "virheiden osuvan samaan suuntaan eikä ole kokonaismäärän väli.",
-        "",
-    ]
+    lines += ["", text(lang, "totals_note"), ""]
     drifted = [row for row in totals if _flag(row.get("is_drifted"))]
     if drifted:
         lines += [
-            "⚠ **Näiden mallien väli ei ole kalibroitu:** "
+            text(lang, "totals_drift_prefix")
             + ", ".join(
-                f"{row.get('model')} (suhteellisten virheiden mediaani "
-                f"{number(row.get('median_ratio'), 2)})"
+                text(
+                    lang,
+                    "totals_drift_item",
+                    model=row.get("model"),
+                    ratio=fmt.number(row.get("median_ratio"), 2),
+                )
                 for row in drifted
             )
-            + ". Sisäkkäisen backtestin mallit on koulutettu lyhyemmällä ja huonommalla "
-            "aineistolla kuin ulompi malli, joten niiden virheissä on tasosiirtymä eikä pelkkää "
-            "hajontaa. Väli perii sen. Lue kokonaismäärän ero ja bias erikseen, älä väliä.",
+            + text(lang, "totals_drift_tail"),
             "",
         ]
     thin = [row for row in totals if _flag(row.get("is_thin"))]
     if thin:
         lines += [
-            "⚠ Ohut otos: "
-            + ", ".join(f"{row.get('model')} ({row.get('n_ratio_samples')} havaintoa)" for row in thin)
-            + ". Väli lepää harvan sisäkkäisen backtestin varassa.",
+            text(lang, "totals_thin_prefix")
+            + ", ".join(
+                text(lang, "totals_thin_item", model=row.get("model"), n=row.get("n_ratio_samples"))
+                for row in thin
+            )
+            + text(lang, "totals_thin_tail"),
             "",
         ]
     return lines
 
 
-def _daily_metrics_section(venue_metrics: dict[str, Any], primary: str) -> list[str]:
+def _daily_metrics_section(
+    venue_metrics: dict[str, Any], primary: str, lang: Lang, fmt: Format
+) -> list[str]:
     """Section 4: models and baselines side by side, per horizon bucket."""
     scores = [row for row in venue_metrics.get("scores", []) if row.get("weather_mode") == primary]
     if not scores:
         return []
-    lines = [
-        "### 4. Päivätason mittarit",
-        "",
-        f"Sään tila `{primary}`. Pinball-tappio kvantiileille 0,1 / 0,5 / 0,9.",
-        "",
-        "| Malli | Horisontti | MAE | RMSE | MASE | Bias | Pinball 0,1 | Pinball 0,5 | Pinball 0,9 "
-        "| Peittävyys 80 % | sMAPE | n |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
-    ]
+    lines = [text(lang, "h_daily"), "", text(lang, "daily_intro", primary=primary), ""]
+    lines += table_header(text(lang, "daily_table"))
     for row in scores:
         pinball = row.get("pinball", {})
-        smape = number(row.get("smape"), 1)
+        smape = fmt.number(row.get("smape"), 1)
         if not _flag(row.get("smape_reliable")):
-            smape = f"{smape} ⚠"
+            smape = f"{smape} ⚠"
         lines.append(
-            f"| {row.get('model')} | {row.get('bucket')} | {number(row.get('mae'))} "
-            f"| {number(row.get('rmse'))} | {number(row.get('mase'), 3)} "
-            f"| {signed(row.get('bias'))} | {number(pinball.get('q10'))} "
-            f"| {number(pinball.get('q50'))} | {number(pinball.get('q90'))} "
-            f"| {number(row.get('coverage_80'), 2)} | {smape} | {row.get('n')} |"
+            f"| {row.get('model')} | {row.get('bucket')} | {fmt.number(row.get('mae'))} "
+            f"| {fmt.number(row.get('rmse'))} | {fmt.number(row.get('mase'), 3)} "
+            f"| {fmt.signed(row.get('bias'))} | {fmt.number(pinball.get('q10'))} "
+            f"| {fmt.number(pinball.get('q50'))} | {fmt.number(pinball.get('q90'))} "
+            f"| {fmt.number(row.get('coverage_80'), 2)} | {smape} | {row.get('n')} |"
         )
     unreliable = sorted(
         {int(row.get("zero_days", 0)) for row in scores if not _flag(row.get("smape_reliable"))}
     )
     lines.append("")
     if unreliable:
-        lines.append(
-            "⚠ sMAPE on merkitty epäluotettavaksi: testijaksolla on nollapäiviä "
-            f"(enimmillään {max(unreliable)} korissa). Nollapäivällä symmetrinen suhde saavuttaa "
-            "kattonsa riippumatta siitä kuinka lähellä ennuste oli. sMAPEa ei käytetä verdiktin "
-            "perustana."
-        )
+        lines.append(text(lang, "daily_smape_warning", zero_days=max(unreliable)))
     else:
-        lines.append("Testijaksolla ei ole nollapäiviä, joten sMAPE on tässä ikkunassa luettavissa.")
+        lines.append(text(lang, "daily_smape_ok"))
     lines.append("")
     return lines
 
 
-def _statistics_section(venue_verdict: dict[str, Any]) -> list[str]:
+def _statistics_section(venue_verdict: dict[str, Any], lang: Lang, fmt: Format) -> list[str]:
     """Section 5: interval, skill score, power, and the secondary DM p-value."""
     models = venue_verdict.get("models", [])
     if not models:
@@ -287,209 +284,162 @@ def _statistics_section(venue_verdict: dict[str, Any]) -> list[str]:
     reference = venue_verdict.get("reference", NA)
     baseline_mae = venue_verdict.get("baseline_mae", {})
     lines = [
-        "### 5. Tilastollinen arvio",
+        text(lang, "h_stats"),
         "",
-        f"Päävertailukohta tällä ikkunalla: **{reference}** "
-        f"(MAE {number(baseline_mae.get(reference))}). Vertailukohtien MAE: "
-        + ", ".join(f"{name} {number(value)}" for name, value in baseline_mae.items())
-        + ".",
+        text(
+            lang,
+            "stats_intro",
+            reference=reference,
+            mae=fmt.number(baseline_mae.get(reference)),
+            all_mae=", ".join(f"{name} {fmt.number(value)}" for name, value in baseline_mae.items()),
+        ),
         "",
-        "| Malli | Keskiero d | 95 % väli | Verdikti | Taitopistemäärä | Taidon 95 % väli "
-        "| MDE | MDE / vertailun MAE | DM | DM p (raaka) | DM p (Holm) |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
+    lines += table_header(text(lang, "stats_table"))
     for entry in models:
         comparison = entry.get("comparison", {})
         lines.append(
-            f"| {entry.get('model')} | {signed(comparison.get('mean_difference'))} "
-            f"| {signed(comparison.get('ci_low'))} … {signed(comparison.get('ci_high'))} "
-            f"| {VERDICT_PHRASES.get(str(comparison.get('verdict')), NA)} "
-            f"| {number(comparison.get('skill_score'), 3)} "
-            f"| {number(comparison.get('skill_ci_low'), 3)} … {number(comparison.get('skill_ci_high'), 3)} "
-            f"| {number(comparison.get('mde'))} | {percent(comparison.get('mde_pct'))} "
-            f"| {number(comparison.get('dm_statistic'), 2)} "
-            f"| {number(entry.get('raw_p_value'), 3)} | {number(entry.get('holm_p_value'), 3)} |"
+            f"| {entry.get('model')} | {fmt.signed(comparison.get('mean_difference'))} "
+            f"| {fmt.signed(comparison.get('ci_low'))} … {fmt.signed(comparison.get('ci_high'))} "
+            f"| {fmt.phrase(VERDICT_PHRASES, comparison.get('verdict'))} "
+            f"| {fmt.number(comparison.get('skill_score'), 3)} "
+            f"| {fmt.number(comparison.get('skill_ci_low'), 3)} … "
+            f"{fmt.number(comparison.get('skill_ci_high'), 3)} "
+            f"| {fmt.number(comparison.get('mde'))} | {fmt.percent(comparison.get('mde_pct'))} "
+            f"| {fmt.number(comparison.get('dm_statistic'), 2)} "
+            f"| {fmt.number(entry.get('raw_p_value'), 3)} "
+            f"| {fmt.number(entry.get('holm_p_value'), 3)} |"
         )
     lines += [
         "",
-        "`d` on mallin ja vertailukohdan absoluuttisten päivävirheiden erotus; negatiivinen "
-        "tarkoittaa että malli on lähempänä. Väli on liikkuvan lohkon bootstrapista "
-        "(lohko 7 vrk), joka on tämän arvion ensisijainen menetelmä.",
+        text(lang, "stats_note_difference"),
         "",
-        "**MDE eli pienin havaittava ero** kertoo kuinka suuri eron olisi pitänyt olla, jotta tämä "
-        "otos olisi sen erottanut. Kun verdikti on \"ei havaittavaa eroa\", MDE erottaa kaksi eri "
-        "asiaa: mallit ovat yhtä hyviä, tai otos on liian pieni. Yhden kuukauden ikkunassa MDE on "
-        "tällä aineistolla suuruusluokkaa 30 % vertailukohdan MAE:sta, eli kuukausi pystyy "
-        "todistamaan vain suuret parannukset.",
+        text(lang, "stats_note_mde"),
         "",
-        "**Diebold-Mariano on toissijainen.** Yhden origon 30 virhettä eivät ole riippumattomia "
-        "havaintoja: ne jakavat saman koulutusjoukon ja saman maailmantilan, joten DM:n oletukset "
-        "ovat venytettyjä. p-arvo lasketaan uudelleenkeskitetystä bootstrapista, ei t-jakaumasta. "
-        f"Holm-korjattu p-arvo on laskettu perheelle, jonka koko on "
-        f"{venue_verdict.get('family_size', NA)}.",
+        text(lang, "stats_note_dm", family_size=venue_verdict.get("family_size", NA)),
         "",
     ]
     return lines
 
 
-def _calibration_section(venue_verdict: dict[str, Any]) -> list[str]:
+def _calibration_section(venue_verdict: dict[str, Any], lang: Lang, fmt: Format) -> list[str]:
     """Section 6: coverage and bias, each with an interval."""
     models = venue_verdict.get("models", [])
     if not models:
         return []
-    lines = [
-        "### 6. Kalibrointi ja bias",
-        "",
-        "| Malli | Peittävyys 80 % | Clopper-Pearson 95 % | Kalibrointi | Bias | Bias 95 % väli "
-        "| Bias % toteumasta | Biasin verdikti |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- |",
-    ]
+    lines = [text(lang, "h_calibration"), ""]
+    lines += table_header(text(lang, "calibration_table"))
     for entry in models:
         calibration = entry.get("calibration", {})
         bias = entry.get("bias", {})
         lines.append(
-            f"| {entry.get('model')} | {number(calibration.get('coverage'), 2)} "
+            f"| {entry.get('model')} | {fmt.number(calibration.get('coverage'), 2)} "
             f"({calibration.get('covered')}/{calibration.get('n')}) "
-            f"| {number(calibration.get('ci_low'), 2)} … {number(calibration.get('ci_high'), 2)} "
-            f"| {CALIBRATION_PHRASES.get(str(calibration.get('verdict')), NA)} "
-            f"| {signed(bias.get('mean_error'))} "
-            f"| {signed(bias.get('ci_low'))} … {signed(bias.get('ci_high'))} "
-            f"| {signed(bias.get('pct_of_actual'))} % "
-            f"| {BIAS_PHRASES.get(str(bias.get('verdict')), NA)} |"
+            f"| {fmt.number(calibration.get('ci_low'), 2)} … "
+            f"{fmt.number(calibration.get('ci_high'), 2)} "
+            f"| {fmt.phrase(CALIBRATION_PHRASES, calibration.get('verdict'))} "
+            f"| {fmt.signed(bias.get('mean_error'))} "
+            f"| {fmt.signed(bias.get('ci_low'))} … {fmt.signed(bias.get('ci_high'))} "
+            f"| {fmt.signed(bias.get('pct_of_actual'))} % "
+            f"| {fmt.phrase(BIAS_PHRASES, bias.get('verdict'))} |"
         )
-    lines += [
-        "",
-        "Kalibrointi on \"kalibroitu\", jos 0,80 on Clopper-Pearsonin eksaktin binomivälin sisällä. "
-        "Bias on keskivirhe etumerkillä (ennuste miinus toteuma); jos sen väli ei sisällä nollaa, "
-        "malli yli- tai aliarvioi systemaattisesti.",
-        "",
-    ]
+    lines += ["", text(lang, "calibration_note"), ""]
     return lines
 
 
-def _weather_section(venue_metrics: dict[str, Any]) -> list[str]:
+def _weather_section(venue_metrics: dict[str, Any], lang: Lang, fmt: Format) -> list[str]:
     """Section 7: what the model's accuracy owes to knowing the weather."""
     sensitivity = venue_metrics.get("weather_sensitivity", {})
     if not sensitivity:
         return []
-    lines = [
-        "### 7. Sään kolmen tilan vertailu",
-        "",
-        "| Malli | perfect MAE | operational MAE | climatology MAE "
-        "| Sään tuoma parannus (climatology − perfect) | Osuus climatologyn MAE:sta |",
-        "| --- | --- | --- | --- | --- | --- |",
-    ]
+    lines = [text(lang, "h_weather"), ""]
+    lines += table_header(text(lang, "weather_table"))
     for model, entry in sensitivity.items():
         lines.append(
-            f"| {model} | {number(entry.get('perfect'))} | {number(entry.get('operational'))} "
-            f"| {number(entry.get('climatology'))} | {signed(entry.get('gap'))} "
-            f"| {percent(entry.get('gap_pct'))} |"
+            f"| {model} | {fmt.number(entry.get('perfect'))} "
+            f"| {fmt.number(entry.get('operational'))} "
+            f"| {fmt.number(entry.get('climatology'))} | {fmt.signed(entry.get('gap'))} "
+            f"| {fmt.percent(entry.get('gap_pct'))} |"
         )
-    lines += [
-        "",
-        "`perfect` on yläraja: mihin malli pystyisi jos sää tiedettäisiin täydellisesti. "
-        "`climatology` on alaraja: mihin se pystyy ilman sääennustetta. `operational` on realistisin "
-        "arvio ja se olettaa hyvän sääennusteen. Sään tuoma parannus on `climatology`n MAE miinus "
-        "`perfect`in MAE: **positiivinen luku tarkoittaa että sään tunteminen auttaa**, ja se on se "
-        "osa mallin osumatarkkuudesta joka lepää sään tuntemisen varassa.",
-        "",
-    ]
+    lines += ["", text(lang, "weather_note"), ""]
     negative = [
-        entry for entry in sensitivity.values()
-        if isinstance(entry.get("gap"), float) and entry["gap"] == entry["gap"] and entry["gap"] < 0.0
+        entry
+        for entry in sensitivity.values()
+        if isinstance(entry.get("gap"), float)
+        and entry["gap"] == entry["gap"]
+        and entry["gap"] < 0.0
     ]
     if negative:
-        lines += [
-            "⚠ **Parannus on negatiivinen**, eli malli ennustaa tällä ikkunalla *paremmin* "
-            "keskiarvosäällä kuin toteutuneella säällä. Se ei ole mittausvirhe vaan tulos: mallin "
-            "oppima sääriippuvuus ei yleisty tähän jaksoon, vaan toteutunut sää vie ennustetta "
-            "väärään suuntaan. Sääpiirteet sopivat siis koulutusjakson kohinaan enemmän kuin "
-            "kävijöiden todelliseen sääkäyttäytymiseen.",
-            "",
-        ]
-    lines += [
-        "| Sään tila | Toteutunutta säätä | Klimatologiaa |",
-        "| --- | --- | --- |",
-    ]
+        lines += [text(lang, "weather_negative"), ""]
+    lines += table_header(text(lang, "weather_days_table"))
     for mode, counts in venue_metrics.get("diagnostics", {}).get("weather_days", {}).items():
         lines.append(
-            f"| {WEATHER_LABELS.get(mode, mode)} | {counts.get('observed')} "
+            f"| {fmt.phrase(WEATHER_LABELS, mode)} | {counts.get('observed')} "
             f"| {counts.get('climatology')} |"
         )
     lines.append("")
     return lines
 
 
-def _worst_days_section(venue_metrics: dict[str, Any]) -> list[str]:
+def _worst_days_section(venue_metrics: dict[str, Any], lang: Lang, fmt: Format) -> list[str]:
     """Section 9: the five biggest misses, with a probable cause for each."""
     worst = venue_metrics.get("worst_days", {})
     if not worst:
         return []
-    lines = ["### 9. Pahiten menneet päivät", ""]
+    lines = [text(lang, "h_worst"), ""]
     for model, rows in worst.items():
-        lines += [
-            f"**{model}**",
-            "",
-            "| Päivä | Viikonpäivä | Toteuma | Ennuste | Virhe | Mahdollinen syy |",
-            "| --- | --- | --- | --- | --- | --- |",
-        ]
+        lines += [f"**{model}**", ""]
+        lines += table_header(text(lang, "worst_table"))
         for row in rows:
             lines.append(
-                f"| {row.get('date')} | {row.get('weekday')} | {integer(row.get('y_true'))} "
-                f"| {integer(row.get('p50'))} | {signed(row.get('error'), 0)} | {row.get('note')} |"
+                f"| {row.get('date')} | {localised(row.get('weekday'), lang)} "
+                f"| {fmt.integer(row.get('y_true'))} | {fmt.integer(row.get('p50'))} "
+                f"| {fmt.signed(row.get('error'), 0)} | {localised(row.get('note'), lang)} |"
             )
         lines.append("")
-    lines += [
-        "Tämä on raportin käytännöllisin osa: se kertoo mitä mallista puuttuu. Toistuva syy samassa "
-        "sarakkeessa on suora ehdotus seuraavaksi piirteeksi.",
-        "",
-    ]
+    lines += [text(lang, "worst_note"), ""]
     return lines
 
 
-def _limitations_section(metrics: dict[str, Any], verdicts: dict[str, Any]) -> list[str]:
+def _limitations_section(
+    metrics: dict[str, Any], verdicts: dict[str, Any], lang: Lang
+) -> list[str]:
     """Section 8: sample size and what may not be concluded from this run."""
     window = verdicts.get("window", {})
     horizon = window.get("horizon_days", 0)
     lines = [
-        "## 8. Rajoitteet",
+        text(lang, "h_limits"),
         "",
-        f"- **Otoskoko.** Yksi ikkuna on {horizon} päivää yhdestä origosta. Ne eivät ole "
-        f"{horizon} riippumatonta havaintoa: kaikki jakavat saman koulutusjoukon ja saman "
-        "kuukauden sään.",
-        "- **Yhden ikkunan verdikti on kuvaileva, ei todistava.** Varsinainen näyttö syntyy usean "
-        "ikkunan koosteesta (`--sweep monthly` tai `--sweep rolling`).",
-        "- **\"Ei havaittavaa eroa\" ei tarkoita samanveroisuutta.** Lue MDE kohdasta 5 ennen kuin "
-        "teet siitä johtopäätöksen.",
-        "- **sMAPEa ei käytetä verdiktin perustana**, koska nollapäivät rikkovat sen.",
-        "- **Aineistoa on noin kahdeksan kuukautta yhdeltä vuodelta.** Vuosikausivaihtelua ei voi "
-        "oppia, joten vertailu toiseen vuoteen ei ole mahdollinen.",
-        "- **Lippudataa ei käytetä piirteenä**, koska sitä ei ole tulevaisuudelle.",
+        text(lang, "limit_sample", horizon=horizon),
+        text(lang, "limit_single_window"),
+        text(lang, "limit_no_difference"),
+        text(lang, "limit_smape"),
+        text(lang, "limit_history"),
+        text(lang, "limit_tickets"),
     ]
     for entry in metrics.get("venues", []):
         diagnostics = entry.get("diagnostics", {})
+        venue_id = entry.get("venue_id")
         leading = int(diagnostics.get("leading_zero_days") or 0)
         if leading:
-            lines.append(
-                f"- **Venue {entry.get('venue_id')}: koulutusikkunan alussa on {leading} nollapäivää** "
-                "sensorin käyttöönottoa edeltävältä ajalta. Arviointi ei poista niitä, koska "
-                "koulutusikkuna on se jonka käyttäjä nimesi; `--train-window` rajaa ne pois. "
-                "Nollat eivät jää alkuun: vuodenaikapiirre `year_sin` on symmetrinen kesäpäivän "
-                "suhteen, joten tammikuun nollapäivät saavat saman arvon kuin niitä vastaavat "
-                "kesäkuun päivät ja malli voi lukea kesän tammikuuksi. Jos ennuste romahtaa "
-                "lähelle nollaa keskellä kesää, tämä on ensimmäinen paikka katsoa."
-            )
+            lines.append(text(lang, "limit_leading_zeros", venue_id=venue_id, days=leading))
         if diagnostics.get("missing_test_days"):
             lines.append(
-                f"- **Venue {entry.get('venue_id')}: testijaksolta puuttuu "
-                f"{len(diagnostics['missing_test_days'])} päivää**, joilta ei ole havaintoa."
+                text(
+                    lang,
+                    "limit_missing_days",
+                    venue_id=venue_id,
+                    days=len(diagnostics["missing_test_days"]),
+                )
             )
         if diagnostics.get("default_bands"):
             lines.append(
-                f"- **Venue {entry.get('venue_id')}: osa ennustevälejä on oletusarvoja** "
-                f"({', '.join(diagnostics['default_bands'])}), koska sisäkkäinen backtest ei "
-                "tuottanut tarpeeksi havaintoja kyseiseen horisonttikoriin. Peittävyyslukua ei "
-                "pidä lukea niistä."
+                text(
+                    lang,
+                    "limit_default_bands",
+                    venue_id=venue_id,
+                    buckets=", ".join(diagnostics["default_bands"]),
+                )
             )
     lines.append("")
     return lines
@@ -501,24 +451,34 @@ def _limitations_section(metrics: dict[str, Any], verdicts: dict[str, Any]) -> l
 
 
 def render_sweep_report(
-    config: dict[str, Any], metrics: dict[str, Any], verdicts: dict[str, Any]
+    config: dict[str, Any],
+    metrics: dict[str, Any],
+    verdicts: dict[str, Any],
+    lang: str = DEFAULT_LANG,
 ) -> str:
     """The full markdown report for a sweep: pooled verdict first, windows below it."""
+    code = normalise(lang)
+    fmt = formats(code)
     lines: list[str] = [
-        f"# {REPORT_TITLE}, kooste: {verdicts.get('sweep')} "
-        f"{verdicts.get('first_day')} – {verdicts.get('last_day')}",
+        text(
+            code,
+            "sweep_title",
+            title=text(code, "title"),
+            kind=verdicts.get("sweep"),
+            first_day=verdicts.get("first_day"),
+            last_day=verdicts.get("last_day"),
+        ),
         "",
-        f"Ajon tunniste: `{verdicts.get('run_id', '')}`",
+        text(code, "run_id", run_id=verdicts.get("run_id", "")),
         "",
-        "## 1. Koosteverdikti",
+        text(code, "h_sweep_verdict"),
         "",
-        verdicts.get("summary_fi", ""),
+        summary_text(verdicts, code),
         "",
-        "## 2. Ikkunat",
+        text(code, "h_sweep_windows"),
         "",
-        "| # | Testijakso | Origo | Koulutusikkuna | Ajon tunniste |",
-        "| --- | --- | --- | --- | --- |",
     ]
+    lines += table_header(text(code, "sweep_windows_table"))
     for position, window in enumerate(verdicts.get("windows", []), start=1):
         lines.append(
             f"| {position} | {window.get('test_start')} – {window.get('test_end')} "
@@ -526,82 +486,88 @@ def render_sweep_report(
         )
     lines += [
         "",
-        f"Sään tila verdiktille: `{verdicts.get('primary_weather_mode')}`. "
-        f"Päävertailukohdan valinta: `{verdicts.get('reference_rule')}`. "
-        f"Monivertailuperheen koko: {verdicts.get('family_size')}.",
+        text(
+            code,
+            "sweep_meta",
+            primary=verdicts.get("primary_weather_mode"),
+            reference=verdicts.get("reference_rule"),
+            family_size=verdicts.get("family_size"),
+        ),
         "",
     ]
     for venue in verdicts.get("venues", []):
-        lines += _sweep_venue_section(venue)
+        lines += _sweep_venue_section(venue, code, fmt)
     lines += [
-        "## Rajoitteet",
+        text(code, "h_sweep_limits"),
         "",
-        "- Kooste bootstrapataan **kokonaisina ikkunoina**, koska ikkuna on riippumattomuuden "
-        "luonnollinen yksikkö: kaksi saman ikkunan päivää jakavat koulutusjoukon, kaksi eri "
-        "ikkunaa eivät.",
-        "- Ikkunakohtainen verdikti on kuvaileva. Koosteverdikti on se, joka kantaa näyttöä.",
-        "- Raakoja p-arvoja on korjattu Holm-Bonferronilla; perheen koko on kerrottu yllä.",
-        "- Aineistoa on noin kahdeksan kuukautta yhdeltä vuodelta, joten myös kooste lepää ohuen "
-        "otoksen varassa.",
+        text(code, "sweep_limit_windows"),
+        text(code, "sweep_limit_descriptive"),
+        text(code, "sweep_limit_holm"),
+        text(code, "sweep_limit_history"),
         "",
     ]
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _sweep_venue_section(venue: dict[str, Any]) -> list[str]:
+def _sweep_venue_section(venue: dict[str, Any], lang: Lang, fmt: Format) -> list[str]:
     """One venue's pooled verdict and its per-window detail."""
     lines = [
-        f"## Venue {venue.get('venue_id')} ({venue.get('venue_name')})",
+        text(
+            lang,
+            "venue_heading",
+            venue_id=venue.get("venue_id"),
+            venue_name=venue.get("venue_name"),
+        ),
         "",
-        "### Koosteverdikti",
+        text(lang, "h_sweep_pooled"),
         "",
-        "| Malli | Vertailukohta | Ikkunoita | Päiviä | Keskiero d | 95 % väli | Verdikti "
-        "| Puolesta | Vastaan | MDE | MDE / vertailun MAE |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
+    lines += table_header(text(lang, "sweep_pooled_table"))
     for entry in venue.get("models", []):
         pooled = entry.get("pooled", {})
         lines.append(
             f"| {pooled.get('model')} | {pooled.get('reference')} | {pooled.get('n_windows')} "
-            f"| {pooled.get('n_days')} | {signed(pooled.get('mean_difference'))} "
-            f"| {signed(pooled.get('ci_low'))} … {signed(pooled.get('ci_high'))} "
-            f"| {VERDICT_PHRASES.get(str(pooled.get('verdict')), NA)} "
+            f"| {pooled.get('n_days')} | {fmt.signed(pooled.get('mean_difference'))} "
+            f"| {fmt.signed(pooled.get('ci_low'))} … {fmt.signed(pooled.get('ci_high'))} "
+            f"| {fmt.phrase(VERDICT_PHRASES, pooled.get('verdict'))} "
             f"| {pooled.get('windows_favouring')} | {pooled.get('windows_opposing')} "
-            f"| {number(pooled.get('mde'))} | {percent(pooled.get('mde_pct'))} |"
+            f"| {fmt.number(pooled.get('mde'))} | {fmt.percent(pooled.get('mde_pct'))} |"
         )
     lines.append("")
     for entry in venue.get("models", []):
-        lines += [
-            f"### Ikkunakohtaiset tulokset: {entry.get('model')}",
-            "",
-            "| Testijakso | Vertailukohta | Mallin MAE | Vertailun MAE | Keskiero d | 95 % väli "
-            "| Verdikti | MDE | MDE % | DM p (raaka) | DM p (Holm) |",
-            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
-        ]
+        lines += [text(lang, "h_sweep_per_window", model=entry.get("model")), ""]
+        lines += table_header(text(lang, "sweep_window_table"))
         for row in entry.get("per_window", []):
             lines.append(
-                f"| {row.get('label')} | {row.get('reference')} | {number(row.get('model_mae'))} "
-                f"| {number(row.get('reference_mae'))} | {signed(row.get('mean_difference'))} "
-                f"| {signed(row.get('ci_low'))} … {signed(row.get('ci_high'))} "
-                f"| {VERDICT_PHRASES.get(str(row.get('verdict')), NA)} "
-                f"| {number(row.get('mde'))} | {percent(row.get('mde_pct'))} "
-                f"| {number(row.get('raw_p_value'), 3)} | {number(row.get('holm_p_value'), 3)} |"
+                f"| {row.get('label')} | {row.get('reference')} "
+                f"| {fmt.number(row.get('model_mae'))} | {fmt.number(row.get('reference_mae'))} "
+                f"| {fmt.signed(row.get('mean_difference'))} "
+                f"| {fmt.signed(row.get('ci_low'))} … {fmt.signed(row.get('ci_high'))} "
+                f"| {fmt.phrase(VERDICT_PHRASES, row.get('verdict'))} "
+                f"| {fmt.number(row.get('mde'))} | {fmt.percent(row.get('mde_pct'))} "
+                f"| {fmt.number(row.get('raw_p_value'), 3)} "
+                f"| {fmt.number(row.get('holm_p_value'), 3)} |"
             )
         lines.append("")
         totals = entry.get("totals", [])
         if totals:
-            lines += [
-                f"#### Jakson kokonaismäärät: {entry.get('model')}",
-                "",
-                "| Testijakso | Ennuste | Toteuma | Ero % | 80 % väli | Väli osuu |",
-                "| --- | --- | --- | --- | --- | --- |",
-            ]
+            lines += [text(lang, "h_sweep_totals", model=entry.get("model")), ""]
+            lines += table_header(text(lang, "sweep_totals_table"))
             for row in totals:
                 lines.append(
-                    f"| {row.get('label')} | {integer(row.get('predicted'))} "
-                    f"| {integer(row.get('actual'))} | {signed(row.get('difference_pct'))} % "
-                    f"| {integer(row.get('p10'))} – {integer(row.get('p90'))} "
-                    f"| {'kyllä' if _flag(row.get('covers_actual')) else 'ei'} |"
+                    f"| {row.get('label')} | {fmt.integer(row.get('predicted'))} "
+                    f"| {fmt.integer(row.get('actual'))} "
+                    f"| {fmt.signed(row.get('difference_pct'))} % "
+                    f"| {fmt.integer(row.get('p10'))} – {fmt.integer(row.get('p90'))} "
+                    f"| {fmt.yes_no(row.get('covers_actual'))} |"
                 )
             lines.append("")
     return lines
+
+
+__all__ = [
+    "localised",
+    "render_sweep_report",
+    "render_window_report",
+    "summary_text",
+]

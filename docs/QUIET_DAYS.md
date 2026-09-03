@@ -512,11 +512,18 @@ korvaa oman hakemistonsa eikä kerrytä lähes samanlaisia tuloksia.
 | Tiedosto | Ennuste | Pyyhkäisy |
 | --- | --- | --- |
 | `report.md` | Vastaus, koko kuukausi, lähtötiedot, varaukset | Verdikti, tulokset, ikkunat, kalibrointi |
+| `report.en.md` | Sama englanniksi | Sama englanniksi |
 | `days.csv` | Kuukauden jokainen päivä per kohde | Jokainen ehdokaspäivä: pisteluku, toteuma, todennäköisyys |
 | `windows.csv` | – | Yksi rivi per ikkuna, kohde ja sääntö |
 | `metrics.json` | Joukko, ehdokkuus, jäännökset, päivät | Ikkunakohtaiset tulokset |
 | `verdicts.json` | Yhteenveto ja mitattu luotettavuus | Kootut verdiktit ja kalibrointi |
 | `config.json` | Kaikki ajon parametrit | Kaikki ajon parametrit |
+
+Raportti kirjoitetaan molemmilla kielillä joka ajolla, samasta tallennetusta payloadista:
+`verdicts.json` kantaa sekä `summary_fi`- että `summary_en`-kappaleen, ja `days.csv` sekä
+`weekday_fi`- että `weekday_en`-sarakkeen. Myös `metrics.json`in varaukset ovat muodossa
+`{"fi": ..., "en": ...}`, jotta suositukseen liitetty varaus tavoittaa kummankin lukijan.
+Komennon oma tuloste noudattaa `--lang`-valitsinta; levylle kirjoitetaan aina molemmat.
 
 Mikään ajohakemistossa ei sisällä kellonaikaa. Se on ainoa tapa, jolla determinismitesti
 voidaan ylipäätään kirjoittaa. Luontihetki on `index.json`issa, joka on rekisteri eikä

@@ -38,6 +38,7 @@ from ..dataset import (
     venue_history,
 )
 from ..evaluation.significance import RANDOM_SEED
+from ..i18n import LANGUAGES, bilingual, formats
 from .model import (
     DEFAULT_SCORE_MODEL,
     N_SIMULATIONS,
@@ -52,6 +53,7 @@ from .model import (
     selection_probabilities,
     usable_residuals,
 )
+from .strings import WEEKDAY_NAMES, text
 from .threshold import (
     DEFAULT_QUIET_SHARE,
     REASON_OPEN,
@@ -62,15 +64,6 @@ from .threshold import (
     quiet_set,
 )
 
-WEEKDAY_NAMES_FI = (
-    "maanantai",
-    "tiistai",
-    "keskiviikko",
-    "torstai",
-    "perjantai",
-    "lauantai",
-    "sunnuntai",
-)
 # Past this many days between the last observation and the start of the month, the
 # weekday medians the score rests on describe a different season than the one forecast.
 STALE_ORIGIN_DAYS = 21
@@ -124,7 +117,9 @@ class DayForecast:
         return {
             "date": self.day.isoformat(),
             "weekday": self.weekday,
-            "weekday_fi": WEEKDAY_NAMES_FI[self.weekday],
+            # One column per language rather than a nested value: ``days.csv`` is a table,
+            # and a spreadsheet cannot open a dict.
+            **{f"weekday_{lang}": WEEKDAY_NAMES[lang][self.weekday] for lang in LANGUAGES},
             "status": self.status,
             "is_eligible": self.is_eligible,
             "is_observed": self.is_observed,
@@ -156,7 +151,7 @@ class VenueMonthForecast:
     eligibility: Eligibility
     residuals_measured: bool
     n_residuals: int
-    warnings: list[str] = field(default_factory=list)
+    warnings: list[dict[str, str]] = field(default_factory=list)
 
     @property
     def label(self) -> str:
@@ -406,53 +401,62 @@ def _weather_context(
     return context
 
 
-def _warnings(data: ProcessedData, result: VenueMonthForecast, days: list[date]) -> list[str]:
-    """Everything about this answer a reader should know before acting on it."""
-    warnings: list[str] = []
+def _warnings(
+    data: ProcessedData, result: VenueMonthForecast, days: list[date]
+) -> list[dict[str, str]]:
+    """Everything about this answer a reader should know before acting on it.
+
+    Each warning is stored in every language rather than as one string, because the report
+    is rendered in both and a caveat that only one reader sees is worse than none: the
+    other reader gets a recommendation with the reservation quietly removed.
+    """
+    warnings: list[dict[str, str]] = []
     tie = _split_tie(result.days)
     if tie is not None:
         chosen, size = tie
-        warnings.append(
-            f"Kynnys osuu tasapisteryhmän sisään: {size} päivää saa saman pistearvon ja niistä "
-            f"{chosen} mahtui hiljaisimpiin. Malli ei erottele näitä päiviä toisistaan, joten "
-            "valinta niiden kesken on päivämääräjärjestyksessä ja voidaan tehdä muilla perusteilla."
-        )
+        warnings.append(bilingual(lambda lang: text(lang, "warn_tie", size=size, chosen=chosen)))
     if not result.quiet.is_material:
+        gap = (1.0 - result.quiet.mean_ratio)
         warnings.append(
-            f"Kuukauden hiljaisin viidennes on vain {(1.0 - result.quiet.mean_ratio) * 100:.0f} % "
-            "mediaanipäivää hiljaisempi, joten kuukausi on tasainen eikä suositus erottele päiviä "
-            "merkittävästi."
+            bilingual(
+                lambda lang: text(lang, "warn_not_material", gap=formats(lang).share_percent(gap))
+            )
         )
     if not result.residuals_measured:
-        warnings.append(
-            "Todennäköisyydet on laskettu oletushajonnalla, koska opetusjaksolle ei mahtunut "
-            "yhtään sisäistä origoa. Ne kertovat mallin järjestyksestä, eivät mitatusta "
-            "epävarmuudesta."
-        )
+        warnings.append(bilingual(lambda lang: text(lang, "warn_default_residuals")))
     stale = (days[0] - result.origin).days
     if stale > STALE_ORIGIN_DAYS:
         warnings.append(
-            f"Viimeinen havainto on {result.origin.isoformat()}, {stale} päivää ennen kuukauden "
-            "alkua. Arkipäivämediaanit kuvaavat eri jaksoa kuin ennustettava kuukausi."
+            bilingual(
+                lambda lang: text(
+                    lang, "warn_stale_origin", origin=result.origin.isoformat(), days=stale
+                )
+            )
         )
     known = set(data.calendar_daily["date"])
     missing = [day for day in days if pd.Timestamp(day) not in known]
     if missing:
+        first, count = missing[0].isoformat(), len(missing)
         warnings.append(
-            f"Ylläpidetty kalenteri ei kata päivää {missing[0].isoformat()} eteenpäin "
-            f"({len(missing)} päivää), joten niiltä oletetaan ettei pyhäpäiviä ole."
+            bilingual(lambda lang: text(lang, "warn_calendar_gap", first=first, days=count))
         )
     climatology = [
         day.day for day in result.days if day.weather_source == WEATHER_SOURCE_CLIMATOLOGY
     ]
     if climatology:
-        warnings.append(
-            f"Säätiedot ovat klimatologiaa {len(climatology)} päivälle; ne ovat taustatietoa "
-            "eivätkä vaikuta pisteytykseen."
-        )
+        count = len(climatology)
+        warnings.append(bilingual(lambda lang: text(lang, "warn_climatology", days=count)))
     if result.eligibility.closed_weekdays:
-        names = ", ".join(WEEKDAY_NAMES_FI[day] for day in result.eligibility.closed_weekdays)
-        warnings.append(f"Suljetut arkipäivät jätetty ehdokkaista pois: {names}.")
+        closed = result.eligibility.closed_weekdays
+        warnings.append(
+            bilingual(
+                lambda lang: text(
+                    lang,
+                    "warn_closed_weekdays",
+                    days=", ".join(WEEKDAY_NAMES[lang][day] for day in closed),
+                )
+            )
+        )
     return warnings
 
 

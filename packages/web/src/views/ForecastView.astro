@@ -12,7 +12,7 @@ import { localizedPath, type Lang } from '../i18n/index.ts';
 import { ui } from '../i18n/ui/index.ts';
 import { addDays } from '../lib/dates.ts';
 import { formatters } from '../lib/format.ts';
-import { horizonBucketLabel, modelLabel, translateWarnings, weatherSourceLabel } from '../lib/labels.ts';
+import { horizonBucketLabel, localisedTexts, modelLabel, weatherSourceLabel } from '../lib/labels.ts';
 import { weatherGroupLabel } from '../lib/weather.ts';
 import type { ForecastData, Meta, QualityData } from '../lib/types.ts';
 
@@ -67,7 +67,7 @@ const panels = site.venues.map((venue) => {
   };
 });
 
-const warnings = translateWarnings(site.forecast.warnings, lang);
+const warnings = localisedTexts(site.forecast.warnings, lang);
 
 // Sään lähde vaihtuu klimatologiaksi venuekohtaisesti. Käytännössä raja on sama
 // molemmilla, mutta teksti lasketaan silti datasta eikä oleteta.

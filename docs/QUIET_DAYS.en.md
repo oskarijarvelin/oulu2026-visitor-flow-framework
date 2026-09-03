@@ -515,11 +515,19 @@ directory instead of accumulating near-identical results.
 | File | Forecast | Sweep |
 | --- | --- | --- |
 | `report.md` | The answer, the whole month, the inputs, the caveats | The verdict, the results, the windows, the calibration |
+| `report.en.md` | The same in English | The same in English |
 | `days.csv` | Every day of the month per venue | Every candidate day: score, actual value, probability |
 | `windows.csv` | – | One row per window, venue and rule |
 | `metrics.json` | The set, candidacy, residuals, days | Per-window results |
 | `verdicts.json` | The summary and the measured reliability | The pooled verdicts and the calibration |
 | `config.json` | All the run's parameters | All the run's parameters |
+
+The report is written in both languages on every run, from the same stored payload:
+`verdicts.json` carries both a `summary_fi` and a `summary_en` paragraph, and `days.csv` both
+a `weekday_fi` and a `weekday_en` column. The caveats in `metrics.json` are stored as
+`{"fi": ..., "en": ...}` too, so that a reservation attached to a recommendation reaches
+either reader. What the command prints follows the `--lang` option; both are always written
+to disk.
 
 Nothing in a run directory contains a clock time. That is the only way the determinism test
 can be written at all. The creation time is in `index.json`, which is a registry rather than a

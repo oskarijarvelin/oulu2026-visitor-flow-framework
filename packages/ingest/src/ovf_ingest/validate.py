@@ -16,6 +16,7 @@ import pandas as pd
 from . import __version__, log_event
 from .config import AppConfig
 from .normalize import TRAFFIC_COUNT_COLUMNS, as_int
+from .strings import LANGUAGES, log_text, message, text
 
 VISITORS_HOURLY = "visitors_hourly"
 VISITORS_DAILY = "visitors_daily"
@@ -54,7 +55,7 @@ class GateResult:
 
     name: str
     passed: bool
-    detail: str
+    detail: dict[str, str]
     tables: tuple[str, ...] = field(default_factory=tuple)
 
 
@@ -73,7 +74,7 @@ def run_quality_gates(config: AppConfig, tables: dict[str, pd.DataFrame]) -> lis
         log_event(
             "info" if result.passed else "error",
             "quality-gate",
-            result.detail,
+            log_text(result.detail),
             gate=result.name,
             passed=result.passed,
         )
@@ -85,7 +86,7 @@ def _gate_visitor_gap(hourly: pd.DataFrame | None, max_gap_hours: int, lookback_
     name = "visitor_gap"
     tables = (VISITORS_HOURLY, VISITORS_DAILY)
     if hourly is None or hourly.empty:
-        return GateResult(name, True, "No visitor rows to check", tables)
+        return GateResult(name, True, message("visitor_gap_empty"), tables)
     last = _parse_utc(str(hourly["ts_utc"].max()))
     cutoff = last - timedelta(days=lookback_days)
     recent = hourly[hourly["ts_utc"] >= _format_utc(cutoff)]
@@ -97,9 +98,12 @@ def _gate_visitor_gap(hourly: pd.DataFrame | None, max_gap_hours: int, lookback_
         if gap > worst_gap:
             worst_gap, worst_venue = gap, as_int(venue_id)
     passed = worst_gap <= max_gap_hours
-    detail = (
-        f"Longest visitor gap in the last {lookback_days} days is {worst_gap} h "
-        f"(venue {worst_venue}), limit {max_gap_hours} h"
+    detail = message(
+        "visitor_gap",
+        lookback=lookback_days,
+        gap=worst_gap,
+        venue=worst_venue,
+        limit=max_gap_hours,
     )
     return GateResult(name, passed, detail, tables)
 
@@ -119,7 +123,7 @@ def _gate_weather_coverage(hourly: pd.DataFrame | None, minimum: float) -> GateR
     name = "weather_coverage"
     tables = (WEATHER_HOURLY, WEATHER_DAILY)
     if hourly is None or hourly.empty:
-        return GateResult(name, True, "No weather rows to check", tables)
+        return GateResult(name, True, message("weather_empty"), tables)
     worst = 1.0
     worst_venue: int | None = None
     for venue_id, group in hourly.groupby("venue_id"):
@@ -127,7 +131,9 @@ def _gate_weather_coverage(hourly: pd.DataFrame | None, minimum: float) -> GateR
         if covered < worst:
             worst, worst_venue = covered, as_int(venue_id)
     passed = worst >= minimum
-    detail = f"Lowest weather coverage is {worst:.4f} (venue {worst_venue}), minimum {minimum}"
+    detail = message(
+        "weather_coverage", coverage=f"{worst:.4f}", venue=worst_venue, minimum=minimum
+    )
     return GateResult(name, passed, detail, tables)
 
 
@@ -136,7 +142,7 @@ def _gate_daily_capacity(config: AppConfig, daily: pd.DataFrame | None) -> GateR
     name = "daily_capacity"
     tables = (VISITORS_HOURLY, VISITORS_DAILY)
     if daily is None or daily.empty:
-        return GateResult(name, True, "No daily visitor rows to check", tables)
+        return GateResult(name, True, message("capacity_empty"), tables)
     multiplier = config.sources.quality_gates.daily_total_capacity_multiplier
     offenders: list[str] = []
     for venue_id, group in daily.groupby("venue_id"):
@@ -151,9 +157,11 @@ def _gate_daily_capacity(config: AppConfig, daily: pd.DataFrame | None) -> GateR
         )
     passed = not offenders
     detail = (
-        "No day exceeds capacity * 24 * 4"
+        message("capacity_ok")
         if passed
-        else f"{len(offenders)} day(s) exceed capacity * 24 * 4: {'; '.join(offenders[:5])}"
+        else message(
+            "capacity_exceeded", count=len(offenders), offenders="; ".join(offenders[:5])
+        )
     )
     return GateResult(name, passed, detail, tables)
 
@@ -179,7 +187,11 @@ def _gate_no_negative_counts(tables: dict[str, pd.DataFrame]) -> GateResult:
                 offenders.append(f"{table_name}.{column}: {negatives}")
                 affected.append(table_name)
     passed = not offenders
-    detail = "No negative counter values" if passed else f"Negative counters found: {'; '.join(offenders)}"
+    detail = (
+        message("negative_ok")
+        if passed
+        else message("negative_found", offenders="; ".join(offenders))
+    )
     return GateResult(name, passed, detail, tuple(dict.fromkeys(affected)))
 
 
@@ -219,9 +231,11 @@ def build_manifest(
     generated_at: datetime | None = None,
 ) -> dict[str, Any]:
     """Assemble ``data/processed/manifest.json``."""
-    warnings = [f"{gate.name}: {gate.detail}" for gate in gates if not gate.passed]
+    warnings = [
+        _gate_warning(gate.name, gate.detail) for gate in gates if not gate.passed
+    ]
     warnings.extend(
-        f"{report.name} {report.status}" + (f": {report.error}" if report.error else "")
+        _source_warning(report)
         for report in sources
         if report.status not in {"ok", "skipped"}
     )
@@ -236,6 +250,23 @@ def build_manifest(
             "passed": all(gate.passed for gate in gates),
             "warnings": warnings,
         },
+    }
+
+
+def _gate_warning(name: str, detail: dict[str, str]) -> dict[str, str]:
+    """One failing gate as a manifest warning, in every language."""
+    return {
+        lang: text(lang, "gate_warning", gate=name, detail=detail.get(lang, ""))
+        for lang in LANGUAGES
+    }
+
+
+def _source_warning(report: SourceReport) -> dict[str, str]:
+    """One unhealthy source as a manifest warning, in every language."""
+    key = "source_warning_error" if report.error else "source_warning"
+    return {
+        lang: text(lang, key, source=report.name, status=report.status, error=report.error)
+        for lang in LANGUAGES
     }
 
 

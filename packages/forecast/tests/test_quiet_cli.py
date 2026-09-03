@@ -45,6 +45,7 @@ def test_the_forecast_defaults_to_the_month_after_the_last_observation(
         "metrics.json",
         "verdicts.json",
         "report.md",
+        "report.en.md",
     }
 
 

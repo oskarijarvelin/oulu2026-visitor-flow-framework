@@ -29,6 +29,7 @@ from .backtest import (
     run_backtest,
 )
 from .backtest import backtest_window as backtest_window_of
+from .cli_strings import text as cli_text
 from .dataset import (
     MAX_WEATHER_FORECAST_DAYS,
     WEATHER_SOURCE_CLIMATOLOGY,
@@ -58,6 +59,7 @@ from .evaluation import (
     rolling_sweep,
     utc_now,
 )
+from .evaluation.report import localised
 from .evaluation.significance import N_RESAMPLES, RANDOM_SEED
 from .evaluation.windows import (
     DEFAULT_MAX_WINDOWS,
@@ -82,8 +84,10 @@ from .export import (
     write_outputs,
 )
 from .features import build_future_frame, build_training_frame
+from .i18n import DEFAULT_LANG, LANGUAGES, Lang, normalise
 from .intervals import BUCKET_LABELS, Band, apply_bands, bands_to_dict
 from .models.base import BENCHMARK_NAMES, MODEL_NAMES, ForecastModel, resolve_models
+from .notes import do_not_trust, note
 from .profile import build_profile
 from .quiet import (
     DEFAULT_QUIET_SHARE,
@@ -115,13 +119,6 @@ MIN_COVERAGE = 0.70
 MAX_COVERAGE = 0.90
 NEAR_HORIZON_BUCKET = BUCKET_LABELS[0]
 
-STATIC_DO_NOT_TRUST = (
-    "Horizons past 14 days: the weather is climatology and the level is frozen at the origin.",
-    "Days with programming or an event the model has never seen.",
-    "The first two weeks after a new venue or a new sensor comes online.",
-    "Periods where the ingest manifest reports a degraded source.",
-    "School holidays and midsummer, of which this dataset holds at most one observation.",
-)
 
 
 # --------------------------------------------------------------------------------------
@@ -144,7 +141,7 @@ def forecast_venue(
         log_event("error", "run", "No observed history", venue_id=venue.venue_id)
         return None
     origin: date = history["date"].max().date()
-    warnings: list[str] = []
+    warnings: list[dict[str, str]] = []
 
     def factory() -> list[ForecastModel]:
         models, _ = resolve_models((*model_names, *BENCHMARK_NAMES))
@@ -227,15 +224,22 @@ def _venue_warnings(
     origin: date,
     config: BacktestConfig,
     profile_days: int,
-) -> list[str]:
-    """Everything about this run a reader should know before believing the numbers."""
-    warnings: list[str] = []
+) -> list[dict[str, str]]:
+    """Everything about this run a reader should know before believing the numbers.
+
+    Each warning is stored in every language, because the site renders it in whichever one
+    the reader chose and a caveat that reaches only half the readers is worse than none.
+    """
+    warnings: list[dict[str, str]] = []
     origins = origin_count(backtest)
     if origins < config.min_origins:
         warnings.append(
-            f"Only {origins} backtest origins fit the {config.min_training_days}-day training "
-            f"floor; the plan asks for at least {config.min_origins}, so the interval quantiles "
-            "rest on a thin sample."
+            note(
+                "thin_origins",
+                origins=origins,
+                training_days=config.min_training_days,
+                minimum=config.min_origins,
+            )
         )
     for model, buckets in metrics.items():
         coverage = buckets.get(NEAR_HORIZON_BUCKET, {}).get("coverage_80")
@@ -243,32 +247,30 @@ def _venue_warnings(
             continue
         if coverage < MIN_COVERAGE or coverage > MAX_COVERAGE:
             warnings.append(
-                f"Model {model} has {coverage:.0%} coverage at horizon {NEAR_HORIZON_BUCKET}, "
-                f"outside the acceptable {MIN_COVERAGE:.0%}-{MAX_COVERAGE:.0%} range."
+                note(
+                    "coverage_out_of_range",
+                    model=model,
+                    coverage=f"{coverage:.0%}",
+                    bucket=NEAR_HORIZON_BUCKET,
+                    low=f"{MIN_COVERAGE:.0%}",
+                    high=f"{MAX_COVERAGE:.0%}",
+                )
             )
     missing_calendar = calendar_gap(data, origin, config.horizon_days)
     if missing_calendar:
-        warnings.append(
-            f"The maintained calendar does not reach {missing_calendar[0]}; those days assume "
-            "no holiday."
-        )
+        warnings.append(note("calendar_gap", date=missing_calendar[0]))
     stale_days = (date.today() - origin).days
     if stale_days > 7:
-        warnings.append(
-            f"The last observed day is {origin.isoformat()}, {stale_days} days before this run. "
-            "The forecast starts from stale data."
-        )
+        warnings.append(note("stale_origin", date=origin.isoformat(), days=stale_days))
     if profile_days < 28:
-        warnings.append(
-            f"The hourly profile rests on {profile_days} observed days instead of the usual 56."
-        )
+        warnings.append(note("thin_profile", days=profile_days))
     degraded = [
         source.get("name")
         for source in (data.ingest_manifest or {}).get("sources", [])
         if source.get("status") not in (None, "ok")
     ]
     if degraded:
-        warnings.append(f"The ingest manifest reports degraded sources: {', '.join(map(str, degraded))}.")
+        warnings.append(note("degraded_sources", sources=", ".join(map(str, degraded))))
     return warnings
 
 
@@ -285,7 +287,7 @@ def _metrics_payload(
     profile_days: int,
     open_hours: tuple[int, ...],
     future: pd.DataFrame,
-    warnings: list[str],
+    warnings: list[dict[str, str]],
     stamp: RunStamp,
 ) -> dict[str, Any]:
     """Assemble ``metrics.json`` for one venue."""
@@ -321,7 +323,7 @@ def _metrics_payload(
             "climatology_days": climatology_days,
             "max_forecast_days": MAX_WEATHER_FORECAST_DAYS,
         },
-        "do_not_trust": list(STATIC_DO_NOT_TRUST),
+        "do_not_trust": do_not_trust(),
         "warnings": warnings,
     }
 
@@ -388,10 +390,9 @@ def command_run(data: ProcessedData, args: argparse.Namespace) -> int:
             entries.append(entry)
     if not entries:
         return EXIT_FAILED
-    warnings = sorted({warning for entry in entries for warning in entry["warnings"]})
-    warnings.extend(
-        f"Model {name} was skipped: its optional dependencies are not installed or not usable."
-        for name in skipped
+    warnings = _unique_notes(
+        [warning for entry in entries for warning in entry["warnings"]]
+        + [note("skipped_model", model=name) for name in skipped]
     )
     manifest = build_manifest(stamp, entries, list(usable), skipped, warnings, data.ingest_manifest)
     write_manifest(data.root, manifest)
@@ -438,10 +439,10 @@ def command_report(data: ProcessedData, args: argparse.Namespace) -> int:
     for venue in data.select_venues(args.venue):
         path = venue_dir(base, venue.venue_id) / METRICS_NAME
         if not path.is_file():
-            print(f"venue {venue.venue_id}: no metrics yet, run 'python -m ovf_forecast run' first")
+            print(say(args, "no_metrics", venue_id=venue.venue_id))
             continue
         payload = json.loads(path.read_text(encoding="utf-8"))
-        _print_report(payload)
+        _print_report(payload, args)
         found += 1
     return EXIT_OK if found else EXIT_FAILED
 
@@ -452,7 +453,7 @@ def command_evaluate(data: ProcessedData, args: argparse.Namespace) -> int:
         config, windows, sweep_kind = _evaluation_plan(data, args)
     except (WindowError, KeyError, ValueError) as exc:
         log_event("error", "evaluation", "Could not build the evaluation", error=str(exc))
-        print(f"virhe: {exc}")
+        print(say(args, "error", message=exc))
         return EXIT_FAILED
     if not config.models:
         log_event("error", "evaluation", "No usable model", requested=list(_evaluate_models(args)))
@@ -461,32 +462,33 @@ def command_evaluate(data: ProcessedData, args: argparse.Namespace) -> int:
     if not result.produced_anything:
         return EXIT_FAILED
     print()
-    print(result.summary)
+    print(result.summary(_lang(args)))
     print()
     for run_id in result.run_ids:
-        print(f"  tallennettu: data/evaluations/{run_id}/")
+        print(say(args, "saved", path=f"data/evaluations/{run_id}/"))
     if result.sweep_run_id:
-        print(f"  kooste:      data/evaluations/{result.sweep_run_id}/")
+        print(say(args, "pooled_saved", path=f"data/evaluations/{result.sweep_run_id}/"))
     return EXIT_PARTIAL if result.failed_venues else EXIT_OK
 
 
 def command_evaluate_report(data: ProcessedData, args: argparse.Namespace) -> int:
     """Print a stored evaluation report, or the pooled view across every stored run."""
     if args.pooled:
-        pooled = pooled_report(data.root, _evaluation_config(data, args, TRAIN_WINDOW_ALL))
+        config = _evaluation_config(data, args, TRAIN_WINDOW_ALL)
+        pooled = pooled_report(data.root, config, _lang(args))
         if pooled is None:
-            print("ei tallennettuja arviointiajoja, aja ensin 'python -m ovf_forecast evaluate'")
+            print(say(args, "no_eval_runs_hint"))
             return EXIT_FAILED
         print(pooled[0])
         return EXIT_OK
     if not args.id:
-        print("anna joko --id <run_id> tai --pooled")
+        print(say(args, "need_id_or_pooled"))
         return EXIT_FAILED
     artifacts = load_run(data.root, args.id)
     if artifacts is None:
-        print(f"tuntematon ajo: {args.id}")
+        print(say(args, "unknown_run", run_id=args.id))
         return EXIT_FAILED
-    print(artifacts.report)
+    print(artifacts.report(_lang(args)))
     return EXIT_OK
 
 
@@ -494,9 +496,12 @@ def command_evaluate_list(data: ProcessedData, args: argparse.Namespace) -> int:
     """List the stored evaluation runs, newest first."""
     runs = list_runs(data.root)
     if not runs:
-        print("ei tallennettuja arviointiajoja")
+        print(say(args, "no_eval_runs"))
         return EXIT_FAILED
-    print(f"{'run_id':<72}{'laji':>8}{'luotu':>22}  verdikti")
+    print(
+        f"{'run_id':<72}{say(args, 'column_kind'):>8}"
+        f"{say(args, 'column_created'):>22}  {say(args, 'column_verdict')}"
+    )
     for entry in runs[: args.limit]:
         verdicts = ", ".join(
             f"v{item['venue_id']}/{item['model']} vs {item['reference']}: {item['verdict']}"
@@ -523,15 +528,15 @@ def command_quiet(data: ProcessedData, args: argparse.Namespace) -> int:
         )
     except (WindowError, KeyError, ValueError) as exc:
         log_event("error", "quiet", "Could not build the forecast", error=str(exc))
-        print(f"virhe: {exc}")
+        print(say(args, "error", message=exc))
         return EXIT_FAILED
     result = quiet_forecast(data, year, month, config, moment=quiet_utc_now())
     if not result.produced_anything:
         return EXIT_FAILED
     print()
-    print(result.summary)
+    print(result.summary(_lang(args)))
     print()
-    print(f"  tallennettu: data/quiet/{result.run_id}/")
+    print(say(args, "saved", path=f"data/quiet/{result.run_id}/"))
     return EXIT_PARTIAL if result.failed_venues else EXIT_OK
 
 
@@ -550,16 +555,16 @@ def command_quiet_backtest(data: ProcessedData, args: argparse.Namespace) -> int
         windows, sweep_kind = _quiet_windows(data, args, config)
     except (WindowError, KeyError, ValueError) as exc:
         log_event("error", "quiet", "Could not build the sweep", error=str(exc))
-        print(f"virhe: {exc}")
+        print(say(args, "error", message=exc))
         return EXIT_FAILED
     result = quiet_backtest(data, windows, config, sweep_kind=sweep_kind, moment=quiet_utc_now())
     if not result.produced_anything:
-        print("yhtään ikkunaa ei voitu pisteyttää")
+        print(say(args, "no_windows_scored"))
         return EXIT_FAILED
     print()
-    print(result.summary)
+    print(result.summary(_lang(args)))
     print()
-    print(f"  tallennettu: data/quiet/{result.run_id}/")
+    print(say(args, "saved", path=f"data/quiet/{result.run_id}/"))
     return EXIT_OK
 
 
@@ -570,13 +575,13 @@ def command_quiet_report(data: ProcessedData, args: argparse.Namespace) -> int:
         runs = list_quiet_runs(data.root)
         run_id = str(runs[0]["run_id"]) if runs else None
     if not run_id:
-        print("anna joko --id <run_id> tai --latest")
+        print(say(args, "need_id_or_latest"))
         return EXIT_FAILED
     artifacts = load_quiet_run(data.root, run_id)
     if artifacts is None:
-        print(f"tuntematon ajo: {run_id}")
+        print(say(args, "unknown_run", run_id=run_id))
         return EXIT_FAILED
-    print(artifacts.report)
+    print(artifacts.report(_lang(args)))
     return EXIT_OK
 
 
@@ -584,9 +589,12 @@ def command_quiet_list(data: ProcessedData, args: argparse.Namespace) -> int:
     """List the stored quiet-day runs, newest first."""
     runs = list_quiet_runs(data.root)
     if not runs:
-        print("ei tallennettuja hiljaisten päivien ajoja")
+        print(say(args, "no_quiet_runs"))
         return EXIT_FAILED
-    print(f"{'run_id':<64}{'laji':>10}{'luotu':>22}  sisältö")
+    print(
+        f"{'run_id':<64}{say(args, 'column_kind'):>10}"
+        f"{say(args, 'column_created'):>22}  {say(args, 'column_content')}"
+    )
     for entry in runs[: args.limit]:
         if entry.get("kind") == "backtest":
             detail = ", ".join(
@@ -775,7 +783,7 @@ def _print_metrics(
                 print(f"  {model} @ {bucket} vs benchmarks -> {', '.join(verdicts)}")
 
 
-def _print_report(payload: dict[str, Any]) -> None:
+def _print_report(payload: dict[str, Any], args: argparse.Namespace) -> None:
     """Print one venue's stored metrics file."""
     print(f"\nvenue {payload['venue_id']} ({payload.get('venue_name')})")
     print(
@@ -801,7 +809,15 @@ def _print_report(payload: dict[str, Any]) -> None:
             if verdicts:
                 print(f"  {model} @ {bucket} vs benchmarks -> {', '.join(verdicts)}")
     for warning in payload.get("warnings", []):
-        print(f"  warning: {warning}")
+        print(f"  warning: {localised(warning, _lang(args))}")
+
+
+def _unique_notes(notes: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Deduplicate bilingual notes, ordered by the default language so runs stay stable."""
+    seen: dict[str, dict[str, str]] = {}
+    for item in notes:
+        seen.setdefault(item.get(DEFAULT_LANG, ""), item)
+    return [seen[key] for key in sorted(seen)]
 
 
 def _selected_models(requested: list[str] | None) -> tuple[str, ...]:
@@ -818,6 +834,31 @@ def _parse_moment(text: str | None) -> datetime | None:
     return datetime.fromisoformat(text.replace("Z", "+00:00")).astimezone(UTC)
 
 
+def _add_language_argument(parser: argparse.ArgumentParser, *, default: str | None) -> None:
+    """``--lang`` on the top level and on every subcommand.
+
+    Argparse puts a top-level flag before the subcommand, which is not where anyone types
+    it. Repeating it on the subparsers accepts both positions; the subparsers suppress
+    their default so that leaving it out there keeps whatever the top level resolved.
+    """
+    parser.add_argument(
+        "--lang",
+        choices=list(LANGUAGES),
+        default=default if default is not None else argparse.SUPPRESS,
+        help="Language this command prints in; every run writes its report in both",
+    )
+
+
+def _lang(args: argparse.Namespace) -> Lang:
+    """The language this invocation prints in."""
+    return normalise(getattr(args, "lang", DEFAULT_LANG))
+
+
+def say(args: argparse.Namespace, key: str, **values: object) -> str:
+    """One command-line message in the language this invocation asked for."""
+    return cli_text(_lang(args), key, **values)
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the ``python -m ovf_forecast`` argument parser."""
     parser = argparse.ArgumentParser(prog="ovf_forecast", description="Oulu2026 visitor flow forecast")
@@ -826,6 +867,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--log-level", choices=["debug", "info", "warning", "error"], default="info", help="Minimum log level"
     )
     parser.add_argument("--root", type=Path, default=None, help="Repository root (defaults to autodetect)")
+    _add_language_argument(parser, default=DEFAULT_LANG)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     run_parser = subparsers.add_parser("run", help="Backtest, fit and export the forecasts")
@@ -835,14 +877,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run_parser.add_argument("--no-archive", action="store_true", help="Skip the dated archive copy")
     run_parser.add_argument("--as-of", default=None, help="Override the run timestamp, for reproducible runs")
+    _add_language_argument(run_parser, default=None)
     run_parser.set_defaults(handler=command_run)
 
     backtest_parser = subparsers.add_parser("backtest", help="Validate without writing forecasts")
     _add_shared_arguments(backtest_parser)
+    _add_language_argument(backtest_parser, default=None)
     backtest_parser.set_defaults(handler=command_backtest)
 
     report_parser = subparsers.add_parser("report", help="Print the metrics of the last run")
     report_parser.add_argument("--venue", action="append", type=int, default=None, help="Limit to one venue")
+    _add_language_argument(report_parser, default=None)
     report_parser.set_defaults(handler=command_report)
 
     _add_evaluate_parser(subparsers)
@@ -880,6 +925,7 @@ def _add_quiet_parser(subparsers: Any) -> None:
     parser.add_argument("--seed", type=int, default=RANDOM_SEED, help="Simulation seed")
     parser.set_defaults(handler=command_quiet, id=None, latest=False, limit=20)
 
+    _add_language_argument(parser, default=None)
     actions = parser.add_subparsers(dest="quiet_action", required=False)
     backtest_action = actions.add_parser(
         "backtest", help="Measure the ranking on a sliding window of the history"
@@ -915,15 +961,18 @@ def _add_quiet_parser(subparsers: Any) -> None:
     backtest_action.add_argument(
         "--seed", type=int, default=RANDOM_SEED, help="Bootstrap and simulation seed"
     )
+    _add_language_argument(backtest_action, default=None)
     backtest_action.set_defaults(handler=command_quiet_backtest)
 
     report_action = actions.add_parser("report", help="Print a stored quiet-day report")
     report_action.add_argument("--id", default=None, help="Run id to print")
     report_action.add_argument("--latest", action="store_true", help="Print the newest stored run")
+    _add_language_argument(report_action, default=None)
     report_action.set_defaults(handler=command_quiet_report)
 
     list_action = actions.add_parser("list", help="List the stored quiet-day runs")
     list_action.add_argument("--limit", type=int, default=20, help="How many runs to show")
+    _add_language_argument(list_action, default=None)
     list_action.set_defaults(handler=command_quiet_list)
 
 
@@ -968,16 +1017,19 @@ def _add_evaluate_parser(subparsers: Any) -> None:
     parser.add_argument("--seed", type=int, default=RANDOM_SEED, help="Bootstrap seed")
     parser.set_defaults(handler=command_evaluate, pooled=False, id=None, limit=20)
 
+    _add_language_argument(parser, default=None)
     actions = parser.add_subparsers(dest="evaluate_action", required=False)
     report_action = actions.add_parser("report", help="Print a stored evaluation report")
     report_action.add_argument("--id", default=None, help="Run id to print")
     report_action.add_argument(
         "--pooled", action="store_true", help="Pool every stored run into one verdict"
     )
+    _add_language_argument(report_action, default=None)
     report_action.set_defaults(handler=command_evaluate_report)
 
     list_action = actions.add_parser("list", help="List the stored evaluation runs")
     list_action.add_argument("--limit", type=int, default=20, help="How many runs to show")
+    _add_language_argument(list_action, default=None)
     list_action.set_defaults(handler=command_evaluate_list)
 
 

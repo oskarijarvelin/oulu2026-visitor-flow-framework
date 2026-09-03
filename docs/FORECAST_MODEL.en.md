@@ -565,7 +565,9 @@ the run warns separately that the origin is 94 days old.
 
 ## 7. When the forecast should not be believed
 
-These are also recorded in the `do_not_trust` field of each venue's `metrics.json`.
+These are also recorded in the `do_not_trust` field of each venue's `metrics.json`, in
+both languages as `{"fi": ..., "en": ...}`. The same holds for the `warnings` field: the
+site renders them in the language the reader chose rather than guessing a translation.
 
 1. **A horizon beyond 14 days.** The weather is climatology and the level is frozen at the
    origin.
@@ -649,7 +651,8 @@ data/evaluations/{run_id}/config.json          the run's full parameters
 data/evaluations/{run_id}/predictions.csv      venue, day, horizon, model, weather mode, actual, p10/p50/p90
 data/evaluations/{run_id}/metrics.json         metrics, totals, the worst days
 data/evaluations/{run_id}/verdicts.json        the verdicts, machine-readable
-data/evaluations/{run_id}/report.md            the human-readable report
+data/evaluations/{run_id}/report.md            the human-readable report, in Finnish
+data/evaluations/{run_id}/report.en.md         the same report in English
 ```
 
 The `run_id` is deterministic and readable, and the same run with the same parameters
