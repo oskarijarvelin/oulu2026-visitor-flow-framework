@@ -40,7 +40,7 @@ def repo(tmp_path: Path) -> Path:
     for venue_id in (1, 2):
         tickets_dir = tmp_path / "data" / "raw" / "tickets" / f"venue_{venue_id}"
         tickets_dir.mkdir(parents=True)
-        (tickets_dir / "tickets.csv").write_text(TICKETS_CSV, encoding="utf-8")
+        (tickets_dir / f"tickets-venue-{venue_id}.csv").write_text(TICKETS_CSV, encoding="utf-8")
     return tmp_path
 
 

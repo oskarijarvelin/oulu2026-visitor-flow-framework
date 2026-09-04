@@ -141,7 +141,7 @@ def test_weather_rows_are_labelled_with_their_endpoint(
 def test_finnish_ticket_headers_are_accepted(repo: Path, fake_clients: type[FakeJaskaretail]) -> None:
     import pandas as pd
 
-    path = repo / "data" / "raw" / "tickets" / "venue_2" / "tickets.csv"
+    path = repo / "data" / "raw" / "tickets" / "venue_2" / "tickets-venue-2.csv"
     path.write_text(TICKETS_CSV_FINNISH.replace(";", ","), encoding="utf-8")
     assert run(repo) == EXIT_OK
     tickets = pd.read_csv(repo / "data" / "processed" / "tickets_daily.csv")
