@@ -16,6 +16,8 @@ export const en: Translation = {
     skipToContent: 'Skip to content',
     footerUnit:
       'Every figure is a visitor event: visitors_total is the sum of entries and exits, not a count of unique visitors. All times are Finnish local time.',
+    footerUnitSeries: (label: string, unit: string, source: string) =>
+      `The selected series is ${label}: the figures are ${unit}, from ${source}. Times are Finnish local time.`,
     footerRuns: (ingest: string, forecast: string) =>
       `Data fetched ${ingest}, forecast run ${forecast}. The site is static and is rebuilt on every run.`,
     footerAboutLink: 'Where the data comes from',
@@ -324,6 +326,8 @@ export const en: Translation = {
     panelTitle: (venue: string) => `${venue}: forecast`,
     panelDescription:
       'The dashed line is the median forecast and the pale band its p10 to p90 interval. The model selector switches models, the granularity selector switches between hourly and daily. The legend gives each model backtest MAE at the near horizon.',
+    panelDescriptionDaily:
+      'The dashed line is the median forecast and the pale band its p10 to p90 interval. The model selector switches models. The legend gives each model backtest MAE at the near horizon. This series has a daily level only.',
     panelFootnote: (from: string) =>
       `From ${from} onwards the background is pale brown and the line becomes dotted: the weather for those days is climatology, not a weather forecast. The difference survives in greyscale.`,
     panelAria: (venue: string) =>
@@ -354,6 +358,17 @@ export const en: Translation = {
     granularityHourly: '7 days, hourly',
     bothModels: 'Both',
     maeNote: (value: string) => `backtest MAE 1-7 days ${value}`,
+  },
+
+  series: {
+    selectorTitle: 'Which quantity you are looking at',
+    selectorLead:
+      'The same model is run separately for each series. They are not rescalings of one another but three instruments answering different questions, so accuracy is measured for each one on its own.',
+    selectorLabel: 'Choose a series',
+    noHourly: 'This series has no hourly forecast: ticket sales are recorded per day, so spreading them over hours would be invention.',
+    sourceNote: (source: string) => `Source: ${source}`,
+    originNote: (date: string) =>
+      `The last observation of this series is ${date}, and the forecast starts the day after it.`,
   },
 
   quality: {

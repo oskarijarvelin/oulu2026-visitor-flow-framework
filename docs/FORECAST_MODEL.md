@@ -672,6 +672,22 @@ data/forecasts/{YYYY-MM-DD}/...                     # arkistokopio samasta raken
 `series_source`. Manifestin `series` luettelee ajetut sarjat, ja `venues` sisältää yhden
 merkinnän per venue ja sarja.
 
+### 9.3 Sarjavalitsin sivustolla
+
+Ennuste- ja laatusivulla on sarjavalitsin. Web-build paketoi jokaisen sarjan: oletussarja
+`forecast.json`- ja `quality.json`-tiedostojen `venues`-avaimeen kuten ennenkin, muut
+`by_series`-avaimeen. Kahdentamista ei tehdä, joten vanhat lukijat näkevät saman kuin
+ennen.
+
+Sivu renderöi jokaisen sarjan palvelimella ja piilottaa muut kuin valitun, samalla
+tavalla kuin tarkkuussivun ajovalitsin. Valinta elää osoitteen hash-osassa
+(`#series=tickets_sold`), joten yhden sarjan näkymän voi jakaa linkkinä, ja ilman
+JavaScriptia sivu näyttää oletussarjan.
+
+Yksiköt seuraavat sarjaa: kaavioiden akselit, vihjeet ja sivun alatunnisteen
+yksikköhuomautus lukevat sarjan omaa yksikköä eivätkä oleta kävijätapahtumia. Sarjalta
+jolla ei ole tuntitasoa ei piirretä tuntivalitsinta lainkaan.
+
 Sarakkeet on kuvattu `FRAMEWORK_PLAN.md` luvussa 4.3.
 
 Arviointi kirjoittaa omaan puuhunsa:

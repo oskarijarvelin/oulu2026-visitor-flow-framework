@@ -1,0 +1,105 @@
+---
+/**
+ * Sarjavalitsin ja sen kytkinskripti.
+ *
+ * Jokaisen sarjan sisalto renderoidaan palvelimella ja piilotetaan `hidden`-attribuutilla
+ * paitsi oletussarjalta, samalla tavalla kuin tarkkuussivun ajovalitsin tekee. Nain
+ * valinta toimii ilman uutta pyyntoa, sivu on luettava myos ilman JavaScriptia, ja
+ * yksittaisen sarjan voi jakaa linkkina hashin kautta.
+ *
+ * Valitsin on linkkilista eika painikeryhma juuri siita syysta: ilman skriptia
+ * `#series=tickets_sold` on yha osoite jonka voi avata, ja skriptin kanssa se on
+ * selaimen historiassa.
+ */
+
+import type { Lang } from '../i18n/index.ts';
+import { ui } from '../i18n/ui/index.ts';
+import type { SeriesMeta } from '../lib/types.ts';
+
+interface Props {
+  lang: Lang;
+  series: SeriesMeta[];
+  defaultSeries: string;
+}
+
+const { lang, series, defaultSeries } = Astro.props;
+const t = ui(lang);
+---
+
+{
+  series.length > 1 && (
+    <nav
+      aria-label={t.series.selectorLabel}
+      class="mt-6 rounded-lg border border-line bg-surface p-4 sm:p-5"
+      data-series-default={defaultSeries}
+    >
+      <h2 class="text-base font-semibold tracking-tight text-ink">{t.series.selectorTitle}</h2>
+      <p class="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">{t.series.selectorLead}</p>
+      <ul class="mt-3 flex flex-wrap gap-2">
+        {series.map((entry) => (
+          <li>
+            <a
+              href={`#series=${entry.series_id}`}
+              data-series-link={entry.series_id}
+              aria-current={entry.series_id === defaultSeries ? 'true' : 'false'}
+              class="block rounded-md border border-line bg-canvas px-3 py-2 text-sm no-underline transition-colors hover:border-ink-muted aria-[current=true]:border-series-1 aria-[current=true]:bg-surface aria-[current=true]:shadow-[inset_0_0_0_1px_var(--color-series-1)]"
+            >
+              <span class="block font-medium text-ink">{entry.label[lang]}</span>
+              <span class="mt-0.5 block text-xs text-ink-muted">{entry.unit[lang]}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+
+<script>
+  /**
+   * Sarjavalitsin. Valittu sarja asuu osoitteen hash-osassa, jotta yhden sarjan voi jakaa
+   * linkkina, ja juurielementin data-attribuutissa, josta kaaviosaarekkeet lukevat sen
+   * myos silloin kun ne heraavat vasta myohemmin.
+   */
+  import { SERIES_DATASET_KEY, SERIES_EVENT, seriesFromHash } from '../lib/seriesstate.ts';
+
+  const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-series-link]'));
+  const panels = Array.from(document.querySelectorAll<HTMLElement>('[data-series]'));
+  const known = new Set(links.map((link) => link.dataset['seriesLink'] ?? ''));
+  const fallback =
+    document.querySelector<HTMLElement>('[data-series-default]')?.dataset['seriesDefault'] ?? '';
+
+  function apply(series: string): void {
+    if (series === '') return;
+    document.documentElement.dataset[SERIES_DATASET_KEY] = series;
+    for (const panel of panels) panel.hidden = panel.dataset['series'] !== series;
+    for (const link of links) {
+      link.setAttribute('aria-current', link.dataset['seriesLink'] === series ? 'true' : 'false');
+    }
+    document.dispatchEvent(new CustomEvent(SERIES_EVENT, { detail: { series } }));
+  }
+
+  function fromLocation(): string {
+    const series = seriesFromHash(window.location.hash);
+    return series !== null && known.has(series) ? series : fallback;
+  }
+
+  if (links.length > 0) {
+    apply(fromLocation());
+
+    for (const link of links) {
+      link.addEventListener('click', (event) => {
+        const series = link.dataset['seriesLink'];
+        if (series === undefined || series === '') return;
+        event.preventDefault();
+        const hash = `#series=${encodeURIComponent(series)}`;
+        if (window.location.hash !== hash) {
+          window.history.pushState(null, '', hash);
+        }
+        apply(series);
+      });
+    }
+
+    window.addEventListener('hashchange', () => apply(fromLocation()));
+    window.addEventListener('popstate', () => apply(fromLocation()));
+  }
+</script>

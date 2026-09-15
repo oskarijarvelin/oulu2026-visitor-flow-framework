@@ -3,6 +3,7 @@ import ForecastChart from '../charts/forecastchart.ts';
 import Callout from '../components/Callout.astro';
 import Figure from '../components/Figure.astro';
 import Layout from '../components/Layout.astro';
+import SeriesSwitch from '../components/SeriesSwitch.astro';
 import StatCard from '../components/StatCard.astro';
 import TableScroll from '../components/TableScroll.astro';
 import forecastData from '../data/forecast.json';
@@ -28,54 +29,101 @@ const site = metaData as Meta;
 const forecast = forecastData as unknown as ForecastData;
 const quality = qualityData as unknown as QualityData;
 const defaultModel = forecast.default_model;
+const defaultSeries = forecast.default_series;
 
-const panels = site.venues.map((venue) => {
-  const key = String(venue.venue_id);
-  const venueForecast = forecast.venues[key]!;
-  const venueQuality = quality.venues[key]!;
-
-  const models = forecast.models.map((name) => ({
-    name,
-    label: modelLabel(name, lang),
-    mae: t.forecast.maeNote(f.decimal(venueQuality.metrics[name]?.['1-7']?.mae ?? 0)),
+const toSeries = (
+  rows: { date?: string; ts?: string; p10: number; p50: number; p90: number; weather_source: string }[],
+) =>
+  rows.map((row) => ({
+    t: row.date ?? row.ts ?? '',
+    p10: row.p10,
+    p50: row.p50,
+    p90: row.p90,
+    clim: row.weather_source === 'climatology',
   }));
 
-  const toSeries = (
-    rows: { date?: string; ts?: string; p10: number; p50: number; p90: number; weather_source: string }[],
-  ) =>
-    rows.map((row) => ({
-      t: row.date ?? row.ts ?? '',
-      p10: row.p10,
-      p50: row.p50,
-      p90: row.p90,
-      clim: row.weather_source === 'climatology',
+/**
+ * Yksi sarja kokonaisuudessaan: paneelit, varoitustekstit ja mallivertailu.
+ *
+ * Kaikki sarjat renderoidaan palvelimella ja piilotetaan oletussarjaa lukuun ottamatta,
+ * joten valitsin vaihtaa nakyman ilman uutta pyyntoa ja sivu on luettava myos ilman
+ * JavaScriptia. Ks. `components/SeriesSwitch.astro`.
+ */
+const seriesPanels = forecast.series.map((meta) => {
+  const seriesForecast =
+    meta.series_id === defaultSeries ? forecast.venues : (forecast.by_series[meta.series_id] ?? {});
+  const seriesQuality =
+    meta.series_id === defaultSeries ? quality.venues : (quality.by_series[meta.series_id] ?? {});
+
+  const panels = site.venues.flatMap((venue) => {
+    const key = String(venue.venue_id);
+    const venueForecast = seriesForecast[key];
+    const venueQuality = seriesQuality[key];
+    if (!venueForecast || !venueQuality) return [];
+
+    const models = forecast.models.map((name) => ({
+      name,
+      label: modelLabel(name, lang),
+      mae: t.forecast.maeNote(f.decimal(venueQuality.metrics[name]?.['1-7']?.mae ?? 0)),
     }));
 
+    return [
+      {
+        venue,
+        venueForecast,
+        venueQuality,
+        models,
+        daily: Object.fromEntries(
+          Object.entries(venueForecast.daily).map(([model, rows]) => [model, toSeries(rows)]),
+        ),
+        hourly: Object.fromEntries(
+          Object.entries(venueForecast.hourly).map(([model, rows]) => [model, toSeries(rows)]),
+        ),
+        defaultRows: venueForecast.daily[defaultModel] ?? [],
+        climatologyFrom: addDays(venueForecast.origin_date, venueForecast.forecast_weather_days + 1),
+        // Avainluvut lasketaan sarjan omista riveistä: meta.jsonin `next7` koskee vain
+        // oletussarjaa, ja kortit vaihtuvat valitsimen mukana kuten muukin sivu.
+        next7: next7Of(venueForecast.daily[defaultModel] ?? []),
+      },
+    ];
+  });
+
+  // Sään lähde vaihtuu klimatologiaksi venuekohtaisesti. Käytännössä raja on sama
+  // molemmilla, mutta teksti lasketaan silti datasta eikä oleteta.
+  const weatherDays = panels.map((panel) => panel.venueForecast.forecast_weather_days);
+  const minWeatherDays = weatherDays.length === 0 ? 16 : Math.min(...weatherDays);
+  const maxWeatherDays = weatherDays.length === 0 ? 16 : Math.max(...weatherDays);
+
   return {
-    venue,
-    venueForecast,
-    venueQuality,
-    models,
-    daily: Object.fromEntries(
-      Object.entries(venueForecast.daily).map(([model, rows]) => [model, toSeries(rows)]),
-    ),
-    hourly: Object.fromEntries(
-      Object.entries(venueForecast.hourly).map(([model, rows]) => [model, toSeries(rows)]),
-    ),
-    defaultRows: venueForecast.daily[defaultModel] ?? [],
-    climatologyFrom: addDays(venueForecast.origin_date, venueForecast.forecast_weather_days + 1),
+    meta,
+    panels,
+    weatherDaysLabel:
+      minWeatherDays === maxWeatherDays ? String(minWeatherDays) : `${minWeatherDays}-${maxWeatherDays}`,
+    // Jokainen sarja ennustaa omasta viimeisestä havainnostaan: lipunmyynti ylläpidetään
+    // käsin ja laahaa kävijälaskentaa muutaman päivän, joten origo eroaa aidosti.
+    originDate: panels.map((panel) => panel.venueForecast.origin_date).sort().at(-1) ?? '',
   };
 });
 
 const warnings = localisedTexts(site.forecast.warnings, lang);
 
-// Sään lähde vaihtuu klimatologiaksi venuekohtaisesti. Käytännössä raja on sama
-// molemmilla, mutta teksti lasketaan silti datasta eikä oleteta.
-const weatherDays = panels.map((panel) => panel.venueForecast.forecast_weather_days);
-const minWeatherDays = Math.min(...weatherDays);
-const maxWeatherDays = Math.max(...weatherDays);
-const weatherDaysLabel =
-  minWeatherDays === maxWeatherDays ? String(minWeatherDays) : `${minWeatherDays}-${maxWeatherDays}`;
+/** Seuraavan seitseman vuorokauden summa ja vali yhden sarjan riveista. */
+function next7Of(rows: { horizon_days: number; p10: number; p50: number; p90: number }[]): {
+  p10: number;
+  p50: number;
+  p90: number;
+  days: number;
+} {
+  const week = rows.filter((row) => row.horizon_days <= 7);
+  const total = (pick: (row: (typeof week)[number]) => number): number =>
+    week.reduce((acc, row) => acc + pick(row), 0);
+  return {
+    p10: total((row) => row.p10),
+    p50: total((row) => row.p50),
+    p90: total((row) => row.p90),
+    days: week.length,
+  };
+}
 ---
 
 <Layout
@@ -89,44 +137,79 @@ const weatherDaysLabel =
     modelLabel(defaultModel, lang),
   )}
 >
+  <Fragment slot="footer-unit">
+    {
+      seriesPanels.map((entry) => (
+        <p data-series={entry.meta.series_id} hidden={entry.meta.series_id !== defaultSeries}>
+          {t.site.footerUnitSeries(entry.meta.label[lang], entry.meta.unit[lang], entry.meta.source)}
+        </p>
+      ))
+    }
+  </Fragment>
+
   <div class="mt-6">
     <Callout tone="warning" title={t.forecast.warningTitle}>
       <ul class="list-disc space-y-1 pl-5">
         {warnings.map((warning) => <li>{warning}</li>)}
-        <li>{t.forecast.warningWeather(weatherDaysLabel)}</li>
+        {
+          seriesPanels.map((entry) => (
+            <li data-series={entry.meta.series_id} hidden={entry.meta.series_id !== defaultSeries}>
+              {t.forecast.warningWeather(entry.weatherDaysLabel)}
+            </li>
+          ))
+        }
         <li>{t.forecast.warningIntervals}</li>
       </ul>
     </Callout>
   </div>
 
-  <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-    {
-      site.venues.map((venue) => (
-        <>
-          <StatCard
-            label={t.forecast.next7(venue.name)}
-            value={f.int(venue.next7?.p50 ?? 0)}
-            unit={t.common.countUnit}
-            note={t.forecast.next7Note(f.int(venue.next7?.p10 ?? 0), f.int(venue.next7?.p90 ?? 0))}
-          />
-          <StatCard
-            label={t.forecast.dailyMean(venue.name)}
-            value={f.int((venue.next7?.p50 ?? 0) / Math.max(1, venue.next7?.days ?? 7))}
-            unit={t.home.perDay}
-            note={t.forecast.dailyMeanNote(f.int(venue.last30.mean_daily))}
-          />
-        </>
-      ))
-    }
-  </div>
+  <SeriesSwitch lang={lang} series={forecast.series} defaultSeries={defaultSeries} />
 
-  <div class="mt-6 space-y-6">
-    {
-      panels.map(({ venue, venueForecast, venueQuality, models, daily, hourly, defaultRows, climatologyFrom }) => (
+  {
+    seriesPanels.map((entry) => (
+      <div
+        data-series={entry.meta.series_id}
+        hidden={entry.meta.series_id !== defaultSeries}
+        class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+      >
+        {entry.panels.map(({ venue, next7 }) => (
+          <>
+            <StatCard
+              label={t.forecast.next7(venue.name)}
+              value={f.int(next7.p50)}
+              unit={entry.meta.unit[lang]}
+              note={t.forecast.next7Note(f.int(next7.p10), f.int(next7.p90))}
+            />
+            <StatCard
+              label={t.forecast.dailyMean(venue.name)}
+              value={f.int(next7.p50 / Math.max(1, next7.days))}
+              unit={t.home.perDay}
+              note={
+                entry.meta.series_id === defaultSeries
+                  ? t.forecast.dailyMeanNote(f.int(venue.last30.mean_daily))
+                  : t.series.sourceNote(entry.meta.source)
+              }
+            />
+          </>
+        ))}
+      </div>
+    ))
+  }
+
+  {
+    seriesPanels.map((entry) => (
+      <div data-series={entry.meta.series_id} hidden={entry.meta.series_id !== defaultSeries} class="mt-6 space-y-6">
+        <p class="text-sm leading-6 text-ink-muted">
+          {t.series.originNote(f.date(entry.originDate))}{' '}
+          {entry.meta.has_hourly ? '' : t.series.noHourly}
+        </p>
+        {entry.panels.map(({ venue, venueForecast, venueQuality, models, daily, hourly, defaultRows, climatologyFrom }) => (
         <Figure
           lang={lang}
           title={t.forecast.panelTitle(venue.name)}
-          description={t.forecast.panelDescription}
+          description={
+            entry.meta.has_hourly ? t.forecast.panelDescription : t.forecast.panelDescriptionDaily
+          }
           footnote={t.forecast.panelFootnote(f.date(climatologyFrom))}
         >
           <ForecastChart
@@ -137,6 +220,8 @@ const weatherDaysLabel =
             hourly={hourly}
             models={models}
             defaultModel={defaultModel}
+            unit={entry.meta.unit[lang]}
+            hasHourly={entry.meta.has_hourly}
             forecastWeatherDays={venueForecast.forecast_weather_days}
             originDate={venueForecast.origin_date}
             placeholderHeight={300}
@@ -195,9 +280,10 @@ const weatherDaysLabel =
             </TableScroll>
           </div>
         </Figure>
-      ))
-    }
-  </div>
+        ))}
+      </div>
+    ))
+  }
 
   <section aria-labelledby="mallivertailu" class="mt-8">
     <h2 id="mallivertailu" class="text-lg font-semibold tracking-tight text-ink">
@@ -207,41 +293,43 @@ const weatherDaysLabel =
       {t.forecast.comparisonLead(modelLabel(defaultModel, lang))}{' '}
       <a class="underline" href={localizedPath('/quality', lang)}>{t.forecast.comparisonLink}</a>.
     </p>
-    <div class="mt-4">
-      <TableScroll label={t.forecast.comparisonCaption} scrollY={false}>
-        <table class="data-table">
-          <caption>{t.forecast.comparisonCaption}</caption>
-          <thead>
-            <tr>
-              <th scope="col">{t.common.venue}</th>
-              <th scope="col">{t.common.model}</th>
-              {
-                panels[0]!.venueQuality.horizon_buckets.map((bucket) => (
-                  <th scope="col" class="num">{t.forecast.maeFor(horizonBucketLabel(bucket, lang))}</th>
-                ))
-              }
-            </tr>
-          </thead>
-          <tbody>
-            {
-              panels.flatMap(({ venue, venueQuality }) =>
-                forecast.models.map((model) => (
-                  <tr>
-                    <th scope="row">{venue.name}</th>
-                    <td class:list={[model === defaultModel && 'strong']}>
-                      {modelLabel(model, lang)}
-                      {model === defaultModel ? ` (${t.common.production})` : ''}
-                    </td>
-                    {venueQuality.horizon_buckets.map((bucket) => (
-                      <td class="num">{f.decimal(venueQuality.metrics[model]?.[bucket]?.mae ?? 0)}</td>
-                    ))}
-                  </tr>
-                )),
-              )
-            }
-          </tbody>
-        </table>
-      </TableScroll>
-    </div>
+    {
+      seriesPanels.map((entry) => (
+        <div data-series={entry.meta.series_id} hidden={entry.meta.series_id !== defaultSeries} class="mt-4">
+          <TableScroll label={t.forecast.comparisonCaption} scrollY={false}>
+            <table class="data-table">
+              <caption>
+                {t.forecast.comparisonCaption} &mdash; {entry.meta.label[lang]}
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">{t.common.venue}</th>
+                  <th scope="col">{t.common.model}</th>
+                  {(entry.panels[0]?.venueQuality.horizon_buckets ?? []).map((bucket) => (
+                    <th scope="col" class="num">{t.forecast.maeFor(horizonBucketLabel(bucket, lang))}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {entry.panels.flatMap(({ venue, venueQuality }) =>
+                  forecast.models.map((model) => (
+                    <tr>
+                      <th scope="row">{venue.name}</th>
+                      <td class:list={[model === defaultModel && 'strong']}>
+                        {modelLabel(model, lang)}
+                        {model === defaultModel ? ` (${t.common.production})` : ''}
+                      </td>
+                      {venueQuality.horizon_buckets.map((bucket) => (
+                        <td class="num">{f.decimal(venueQuality.metrics[model]?.[bucket]?.mae ?? 0)}</td>
+                      ))}
+                    </tr>
+                  )),
+                )}
+              </tbody>
+            </table>
+          </TableScroll>
+        </div>
+      ))
+    }
   </section>
 </Layout>

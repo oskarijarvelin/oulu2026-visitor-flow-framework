@@ -61,7 +61,7 @@ export interface ChartStrings {
   scatterTip: (date: string, events: string, temp: string, rain: string, group: string) => string;
 
   backtestNote: (pairs: string, coverage: number) => string;
-  backtestAxis: string;
+  backtestAxis: (unit: string) => string;
   backtestBucketLabel: string;
   backtestTip: (origin: string, horizon: number, target: string, forecast: string, actual: string, low: string, high: string) => string;
   backtestOutside: string;
@@ -71,6 +71,7 @@ export interface ChartStrings {
   originWeekModel: (
     label: string,
     mae: string,
+    unit: string,
     bias: string,
     direction: string,
     inside: number,
@@ -154,7 +155,7 @@ const FI: ChartStrings = {
     `${pairs} ennuste ja toteuma -paria. Toteuma osui p10 - p90 -välille ${coverage} prosentissa ` +
     'tapauksista; tavoite on 80. Lävistäjän yläpuolella oleva piste tarkoittaa että malli aliarvioi ' +
     'kyseisen vuorokauden, alapuolella että se yliarvioi.',
-  backtestAxis: 'Ennuste, kävijätapahtumaa →',
+  backtestAxis: (unit) => `Ennuste, ${unit} →`,
   backtestBucketLabel: 'Horisontti, vuorokautta',
   backtestTip: (origin, horizon, target, forecast, actual, low, high) =>
     `Origo ${origin}, horisontti ${horizon} vrk\nKohdepäivä ${target}\n` +
@@ -165,8 +166,8 @@ const FI: ChartStrings = {
   originWeekHeader: (origin, days) =>
     `Origo ${origin}: mallit koulutettiin tähän päivään asti eivätkä nähneet mitään sen jälkeen. ` +
     `Seuraavat ${days} vuorokautta:`,
-  originWeekModel: (label, mae, bias, direction, inside, days) =>
-    `${label}: keskimääräinen itseisvirhe ${mae} kävijätapahtumaa, ${direction} keskimäärin ${bias}, ` +
+  originWeekModel: (label, mae, unit, bias, direction, inside, days) =>
+    `${label}: keskimääräinen itseisvirhe ${mae} ${unit}, ${direction} keskimäärin ${bias}, ` +
     `toteuma osui p10 - p90 -välille ${inside} / ${days} vuorokautena.`,
   originWeekOver: 'yliarvioi',
   originWeekUnder: 'aliarvioi',
@@ -247,7 +248,7 @@ const EN: ChartStrings = {
     `${pairs} forecast and actual pairs. The actual value fell inside the p10 to p90 interval in ` +
     `${coverage} percent of cases; the target is 80. A point above the diagonal means the model ` +
     'underestimated that day, below it that it overestimated.',
-  backtestAxis: 'Forecast, visitor events →',
+  backtestAxis: (unit) => `Forecast, ${unit} →`,
   backtestBucketLabel: 'Horizon, days',
   backtestTip: (origin, horizon, target, forecast, actual, low, high) =>
     `Origin ${origin}, horizon ${horizon} days\nTarget day ${target}\n` +
@@ -258,8 +259,8 @@ const EN: ChartStrings = {
   originWeekHeader: (origin, days) =>
     `Origin ${origin}: the models were trained up to this day and saw nothing after it. ` +
     `The following ${days} days:`,
-  originWeekModel: (label, mae, bias, direction, inside, days) =>
-    `${label}: mean absolute error ${mae} visitor events, ${direction} by ${bias} on average, ` +
+  originWeekModel: (label, mae, unit, bias, direction, inside, days) =>
+    `${label}: mean absolute error ${mae} ${unit}, ${direction} by ${bias} on average, ` +
     `the actual value landed inside the p10 to p90 interval on ${inside} of ${days} days.`,
   originWeekOver: 'overestimates',
   originWeekUnder: 'underestimates',

@@ -14,6 +14,8 @@ export const fi = {
     skipToContent: 'Siirry sisältöön',
     footerUnit:
       'Kaikki luvut ovat kävijätapahtumia: visitors_total on sisään- ja ulosmenojen summa, ei uniikkien kävijöiden määrä. Ajat ovat Suomen aikaa.',
+    footerUnitSeries: (label: string, unit: string, source: string) =>
+      `Valittuna on sarja ${label}: luvut ovat ${unit}, lähde ${source}. Ajat ovat Suomen aikaa.`,
     footerRuns: (ingest: string, forecast: string) =>
       `Aineisto haettu ${ingest}, ennuste ajettu ${forecast}. Sivusto on staattinen ja rakennetaan uudelleen jokaisella ajolla.`,
     footerAboutLink: 'Mistä data tulee',
@@ -331,6 +333,8 @@ export const fi = {
     panelTitle: (venue: string) => `${venue}: ennuste`,
     panelDescription:
       'Katkoviiva on mediaaniennuste ja vaalea alue sen p10 - p90 -väli. Mallivalitsin vaihtaa mallia, tarkkuusvalitsin tunti- ja päivätason välillä. Legenda kertoo kummankin mallin backtest-MAE:n lähihorisontilla.',
+    panelDescriptionDaily:
+      'Katkoviiva on mediaaniennuste ja vaalea alue sen p10 - p90 -väli. Mallivalitsin vaihtaa mallia. Legenda kertoo kummankin mallin backtest-MAE:n lähihorisontilla. Tällä sarjalla on vain päivätaso.',
     panelFootnote: (from: string) =>
       `Vuorokaudesta ${from} alkaen tausta on vaalean ruskea ja viiva pisteviiva: näiden vuorokausien sää on klimatologiaa, ei sääennustetta. Ero näkyy myös harmaasävyisenä.`,
     panelAria: (venue: string) =>
@@ -361,6 +365,17 @@ export const fi = {
     granularityHourly: '7 vrk, tunti',
     bothModels: 'Molemmat',
     maeNote: (value: string) => `backtest-MAE 1-7 vrk ${value}`,
+  },
+
+  series: {
+    selectorTitle: 'Mitä suuretta katsotaan',
+    selectorLead:
+      'Sama malli ajetaan erikseen jokaiselle sarjalle. Ne eivät ole toistensa skaalauksia vaan kolme eri mittalaitteen vastausta, joten myös tarkkuus mitataan kullekin erikseen.',
+    selectorLabel: 'Valitse sarja',
+    noHourly: 'Tällä sarjalla ei ole tuntitason ennustetta: lipunmyynti kirjataan päivätasolla, joten tunneille jakaminen olisi keksimistä.',
+    sourceNote: (source: string) => `Lähde: ${source}`,
+    originNote: (date: string) =>
+      `Tämän sarjan viimeisin havainto on ${date}, ja ennuste alkaa sitä seuraavasta päivästä.`,
   },
 
   quality: {

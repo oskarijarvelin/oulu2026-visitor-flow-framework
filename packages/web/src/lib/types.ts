@@ -296,11 +296,31 @@ export interface VenueForecast {
   mae: Record<ModelName, Record<HorizonBucket, number>>;
 }
 
+/**
+ * Yksi ennustettava suure. Sarjat tulevat ajolta sellaisenaan; ks. docs/FORECAST_MODEL.md
+ * luku 9.1 siita mita kukin mittaa ja miksi ne eivat ole toistensa skaalauksia.
+ */
+export interface SeriesMeta {
+  series_id: string;
+  label: LocalisedText;
+  unit: LocalisedText;
+  /** Mista taulusta ja sarakkeesta luku tulee, esim. "tickets_daily.tickets_sold". */
+  source: string;
+  /** Onko sarjalla tuntitason ennustetta. Lipunmyynnilla ei ole. */
+  has_hourly: boolean;
+}
+
 export interface ForecastData {
   generated_at: string;
   models: ModelName[];
   default_model: ModelName;
+  /** Sarjat valitsimen jarjestyksessa, oletussarja ensin. */
+  series: SeriesMeta[];
+  default_series: string;
+  /** Oletussarja. Pidetty omassa avaimessaan, jotta vanhat lukijat eivat muutu. */
   venues: Record<string, VenueForecast>;
+  /** Muut sarjat: sarjan tunnus -> venue-avain. Oletussarja ei ole taalla kahdennettuna. */
+  by_series: Record<string, Record<string, VenueForecast>>;
 }
 
 // ---------------------------------------------------------------------------
@@ -355,6 +375,11 @@ export interface HorizonPoint {
 export interface VenueQuality {
   venue_id: number;
   venue_name: string;
+  /** Mita suuretta nama mittarit koskevat. Ks. `SeriesMeta`. */
+  series: string;
+  series_label?: LocalisedText;
+  series_unit?: LocalisedText;
+  series_source?: string;
   origin_date: string;
   n_training_days: number;
   training_window: [string, string];
@@ -381,7 +406,10 @@ export interface VenueQuality {
 }
 
 export interface QualityData {
+  /** Oletussarja, kuten ennen sarjajakoa. */
   venues: Record<string, VenueQuality>;
+  /** Muut sarjat: sarjan tunnus -> venue-avain. */
+  by_series: Record<string, Record<string, VenueQuality>>;
 }
 
 // ---------------------------------------------------------------------------

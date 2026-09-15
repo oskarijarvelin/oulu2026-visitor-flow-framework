@@ -679,6 +679,22 @@ data/forecasts/{YYYY-MM-DD}/...                     # archive copy of the same s
 `series_source`. The manifest's `series` lists the series that ran, and `venues` holds one
 entry per venue and series.
 
+### 9.3 The series selector on the site
+
+The forecast and quality pages carry a series selector. The web build packages every
+series: the default one under the `venues` key of `forecast.json` and `quality.json` as
+before, the others under `by_series`. Nothing is duplicated, so existing readers see
+exactly what they saw before.
+
+The page renders every series on the server and hides all but the selected one, the same
+way the accuracy page's run selector does. The choice lives in the URL hash
+(`#series=tickets_sold`), so one series' view can be shared as a link, and without
+JavaScript the page shows the default series.
+
+Units follow the series: chart axes, tooltips and the page footer's unit note read the
+series' own unit rather than assuming visitor events. A series with no hourly level gets
+no granularity selector at all.
+
 The columns are described in chapter 4.3 of `FRAMEWORK_PLAN.md`.
 
 The evaluation writes into its own tree:

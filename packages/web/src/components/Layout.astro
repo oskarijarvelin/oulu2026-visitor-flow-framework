@@ -78,7 +78,13 @@ const canonical = canonicalPath(pathname);
 
     <footer class="border-t border-line bg-surface">
       <div class="mx-auto w-full max-w-6xl px-4 py-6 text-xs leading-5 text-ink-muted sm:px-6">
-        <p>{t.site.footerUnit}</p>
+        {
+          /*
+           * Yksikkohuomautus on oletuksena koko sivuston oma. Ennustesivulla se riippuu
+           * valitusta sarjasta, ja silloin sivu antaa oman versionsa tahan lokeroon.
+           */
+          Astro.slots.has('footer-unit') ? <slot name="footer-unit" /> : <p>{t.site.footerUnit}</p>
+        }
         <p class="mt-2">
           {t.site.footerRuns(f.utc(site.ingest.generated_at), f.utc(site.forecast.generated_at))}{' '}
           <a class="underline" href={localizedPath('/about', lang)}>{t.site.footerAboutLink}</a>.

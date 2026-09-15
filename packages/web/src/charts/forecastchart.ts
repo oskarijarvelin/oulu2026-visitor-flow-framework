@@ -41,6 +41,17 @@ export interface ForecastChartProps {
   hourly: Record<string, ForecastSeriesPoint[]>;
   models: { name: string; label: string; mae: string }[];
   defaultModel: string;
+  /**
+   * Yksikko jolla luvut luetaan, esimerkiksi "kavijatapahtumaa" tai "lippua". Annetaan
+   * sarjalta eika muotoilijalta, koska sama kaavio piirtaa kolmea eri suuretta.
+   */
+  unit: string;
+  /**
+   * Onko sarjalla tuntitason ennustetta. Lipunmyynnilla ei ole, ja silloin
+   * tarkkuusvalitsinta ei piirreta lainkaan: valitsin joka vaihtaa tyhjaan kaavioon on
+   * pahempi kuin puuttuva valitsin.
+   */
+  hasHourly: boolean;
   /** Viimeinen vuorokausi jolla saa on dynaamista ennustetta. */
   forecastWeatherDays: number;
   originDate: string;
@@ -92,7 +103,8 @@ export default island<ForecastChartProps>((element, props) => {
     renderLegend();
   });
 
-  frame.controls.append(granularityToggle.element, modelToggle.element);
+  if (props.hasHourly) frame.controls.append(granularityToggle.element);
+  frame.controls.append(modelToggle.element);
 
   const renderLegend = (): void => {
     const active = activeModels(props, selection);
@@ -254,7 +266,7 @@ function draw(
         r: granularity === 'daily' ? 2.6 : 1.6,
         title: (row: Row) =>
           `${model.label}\n${titleOf(row.at)}\n` +
-          `${strings.forecastTip(f.count(row.p50))}\n` +
+          `${strings.forecastTip(`${f.int(row.p50)} ${props.unit}`)}\n` +
           `${strings.intervalTip(f.int(row.p10), f.int(row.p90))}` +
           (row.clim ? `\n${strings.climatologyTip}` : ''),
         tip: true,

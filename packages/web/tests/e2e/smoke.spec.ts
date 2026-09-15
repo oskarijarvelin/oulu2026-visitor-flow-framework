@@ -116,14 +116,19 @@ function collectErrors(page: Page): string[] {
 }
 
 /**
- * Vierittaa jokaisen saarekkeen nakyviin ja odottaa etta se on hydratoitunut.
+ * Vierittaa jokaisen nakyvan saarekkeen nakyviin ja odottaa etta se on hydratoitunut.
  *
  * Saarekkeet latautuvat `client:visible`-direktiivilla, joten ne heraavat vasta kun ne
  * tulevat nakyviin. Sivun vierittaminen silmamaaraisin harppauksin ei riita, koska
  * sivun korkeus kasvaa kaavioiden ilmestyessa.
+ *
+ * Sarjavalitsimen sivuilla osa saarekkeista on `hidden`-lohkon sisalla: ne kuuluvat
+ * sarjaan jota ei ole valittu, eivatka ne voi hydratoitua ennen kuin lukija vaihtaa
+ * sarjaa. Niita ei siis odoteta tassa, vaan `renderoi valitun sarjan kaaviot` -testi
+ * vaihtaa sarjan ja tarkistaa etta ne piirtyvat silloin.
  */
 async function hydrateIslands(page: Page): Promise<number> {
-  const islands = page.locator('astro-island');
+  const islands = page.locator('astro-island:not([hidden] astro-island)');
   const count = await islands.count();
   for (let index = 0; index < count; index += 1) {
     const island = islands.nth(index);
@@ -161,7 +166,9 @@ for (const lang of LANGS) {
 
         const count = await hydrateIslands(page);
         expect(count, `${url}: kaavioita odotettua vähemmän`).toBeGreaterThanOrEqual(target.minCharts);
-        await expect(page.locator('.chart-placeholder')).toHaveCount(0);
+        // Piilotetun sarjan paikanvaraaja saa jaada: se korvautuu vasta kun lukija
+        // vaihtaa sarjaa, ja `sarjavalitsin` -testi tarkistaa juuri sen.
+        await expect(page.locator('.chart-placeholder:not([hidden] .chart-placeholder)')).toHaveCount(0);
       });
     }
 
@@ -262,6 +269,56 @@ for (const lang of LANGS) {
     );
   });
 }
+
+/**
+ * Sarjavalitsin. Sivu renderoi jokaisen sarjan palvelimella ja piilottaa muut kuin
+ * valitun, joten valinnan on vaihdettava nakyma ilman uutta pyyntoa ja piilossa olleiden
+ * kaavioiden on piirryttava vasta silloin kun ne paljastuvat.
+ */
+const SERIES_PAGES = ['/forecast', '/quality'];
+const SWITCHED_SERIES = 'tickets_sold';
+
+for (const path of SERIES_PAGES) {
+  test(`[fi] ${path} sarjavalitsin vaihtaa sarjan ja piirtaa sen kaaviot`, async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto(path);
+
+    const links = page.locator('[data-series-link]');
+    expect(await links.count(), `${path}: sarjavalitsinta ei ole`).toBeGreaterThanOrEqual(2);
+
+    // Oletussarja on valittuna ilman hashia.
+    const first = links.first();
+    await expect(first).toHaveAttribute('aria-current', 'true');
+
+    const target = page.locator(`[data-series-link="${SWITCHED_SERIES}"]`);
+    await target.scrollIntoViewIfNeeded();
+    await target.click();
+
+    await expect(page).toHaveURL(new RegExp(`#series=${SWITCHED_SERIES}$`));
+    await expect(target).toHaveAttribute('aria-current', 'true');
+    await expect(first).toHaveAttribute('aria-current', 'false');
+    expect(await page.locator('html').getAttribute('data-series')).toBe(SWITCHED_SERIES);
+
+    // Vain valitun sarjan lohkot ovat nakyvissa, ja niiden kaaviot piirtyvat nyt.
+    await expect(page.locator(`[data-series="${SWITCHED_SERIES}"]`).first()).toBeVisible();
+    const rendered = await hydrateIslands(page);
+    expect(rendered, `${path}: valitun sarjan kaavioita ei piirtynyt`).toBeGreaterThan(0);
+    await expect(page.locator('.chart-placeholder:not([hidden] .chart-placeholder)')).toHaveCount(0);
+
+    expect(errors, errors.join(' | ')).toEqual([]);
+  });
+}
+
+test('[fi] /forecast piilottaa tuntivalitsimen sarjalta jolla ei ole tuntitasoa', async ({ page }) => {
+  // Lipunmyynti kirjataan paivatasolla. Valitsin joka vaihtaa tyhjaan kaavioon olisi
+  // pahempi kuin puuttuva valitsin, joten sita ei piirreta lainkaan.
+  await page.goto(`/forecast#series=${SWITCHED_SERIES}`);
+  const visible = page.locator(`[data-series="${SWITCHED_SERIES}"]`).first();
+  await expect(visible).toBeVisible();
+  await hydrateIslands(page);
+  const granularity = page.getByRole('group', { name: 'Tarkkuus' });
+  await expect(granularity).toHaveCount(0);
+});
 
 /**
  * Ajovalitsin. Sivu renderoi jokaisen ajon palvelimella ja piilottaa muut kuin valitun,

@@ -17,7 +17,9 @@ import type { Lang } from '../i18n/index.ts';
 import { BAND_FILL, BAND_FILL_COMPARE, NEUTRAL, SERIES, modelStyle } from '../lib/colors.ts';
 import { addDays, plotDay } from '../lib/dates.ts';
 import { formatters, type Formatters } from '../lib/format.ts';
+import type { BacktestColumns } from '../lib/types.ts';
 import { island } from '../renderer/index.ts';
+import { expandPoints } from './backtest.ts';
 import {
   Plot,
   baseOptions,
@@ -51,9 +53,12 @@ export interface OriginWeeksModel {
 export interface OriginWeeksProps {
   lang: Lang;
   ariaLabel: string;
-  points: OriginWeekPoint[];
+  /** Backtest sarakemuodossa. Sama syy kuin hajontakuviossa: ks. `backtest.ts`. */
+  columns: Record<string, BacktestColumns>;
   models: OriginWeeksModel[];
   defaultModel: string;
+  /** Sarjan yksikko yhteenvetoriveille. */
+  unit: string;
   /** Origot vanhimmasta uusimpaan. Oletuksena valitaan viimeisin. */
   origins: string[];
   [key: string]: unknown;
@@ -94,6 +99,7 @@ export default island<OriginWeeksProps>((element, props) => {
   const strings = chartStrings(props.lang);
   const f = formatters(props.lang);
   const frame = createChartFrame(element);
+  const points = expandPoints(props.columns);
 
   // Uusin origo on se jonka kayttaja haluaa nahda ensimmaisena: "mita viime viikolle
   // luvattiin ja miten siina kavi".
@@ -104,7 +110,7 @@ export default island<OriginWeeksProps>((element, props) => {
   const activeModels = (): OriginWeeksModel[] =>
     selection === ALL_MODELS ? props.models : props.models.filter((model) => model.name === selection);
 
-  const daysNow = (): Day[] => daysFor(props.points, origin, activeModels());
+  const daysNow = (): Day[] => daysFor(points, origin, activeModels());
 
   const note = document.createElement('div');
   note.className = 'mt-3 space-y-1 text-xs leading-5 text-ink-muted';
@@ -124,6 +130,7 @@ export default island<OriginWeeksProps>((element, props) => {
       line.textContent = strings.originWeekModel(
         summary.label,
         f.decimal(summary.mae),
+        props.unit,
         f.decimal(Math.abs(summary.bias)),
         summary.bias >= 0 ? strings.originWeekOver : strings.originWeekUnder,
         summary.inside,

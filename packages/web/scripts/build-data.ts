@@ -93,6 +93,7 @@ import type {
   ModelName,
   ProfileData,
   QualityData,
+  SeriesMeta,
   SourceStatus,
   TrafficDailyRow,
   VenueForecast,
@@ -111,6 +112,12 @@ const MAX_MANIFEST_AGE_HOURS = Number(process.env.OVF_MAX_MANIFEST_AGE_HOURS ?? 
 const HOURLY_DAYS = Number(process.env.OVF_HOURLY_DAYS ?? 120);
 /** Oletusmalli kayttoliittymassa. Perustelu: docs/FORECAST_MODEL.md luku 1. */
 const PRODUCTION_MODEL = 'baseline';
+/**
+ * Oletussarja. Sama arvo kuin ``ovf_forecast.series.DEFAULT_SERIES``: se kirjoittaa
+ * ``venue_{id}/`` suoraan, muut sarjat oman alihakemistonsa. Ks. docs/FORECAST_MODEL.md
+ * luku 9.1.
+ */
+const DEFAULT_SERIES_ID = 'visitor_events';
 /** Backtestin rivitason sarja rajataan paamalleihin; vertailukohdat jaavat koosteisiin. */
 const BACKTEST_ROW_MODELS = new Set(['baseline', 'prophet_xgb']);
 /** Arvioinnin vertailukohdat esitysjarjestyksessa. Sama jarjestys kuin docs/EVALUATION.md luvussa 6. */
@@ -212,6 +219,8 @@ function readIngestManifest(now: Date): IngestManifest & { age_hours: number } {
 
 interface ForecastManifestVenue {
   venue_id: number;
+  /** Absent in a manifest written before the series split; then it is the default. */
+  series?: string;
   origin_date: string;
   horizon_days: number;
   hourly_days: number;
@@ -225,6 +234,7 @@ interface ForecastManifest {
   skipped_models: ModelName[];
   warnings: LocalisedText[];
   venues: ForecastManifestVenue[];
+  series: string[];
   age_hours: number;
 }
 
@@ -251,6 +261,10 @@ function readForecastManifest(now: Date): ForecastManifest {
     skipped_models: Array.isArray(raw.skipped_models) ? (raw.skipped_models as ModelName[]) : [],
     warnings: localisedList(raw.warnings),
     venues,
+    // A manifest from before the series split names none; it holds the default only.
+    series: Array.isArray(raw.series) && raw.series.length > 0
+      ? (raw.series as string[])
+      : [DEFAULT_SERIES_ID],
     age_hours: round1(manifestAgeHours(String(raw.generated_at), now)),
   };
 }
@@ -261,8 +275,17 @@ function processed(file: keyof typeof PROCESSED_SCHEMA) {
   return readTable(resolve(PROCESSED_DIR, file), PROCESSED_SCHEMA[file]);
 }
 
-function forecastTable(venueId: number, file: keyof typeof FORECAST_SCHEMA) {
-  return readTable(resolve(FORECAST_DIR, `venue_${venueId}`, file), FORECAST_SCHEMA[file]);
+/**
+ * Yhden sarjan hakemisto. Oletussarja pitaa alkuperaisen polkunsa, muut ovat sen alla;
+ * sama jako kuin ``ovf_forecast.export.series_dir`` kirjoittaa.
+ */
+function seriesDir(venueId: number, seriesId: string): string {
+  const base = resolve(FORECAST_DIR, `venue_${venueId}`);
+  return seriesId === DEFAULT_SERIES_ID ? base : resolve(base, seriesId);
+}
+
+function forecastTable(venueId: number, file: keyof typeof FORECAST_SCHEMA, seriesId: string) {
+  return readTable(resolve(seriesDir(venueId, seriesId), file), FORECAST_SCHEMA[file]);
 }
 
 /**
@@ -340,15 +363,24 @@ function main(): void {
   };
   const hourly: HourlyData = { days: HOURLY_DAYS, first_day: '', last_day: '', venues: {} };
   const profile: ProfileData = { venues: {} };
+  // Sarjat siina jarjestyksessa kuin ajo ne kirjoitti, oletussarja ensin: valitsin
+  // nayttaa ne samassa jarjestyksessa ja avaa oletussarjan.
+  const seriesIds = [
+    ...forecastManifest.series.filter((id) => id === DEFAULT_SERIES_ID),
+    ...forecastManifest.series.filter((id) => id !== DEFAULT_SERIES_ID),
+  ];
   const forecast: ForecastData = {
     generated_at: forecastManifest.generated_at,
     models: forecastManifest.models,
     default_model: forecastManifest.models.includes(PRODUCTION_MODEL)
       ? PRODUCTION_MODEL
       : forecastManifest.models[0]!,
+    series: [],
+    default_series: seriesIds[0] ?? DEFAULT_SERIES_ID,
     venues: {},
+    by_series: {},
   };
-  const quality: QualityData = { venues: {} };
+  const quality: QualityData = { venues: {}, by_series: {} };
   const summaries: VenueSummary[] = [];
 
   let hourlyFirst = '';
@@ -434,19 +466,32 @@ function main(): void {
       last_day: lastDay,
     };
 
-    // --- Ennuste ------------------------------------------------------------
-    const venueForecast = buildVenueForecast(venue.venue_id);
-    forecast.venues[key] = venueForecast;
-
-    // --- Laatu --------------------------------------------------------------
-    const venueQuality = buildVenueQuality(venue.venue_id);
-    quality.venues[key] = venueQuality;
-    venueForecast.mae = Object.fromEntries(
-      Object.entries(venueQuality.metrics).map(([model, buckets]) => [
-        model,
-        Object.fromEntries(Object.entries(buckets).map(([bucket, m]) => [bucket, round1(m.mae)])),
-      ]),
-    );
+    // --- Ennuste ja laatu, sarjoittain ---------------------------------------
+    // Oletussarja asuu `venues`-avaimessa kuten ennenkin, muut `by_series`-avaimessa.
+    // Kahdentaminen olisi maksanut koko oletussarjan verran turhaa painoa.
+    let venueForecast!: VenueForecast;
+    for (const seriesId of seriesIds) {
+      const hasHourly = seriesHasHourly(venue.venue_id, seriesId);
+      const seriesForecast = buildVenueForecast(venue.venue_id, seriesId, hasHourly);
+      const seriesQuality = buildVenueQuality(venue.venue_id, seriesId);
+      seriesForecast.mae = Object.fromEntries(
+        Object.entries(seriesQuality.metrics).map(([model, buckets]) => [
+          model,
+          Object.fromEntries(Object.entries(buckets).map(([bucket, m]) => [bucket, round1(m.mae)])),
+        ]),
+      );
+      if (seriesId === forecast.default_series) {
+        venueForecast = seriesForecast;
+        forecast.venues[key] = seriesForecast;
+        quality.venues[key] = seriesQuality;
+      } else {
+        (forecast.by_series[seriesId] ??= {})[key] = seriesForecast;
+        (quality.by_series[seriesId] ??= {})[key] = seriesQuality;
+      }
+      if (!forecast.series.some((entry) => entry.series_id === seriesId)) {
+        forecast.series.push(seriesMeta(seriesId, seriesQuality, hasHourly));
+      }
+    }
 
     // --- Yhteenveto ---------------------------------------------------------
     const reporting = venueDaily.filter((row) => row.is_reporting);
@@ -700,9 +745,31 @@ function buildTrafficSummary(rows: Row[]): Meta['traffic'] {
   };
 }
 
-function buildVenueForecast(venueId: number): VenueForecast {
-  const dailyTable = forecastTable(venueId, 'daily_30d.csv');
-  const hourlyTable = forecastTable(venueId, 'hourly_7d.csv');
+/**
+ * Onko sarjalla tuntitiedostoa. Se puuttuu kun sarjalla ei ole tuntitason mittausta:
+ * lipunmyynti kirjataan paivatasolla, ja ajo jattaa tiedoston kirjoittamatta sen sijaan
+ * etta kirjoittaisi tyhjan. Tiedoston olemassaolo on siis se tieto jota talla luetaan.
+ */
+function seriesHasHourly(venueId: number, seriesId: string): boolean {
+  return existsSync(resolve(seriesDir(venueId, seriesId), 'hourly_7d.csv'));
+}
+
+/** Sarjan tunnistetiedot valitsinta varten. Nimet tulevat ajon kirjoittamasta metrics.jsonista. */
+function seriesMeta(seriesId: string, quality: VenueQuality, hasHourly: boolean): SeriesMeta {
+  return {
+    series_id: seriesId,
+    label: quality.series_label ?? { fi: seriesId, en: seriesId },
+    unit: quality.series_unit ?? { fi: '', en: '' },
+    source: quality.series_source ?? '',
+    has_hourly: hasHourly,
+  };
+}
+
+function buildVenueForecast(venueId: number, seriesId: string, hasHourly: boolean): VenueForecast {
+  const dailyTable = forecastTable(venueId, 'daily_30d.csv', seriesId);
+  const hourlyTable = hasHourly
+    ? forecastTable(venueId, 'hourly_7d.csv', seriesId)
+    : { rows: [] as Row[] };
 
   const dailyRows: (ForecastDailyRow & { model: ModelName })[] = dailyTable.rows.map((row) => {
     const holidayName = optionalStr(row, 'holiday_name');
@@ -734,8 +801,8 @@ function buildVenueForecast(venueId: number): VenueForecast {
   }));
   hourlyRows.sort((a, b) => a.ts.localeCompare(b.ts) || a.model.localeCompare(b.model));
 
-  if (dailyRows.length === 0 || hourlyRows.length === 0) {
-    throw new BuildDataError(`Venuen ${venueId} ennustetiedostot ovat tyhjia.`);
+  if (dailyRows.length === 0 || (hasHourly && hourlyRows.length === 0)) {
+    throw new BuildDataError(`Venuen ${venueId} sarjan ${seriesId} ennustetiedostot ovat tyhjia.`);
   }
 
   const dates = dailyRows.map((row) => row.date).sort();
@@ -751,15 +818,15 @@ function buildVenueForecast(venueId: number): VenueForecast {
   };
 }
 
-function buildVenueQuality(venueId: number): VenueQuality {
-  const path = resolve(FORECAST_DIR, `venue_${venueId}`, 'metrics.json');
+function buildVenueQuality(venueId: number, seriesId: string): VenueQuality {
+  const path = resolve(seriesDir(venueId, seriesId), 'metrics.json');
   const metrics = assertKeys(
-    readJson(path, `Venuen ${venueId} metrics.json`),
+    readJson(path, `Venuen ${venueId} metrics.json (${seriesId})`),
     METRICS_KEYS,
-    `data/forecasts/latest/venue_${venueId}/metrics.json`,
+    `data/forecasts/latest/venue_${venueId}/${seriesId}/metrics.json`,
   );
 
-  const table = forecastTable(venueId, 'backtest.csv');
+  const table = forecastTable(venueId, 'backtest.csv', seriesId);
   const allRows: (BacktestRow & { model: ModelName })[] = table.rows.map((row) => ({
     model: str(row, 'model'),
     origin_date: str(row, 'origin_date'),
@@ -778,6 +845,10 @@ function buildVenueQuality(venueId: number): VenueQuality {
   return {
     venue_id: Number(metrics.venue_id),
     venue_name: String(metrics.venue_name),
+    series: String(metrics.series ?? DEFAULT_SERIES_ID),
+    ...(metrics.series_label ? { series_label: metrics.series_label as LocalisedText } : {}),
+    ...(metrics.series_unit ? { series_unit: metrics.series_unit as LocalisedText } : {}),
+    ...(metrics.series_source ? { series_source: String(metrics.series_source) } : {}),
     origin_date: String(metrics.origin_date),
     n_training_days: Number(metrics.n_training_days),
     training_window: metrics.training_window as [string, string],

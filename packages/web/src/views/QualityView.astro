@@ -5,6 +5,7 @@ import OriginWeeks from '../charts/originweeks.ts';
 import Callout from '../components/Callout.astro';
 import Figure from '../components/Figure.astro';
 import Layout from '../components/Layout.astro';
+import SeriesSwitch from '../components/SeriesSwitch.astro';
 import TableScroll from '../components/TableScroll.astro';
 import forecastData from '../data/forecast.json';
 import metaData from '../data/meta.json';
@@ -30,8 +31,13 @@ const quality = qualityData as unknown as QualityData;
 const forecast = forecastData as unknown as ForecastData;
 const defaultModel = forecast.default_model;
 
-const panels = site.venues.map((venue) => {
-  const venueQuality = quality.venues[String(venue.venue_id)]!;
+const defaultSeries = forecast.default_series;
+
+/**
+ * Yksi venue yhdella sarjalla. Kaikki sarjat renderoidaan palvelimella ja piilotetaan
+ * oletussarjaa lukuun ottamatta; ks. `components/SeriesSwitch.astro`.
+ */
+function venuePanel(venue: Meta['venues'][number], venueQuality: VenueQuality) {
   const allModels = [...venueQuality.models, ...venueQuality.benchmarks];
   return {
     venue,
@@ -51,8 +57,11 @@ const panels = site.venues.map((venue) => {
           })),
         };
       }),
-    backtestPoints: venueQuality.models.flatMap((model) =>
-      toBacktestRows(venueQuality.backtest[model]).map((row) => ({ ...row, model })),
+    // Kaaviot saavat sarakemuodon sellaisenaan; ks. `charts/backtest.ts`.
+    backtestColumns: venueQuality.backtest,
+    backtestPairs: venueQuality.models.reduce(
+      (acc, model) => acc + (venueQuality.backtest[model]?.horizon_days.length ?? 0),
+      0,
     ),
     originRows: venueQuality.models.flatMap((model) =>
       originMetrics(toBacktestRows(venueQuality.backtest[model])).map((row) => ({ ...row, model })),
@@ -61,7 +70,22 @@ const panels = site.venues.map((venue) => {
       ...new Set(toBacktestRows(venueQuality.backtest[defaultModel]).map((row) => row.origin_date)),
     ].sort((a, b) => a.localeCompare(b)),
   };
+}
+
+const seriesPanels = forecast.series.map((meta) => {
+  const seriesQuality =
+    meta.series_id === defaultSeries ? quality.venues : (quality.by_series[meta.series_id] ?? {});
+  return {
+    meta,
+    panels: site.venues.flatMap((venue) => {
+      const venueQuality = seriesQuality[String(venue.venue_id)];
+      return venueQuality ? [venuePanel(venue, venueQuality)] : [];
+    }),
+  };
 });
+
+/** Oletussarjan paneelit. Sivun yleiset osiot lukevat naita. */
+const panels = seriesPanels.find((entry) => entry.meta.series_id === defaultSeries)?.panels ?? [];
 
 /**
  * Origokohtaiset mittarit kaavion tekstivastineeksi. Kaavio vertailee malleja keskenaan,
@@ -145,9 +169,12 @@ const headlineMae = firstQuality?.metrics[defaultModel]?.['1-7']?.mae ?? 0;
     </Callout>
   </div>
 
-  <div class="mt-6 space-y-6">
-    {
-      panels.map(({ venue, q, maeSeries, backtestPoints, originRows, origins }) => (
+  <SeriesSwitch lang={lang} series={forecast.series} defaultSeries={defaultSeries} />
+
+  {
+    seriesPanels.map((entry) => (
+      <div data-series={entry.meta.series_id} hidden={entry.meta.series_id !== defaultSeries} class="mt-6 space-y-6">
+        {entry.panels.map(({ venue, q, maeSeries, backtestColumns, backtestPairs, originRows, origins }) => (
         <div class="space-y-6">
           <h2 class="text-xl font-semibold tracking-tight text-ink">{venue.name}</h2>
           <p class="text-sm leading-6 text-ink-muted">
@@ -229,7 +256,8 @@ const headlineMae = firstQuality?.metrics[defaultModel]?.['1-7']?.mae ?? 0;
               client:visible
               lang={lang}
               ariaLabel={t.quality.backtestAria(venue.name)}
-              points={backtestPoints}
+              columns={backtestColumns}
+              unit={entry.meta.unit[lang]}
               models={q.models.map((model) => ({ name: model, label: modelLabel(model, lang) }))}
               defaultModel={defaultModel}
               buckets={q.horizon_buckets}
@@ -237,7 +265,7 @@ const headlineMae = firstQuality?.metrics[defaultModel]?.['1-7']?.mae ?? 0;
             />
             <div slot="alternative">
               <p class="mb-3 text-xs leading-5 text-ink-muted">
-                {t.quality.backtestAlternative(f.int(backtestPoints.length), f.int(q.n_origins))}
+                {t.quality.backtestAlternative(f.int(backtestPairs), f.int(q.n_origins))}
               </p>
               <TableScroll label={t.quality.bandsCaption(venue.name)} scrollY={false}>
                 <table class="data-table">
@@ -280,7 +308,8 @@ const headlineMae = firstQuality?.metrics[defaultModel]?.['1-7']?.mae ?? 0;
               client:visible
               lang={lang}
               ariaLabel={t.quality.originWeeksAria(venue.name)}
-              points={backtestPoints}
+              columns={backtestColumns}
+              unit={entry.meta.unit[lang]}
               models={q.models.map((model) => ({ name: model, label: modelLabel(model, lang) }))}
               defaultModel={defaultModel}
               origins={origins}
@@ -373,9 +402,10 @@ const headlineMae = firstQuality?.metrics[defaultModel]?.['1-7']?.mae ?? 0;
             </div>
           </section>
         </div>
-      ))
-    }
-  </div>
+        ))}
+      </div>
+    ))
+  }
 
   <section aria-labelledby="rajoitteet" class="mt-8">
     <h2 id="rajoitteet" class="text-lg font-semibold tracking-tight text-ink">{t.quality.limitsHeading}</h2>

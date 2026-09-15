@@ -9,6 +9,8 @@ import type { Lang } from '../i18n/index.ts';
 import { NEUTRAL, SERIES } from '../lib/colors.ts';
 import { addDays } from '../lib/dates.ts';
 import { formatters } from '../lib/format.ts';
+import { toBacktestRows } from '../lib/series.ts';
+import type { BacktestColumns } from '../lib/types.ts';
 import { island } from '../renderer/index.ts';
 import { Plot, baseOptions, chartFormat, createChartFrame, createToggleGroup, mountResponsive } from './base.ts';
 
@@ -25,10 +27,20 @@ export interface BacktestPoint {
 export interface BacktestProps {
   lang: Lang;
   ariaLabel: string;
-  points: BacktestPoint[];
+  /**
+   * Backtest sarakemuodossa, mallin nimella avattuna.
+   *
+   * Sarakemuoto menee saarekkeelle sellaisenaan ja puretaan riveiksi vasta selaimessa.
+   * Rivimuoto toistaisi seitseman avainta jokaisella rivilla, ja koska propsit
+   * sarjallistetaan HTML-attribuuttiin jossa jokainen lainausmerkki on `&quot;`, se
+   * maksaisi moninkertaisesti. Sama data, murto-osa painosta.
+   */
+  columns: Record<string, BacktestColumns>;
   models: { name: string; label: string }[];
   defaultModel: string;
   buckets: string[];
+  /** Sarjan yksikko akselille, esim. "kavijatapahtumaa" tai "lippua". */
+  unit: string;
   [key: string]: unknown;
 }
 
@@ -53,6 +65,7 @@ export default island<BacktestProps>((element, props) => {
   const strings = chartStrings(props.lang);
   const f = formatters(props.lang);
   const frame = createChartFrame(element);
+  const points = expandPoints(props.columns);
   let selected = props.defaultModel;
 
   let redraw = (): void => {};
@@ -73,10 +86,10 @@ export default island<BacktestProps>((element, props) => {
   frame.legend.append(note);
 
   const updateNote = (): void => {
-    const points = enrich(props.points.filter((point) => point.model === selected), props.buckets);
-    const covered = points.filter((point) => point.covered).length;
-    const share = points.length === 0 ? 0 : Math.round((covered / points.length) * 100);
-    note.textContent = strings.backtestNote(f.int(points.length), share);
+    const shown = enrich(points.filter((point) => point.model === selected), props.buckets);
+    const covered = shown.filter((point) => point.covered).length;
+    const share = shown.length === 0 ? 0 : Math.round((covered / shown.length) * 100);
+    note.textContent = strings.backtestNote(f.int(shown.length), share);
   };
   updateNote();
 
@@ -85,13 +98,21 @@ export default island<BacktestProps>((element, props) => {
     (width) =>
       draw(
         width,
-        enrich(props.points.filter((point) => point.model === selected), props.buckets),
+        enrich(points.filter((point) => point.model === selected), props.buckets),
         props.lang,
         strings,
+        props.unit,
       ),
     { ariaLabel: props.ariaLabel },
   );
 });
+
+/** Sarakemuotoinen backtest riveiksi, mallin nimi mukana. */
+export function expandPoints(columns: Record<string, BacktestColumns>): BacktestPoint[] {
+  return Object.entries(columns).flatMap(([model, entry]) =>
+    toBacktestRows(entry).map((row) => ({ ...row, model })),
+  );
+}
 
 function bucketOf(horizon: number, buckets: string[]): string {
   for (const bucket of buckets) {
@@ -114,6 +135,7 @@ function draw(
   points: Point[],
   lang: Lang,
   strings: ChartStrings,
+  unit: string,
 ): SVGSVGElement | HTMLElement {
   const f = formatters(lang);
   const format = chartFormat(lang);
@@ -145,7 +167,7 @@ function draw(
     marginBottom: 44,
     aspectRatio: undefined,
     x: {
-      label: strings.backtestAxis,
+      label: strings.backtestAxis(unit),
       labelAnchor: 'center',
       labelOffset: 36,
       domain: [0, max],
