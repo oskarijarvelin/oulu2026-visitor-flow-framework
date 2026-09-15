@@ -1,28 +1,28 @@
 {
-  "venue_id": 1,
-  "venue_name": "Pekuri",
-  "series": "visitor_events",
+  "venue_id": 2,
+  "venue_name": "Kaupungintalo",
+  "series": "tickets_sold",
   "series_label": {
-    "fi": "Kävijätapahtumat",
-    "en": "Visitor events"
+    "fi": "Lipunmyynti ilman ryhmiä",
+    "en": "Tickets sold, groups excluded"
   },
   "series_unit": {
-    "fi": "kävijätapahtumaa",
-    "en": "visitor events"
+    "fi": "lippua",
+    "en": "tickets"
   },
-  "series_source": "visitors_daily.visitors_total",
+  "series_source": "tickets_daily.tickets_sold",
   "generated_at": "2026-09-15T20:53:25Z",
   "trained_at": "2026-09-15T20:53:25Z",
-  "origin_date": "2026-09-15",
-  "n_training_days": 237,
+  "origin_date": "2026-09-13",
+  "n_training_days": 243,
   "training_window": [
-    "2026-01-22",
-    "2026-09-15"
+    "2026-01-13",
+    "2026-09-13"
   ],
   "n_origins": 12,
   "backtest_window": [
-    "2026-06-24",
-    "2026-09-15"
+    "2026-06-22",
+    "2026-09-13"
   ],
   "horizon_buckets": [
     "1-7",
@@ -40,106 +40,106 @@
   "metrics": {
     "baseline": {
       "1-7": {
-        "mae": 134.555,
-        "rmse": 180.144,
-        "smape": 28.457,
-        "bias": -13.03,
-        "coverage_80": 0.7619,
-        "n": 84
+        "mae": 21.906,
+        "rmse": 29.282,
+        "smape": 47.926,
+        "bias": -8.023,
+        "coverage_80": 0.6627,
+        "n": 83
       },
       "8-14": {
-        "mae": 165.282,
-        "rmse": 201.048,
-        "smape": 35.307,
-        "bias": -1.581,
-        "coverage_80": 0.7403,
-        "n": 77
+        "mae": 28.643,
+        "rmse": 38.487,
+        "smape": 57.473,
+        "bias": -4.854,
+        "coverage_80": 0.6184,
+        "n": 76
       },
       "15-30": {
-        "mae": 193.704,
-        "rmse": 225.822,
-        "smape": 41.382,
-        "bias": 32.846,
-        "coverage_80": 0.745,
-        "n": 149
+        "mae": 36.24,
+        "rmse": 48.783,
+        "smape": 74.051,
+        "bias": -3.789,
+        "coverage_80": 0.5782,
+        "n": 147
       }
     },
     "moving_average_28d": {
       "1-7": {
-        "mae": 137.588,
-        "rmse": 175.299,
-        "smape": 29.419,
-        "bias": 9.97,
-        "coverage_80": 0.75,
-        "n": 84
+        "mae": 32.097,
+        "rmse": 39.906,
+        "smape": 61.388,
+        "bias": -2.092,
+        "coverage_80": 0.7831,
+        "n": 83
       },
       "8-14": {
-        "mae": 160.053,
-        "rmse": 195.175,
-        "smape": 34.019,
-        "bias": 8.36,
-        "coverage_80": 0.7792,
-        "n": 77
+        "mae": 35.53,
+        "rmse": 43.915,
+        "smape": 65.943,
+        "bias": -0.962,
+        "coverage_80": 0.7632,
+        "n": 76
       },
       "15-30": {
-        "mae": 174.158,
-        "rmse": 208.674,
-        "smape": 37.351,
-        "bias": 19.15,
-        "coverage_80": 0.7584,
-        "n": 149
+        "mae": 40.608,
+        "rmse": 49.277,
+        "smape": 76.248,
+        "bias": 2.809,
+        "coverage_80": 0.7755,
+        "n": 147
       }
     },
     "prophet_xgb": {
       "1-7": {
-        "mae": 143.176,
-        "rmse": 184.488,
-        "smape": 30.668,
-        "bias": 14.2,
-        "coverage_80": 0.7619,
-        "n": 84
+        "mae": 24.788,
+        "rmse": 32.792,
+        "smape": 62.025,
+        "bias": 0.983,
+        "coverage_80": 0.7349,
+        "n": 83
       },
       "8-14": {
-        "mae": 168.786,
-        "rmse": 202.218,
-        "smape": 35.858,
-        "bias": 27.87,
-        "coverage_80": 0.7532,
-        "n": 77
+        "mae": 30.743,
+        "rmse": 41.207,
+        "smape": 61.888,
+        "bias": 3.535,
+        "coverage_80": 0.7237,
+        "n": 76
       },
       "15-30": {
-        "mae": 209.609,
-        "rmse": 246.053,
-        "smape": 44.083,
-        "bias": 69.536,
-        "coverage_80": 0.745,
-        "n": 149
+        "mae": 45.456,
+        "rmse": 56.094,
+        "smape": 80.972,
+        "bias": 8.677,
+        "coverage_80": 0.7483,
+        "n": 147
       }
     },
     "seasonal_naive": {
       "1-7": {
-        "mae": 149.19,
-        "rmse": 211.897,
-        "smape": 31.454,
-        "bias": -1.833,
-        "coverage_80": 0.7738,
-        "n": 84
+        "mae": 25.723,
+        "rmse": 34.359,
+        "smape": 51.193,
+        "bias": -1.386,
+        "coverage_80": 0.747,
+        "n": 83
       },
       "8-14": {
-        "mae": 160.545,
-        "rmse": 214.565,
-        "smape": 32.93,
-        "bias": 2.182,
-        "coverage_80": 0.7662,
-        "n": 77
+        "mae": 26.645,
+        "rmse": 35.993,
+        "smape": 53.604,
+        "bias": -0.25,
+        "coverage_80": 0.7368,
+        "n": 76
       },
       "15-30": {
-        "mae": 186.336,
-        "rmse": 236.85,
-        "smape": 39.063,
-        "bias": 28.013,
-        "coverage_80": 0.745,
-        "n": 149
+        "mae": 34.762,
+        "rmse": 46.104,
+        "smape": 69.395,
+        "bias": 3.85,
+        "coverage_80": 0.6803,
+        "n": 147
       }
     }
   },
@@ -147,41 +147,41 @@
     "baseline": {
       "1-7": {
         "beats_seasonal_naive": true,
-        "mae_ratio_vs_seasonal_naive": 0.9019,
+        "mae_ratio_vs_seasonal_naive": 0.8516,
         "beats_moving_average_28d": true,
-        "mae_ratio_vs_moving_average_28d": 0.978
+        "mae_ratio_vs_moving_average_28d": 0.6825
       },
       "8-14": {
         "beats_seasonal_naive": false,
-        "mae_ratio_vs_seasonal_naive": 1.0295,
-        "beats_moving_average_28d": false,
-        "mae_ratio_vs_moving_average_28d": 1.0327
+        "mae_ratio_vs_seasonal_naive": 1.075,
+        "beats_moving_average_28d": true,
+        "mae_ratio_vs_moving_average_28d": 0.8062
       },
       "15-30": {
         "beats_seasonal_naive": false,
-        "mae_ratio_vs_seasonal_naive": 1.0395,
-        "beats_moving_average_28d": false,
-        "mae_ratio_vs_moving_average_28d": 1.1122
+        "mae_ratio_vs_seasonal_naive": 1.0425,
+        "beats_moving_average_28d": true,
+        "mae_ratio_vs_moving_average_28d": 0.8924
       }
     },
     "prophet_xgb": {
       "1-7": {
         "beats_seasonal_naive": true,
-        "mae_ratio_vs_seasonal_naive": 0.9597,
-        "beats_moving_average_28d": false,
-        "mae_ratio_vs_moving_average_28d": 1.0406
+        "mae_ratio_vs_seasonal_naive": 0.9637,
+        "beats_moving_average_28d": true,
+        "mae_ratio_vs_moving_average_28d": 0.7723
       },
       "8-14": {
         "beats_seasonal_naive": false,
-        "mae_ratio_vs_seasonal_naive": 1.0513,
-        "beats_moving_average_28d": false,
-        "mae_ratio_vs_moving_average_28d": 1.0546
+        "mae_ratio_vs_seasonal_naive": 1.1538,
+        "beats_moving_average_28d": true,
+        "mae_ratio_vs_moving_average_28d": 0.8653
       },
       "15-30": {
         "beats_seasonal_naive": false,
-        "mae_ratio_vs_seasonal_naive": 1.1249,
+        "mae_ratio_vs_seasonal_naive": 1.3076,
         "beats_moving_average_28d": false,
-        "mae_ratio_vs_moving_average_28d": 1.2036
+        "mae_ratio_vs_moving_average_28d": 1.1194
       }
     }
   },
@@ -190,92 +190,92 @@
     "baseline": [
       {
         "bucket": "1-7",
-        "q10": 0.6086,
-        "q90": 1.5767,
-        "n": 84,
+        "q10": 0.6332,
+        "q90": 2.8423,
+        "n": 73,
         "is_default": false
       },
       {
         "bucket": "8-14",
-        "q10": 0.5598,
-        "q90": 1.6574,
-        "n": 77,
+        "q10": 0.4734,
+        "q90": 2.8301,
+        "n": 66,
         "is_default": false
       },
       {
         "bucket": "15-30",
-        "q10": 0.491,
-        "q90": 1.784,
-        "n": 149,
+        "q10": 0.4395,
+        "q90": 3.9717,
+        "n": 120,
         "is_default": false
       }
     ],
     "moving_average_28d": [
       {
         "bucket": "1-7",
-        "q10": 0.5743,
-        "q90": 1.5817,
-        "n": 84,
+        "q10": 0.1037,
+        "q90": 1.9536,
+        "n": 83,
         "is_default": false
       },
       {
         "bucket": "8-14",
-        "q10": 0.5575,
-        "q90": 1.611,
-        "n": 77,
+        "q10": 0.1089,
+        "q90": 2.3248,
+        "n": 76,
         "is_default": false
       },
       {
         "bucket": "15-30",
-        "q10": 0.5125,
-        "q90": 1.6185,
-        "n": 149,
+        "q10": 0.0421,
+        "q90": 2.9155,
+        "n": 147,
         "is_default": false
       }
     ],
     "prophet_xgb": [
       {
         "bucket": "1-7",
-        "q10": 0.584,
-        "q90": 1.6513,
-        "n": 84,
+        "q10": 0.303,
+        "q90": 1.69,
+        "n": 78,
         "is_default": false
       },
       {
         "bucket": "8-14",
-        "q10": 0.5623,
-        "q90": 1.5697,
-        "n": 77,
+        "q10": 0.3049,
+        "q90": 2.3344,
+        "n": 72,
         "is_default": false
       },
       {
         "bucket": "15-30",
-        "q10": 0.469,
-        "q90": 1.7572,
-        "n": 149,
+        "q10": 0.2022,
+        "q90": 2.8923,
+        "n": 138,
         "is_default": false
       }
     ],
     "seasonal_naive": [
       {
         "bucket": "1-7",
-        "q10": 0.5924,
-        "q90": 1.7896,
-        "n": 84,
+        "q10": 0.5128,
+        "q90": 2.1667,
+        "n": 71,
         "is_default": false
       },
       {
         "bucket": "8-14",
-        "q10": 0.625,
-        "q90": 1.7615,
-        "n": 77,
+        "q10": 0.4576,
+        "q90": 2.0088,
+        "n": 64,
         "is_default": false
       },
       {
         "bucket": "15-30",
-        "q10": 0.4751,
-        "q90": 1.7161,
-        "n": 149,
+        "q10": 0.3778,
+        "q90": 1.815,
+        "n": 115,
         "is_default": false
       }
     ]
@@ -296,12 +296,13 @@
       16,
       17,
       18,
-      19
+      19,
+      20
     ]
   },
   "weather": {
-    "forecast_days": 15,
-    "climatology_days": 15,
+    "forecast_days": 16,
+    "climatology_days": 14,
     "max_forecast_days": 16
   },
   "do_not_trust": [
@@ -327,6 +328,10 @@
     }
   ],
   "warnings": [
+    {
+      "fi": "Mallin baseline peittävyys horisontilla 1-7 on 66%, eli hyväksyttävän välin 70%-90% ulkopuolella.",
+      "en": "Model baseline has 66% coverage at horizon 1-7, outside the acceptable 70%-90% range."
+    },
     {
       "fi": "Ylläpidetty kalenteri ei ulotu päivään 2026-10-01; niiltä päiviltä oletetaan ettei pyhiä ole.",
       "en": "The maintained calendar does not reach 2026-10-01; those days assume no holiday."

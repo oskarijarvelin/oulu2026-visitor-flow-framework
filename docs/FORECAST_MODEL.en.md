@@ -632,14 +632,52 @@ site renders them in the language the reader chose rather than guessing a transl
 
 ## 9. Outputs
 
+### 9.1 Forecastable series
+
+The tool forecasts three different quantities. They are not rescalings of one another but
+three instruments answering three different questions, so each one gets its own model and
+its own measured accuracy.
+
+| `series_id` | Source | Column | What it measures | Hourly |
+| --- | --- | --- | --- | --- |
+| `visitor_events` | `visitors_daily` | `visitors_total` | In plus out, the visitor events. One visit typically makes two. | yes |
+| `visitor_entries` | `visitors_daily` | `visitors_in` | Entries only, closer to a headcount | yes |
+| `tickets_sold` | `tickets_daily` | `tickets_sold` | Tickets sold, groups and special groups excluded | no |
+
+On the scale of the difference: in August 2026 venue 1 recorded about nine visitor events
+per ticket sold, venue 2 about three. That is far too wide a gap to read one series off
+another with a factor, which is exactly why they are forecast separately.
+
+`visitor_events` is the default series and keeps its original paths, because the web build
+and every stored archive read them. `tickets_sold` gets no hourly file at all: ticket sales
+are recorded per day, so spreading them over 24 hours would be invention rather than
+forecasting, and an absent file says so directly.
+
+The ticket series usually has a different origin from the visitor series, because the
+ticket statistics are maintained by hand and trail the automatic counter by a few days.
+Each series forecasts forward from its own last observed day.
+
+The series are defined in `packages/forecast/src/ovf_forecast/series.py`. The pipeline
+stays single-target: `venue_history` copies the chosen column into `features.TARGET`, and
+the models, the backtest and the intervals read that one name without knowing which
+quantity they are looking at. Adding a series is therefore one entry in the registry.
+
+### 9.2 Files
+
 ```
 data/forecasts/latest/manifest.json
 data/forecasts/latest/venue_{id}/daily_30d.csv      # 30 days x 2 models = 60 rows
 data/forecasts/latest/venue_{id}/hourly_7d.csv      # 7 days x 24 h x 2 models = 336 rows
 data/forecasts/latest/venue_{id}/metrics.json
 data/forecasts/latest/venue_{id}/backtest.csv
-data/forecasts/{YYYY-MM-DD}/...                     # an archive copy of the same structure
+data/forecasts/latest/venue_{id}/visitor_entries/   # the same four files
+data/forecasts/latest/venue_{id}/tickets_sold/      # the same, without hourly_7d.csv
+data/forecasts/{YYYY-MM-DD}/...                     # archive copy of the same structure
 ```
+
+`metrics.json` names its series in the fields `series`, `series_label`, `series_unit` and
+`series_source`. The manifest's `series` lists the series that ran, and `venues` holds one
+entry per venue and series.
 
 The columns are described in chapter 4.3 of `FRAMEWORK_PLAN.md`.
 
@@ -670,6 +708,9 @@ timestamp, in which case two runs produce byte-identical files.
 ```bash
 python -m ovf_forecast run                      # both models, all venues
 python -m ovf_forecast run --model baseline     # the baseline model only
+python -m ovf_forecast run --series tickets_sold          # the ticket series only
+python -m ovf_forecast run --series visitor_events --series visitor_entries
+python -m ovf_forecast report --series tickets_sold       # one series' metrics
 python -m ovf_forecast run --venue 1 --horizon-days 30
 python -m ovf_forecast backtest --origins 12    # validation only, writes nothing
 python -m ovf_forecast report                   # prints metrics.json readably

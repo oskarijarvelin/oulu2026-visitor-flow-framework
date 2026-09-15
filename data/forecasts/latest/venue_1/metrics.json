@@ -1,8 +1,18 @@
 {
   "venue_id": 1,
   "venue_name": "Pekuri",
-  "generated_at": "2026-09-15T08:51:35Z",
-  "trained_at": "2026-09-15T08:51:35Z",
+  "series": "visitor_events",
+  "series_label": {
+    "fi": "Kävijätapahtumat",
+    "en": "Visitor events"
+  },
+  "series_unit": {
+    "fi": "kävijätapahtumaa",
+    "en": "visitor events"
+  },
+  "series_source": "visitors_daily.visitors_total",
+  "generated_at": "2026-09-15T20:53:25Z",
+  "trained_at": "2026-09-15T20:53:25Z",
   "origin_date": "2026-09-15",
   "n_training_days": 237,
   "training_window": [

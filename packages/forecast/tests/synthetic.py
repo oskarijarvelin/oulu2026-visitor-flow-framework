@@ -54,6 +54,7 @@ def write_repo(root: Path) -> Path:
         processed / "weather_daily.csv", index=False, lineterminator="\n"
     )
     build_calendar().to_csv(processed / "calendar_daily.csv", index=False, lineterminator="\n")
+    build_tickets_daily().to_csv(processed / "tickets_daily.csv", index=False, lineterminator="\n")
     (processed / "manifest.json").write_text(
         json.dumps(
             {
@@ -163,6 +164,33 @@ def build_visitors_daily(hourly: pd.DataFrame) -> pd.DataFrame:
     )
     daily["is_complete"] = True
     return daily
+
+
+def build_tickets_daily() -> pd.DataFrame:
+    """Ticket sales for the same days, at a different level and a different shape.
+
+    Tickets are not a rescaled visitor count: they are a fraction of the footfall, they
+    do not react to rain the same way, and the group column moves on its own. Making
+    them genuinely different is the point, because a test where every series is a
+    multiple of the others would pass even if the pipeline forecast the wrong column.
+    """
+    records = []
+    for venue_id in VENUE_IDS:
+        for day in observed_days():
+            visitors = daily_total(venue_id, day)
+            # Roughly a tenth of the footfall buys a ticket, with a weekday tilt of its own.
+            sold = round(visitors * 0.11 * (1.3 if day.weekday() >= 5 else 1.0), 0)
+            groups = round(40.0 if day.weekday() == 2 else 0.0, 0)
+            records.append(
+                {
+                    "venue_id": venue_id,
+                    "date": day.isoformat(),
+                    "tickets_sold": int(sold),
+                    "groups_sold": int(groups),
+                    "tickets_total": int(sold) + int(groups),
+                }
+            )
+    return pd.DataFrame.from_records(records)
 
 
 def build_weather_hourly() -> pd.DataFrame:

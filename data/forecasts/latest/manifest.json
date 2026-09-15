@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-15T08:51:35Z",
+  "generated_at": "2026-09-15T20:53:25Z",
   "pipeline": "forecast",
   "version": "1.0.0",
   "models": [
@@ -7,10 +7,20 @@
     "prophet_xgb"
   ],
   "skipped_models": [],
+  "series": [
+    "visitor_events",
+    "visitor_entries",
+    "tickets_sold"
+  ],
   "venues": [
     {
       "venue_id": 1,
       "name": "Pekuri",
+      "series": "visitor_events",
+      "series_label": {
+        "fi": "Kävijätapahtumat",
+        "en": "Visitor events"
+      },
       "origin_date": "2026-09-15",
       "n_training_days": 237,
       "n_origins": 12,
@@ -28,8 +38,61 @@
       ]
     },
     {
+      "venue_id": 1,
+      "name": "Pekuri",
+      "series": "visitor_entries",
+      "series_label": {
+        "fi": "Sisäänmenot",
+        "en": "Entries"
+      },
+      "origin_date": "2026-09-15",
+      "n_training_days": 237,
+      "n_origins": 12,
+      "models": [
+        "baseline",
+        "prophet_xgb"
+      ],
+      "horizon_days": 30,
+      "hourly_days": 7,
+      "warnings": [
+        {
+          "fi": "Ylläpidetty kalenteri ei ulotu päivään 2026-10-01; niiltä päiviltä oletetaan ettei pyhiä ole.",
+          "en": "The maintained calendar does not reach 2026-10-01; those days assume no holiday."
+        }
+      ]
+    },
+    {
+      "venue_id": 1,
+      "name": "Pekuri",
+      "series": "tickets_sold",
+      "series_label": {
+        "fi": "Lipunmyynti ilman ryhmiä",
+        "en": "Tickets sold, groups excluded"
+      },
+      "origin_date": "2026-09-13",
+      "n_training_days": 243,
+      "n_origins": 12,
+      "models": [
+        "baseline",
+        "prophet_xgb"
+      ],
+      "horizon_days": 30,
+      "hourly_days": 0,
+      "warnings": [
+        {
+          "fi": "Ylläpidetty kalenteri ei ulotu päivään 2026-10-01; niiltä päiviltä oletetaan ettei pyhiä ole.",
+          "en": "The maintained calendar does not reach 2026-10-01; those days assume no holiday."
+        }
+      ]
+    },
+    {
       "venue_id": 2,
       "name": "Kaupungintalo",
+      "series": "visitor_events",
+      "series_label": {
+        "fi": "Kävijätapahtumat",
+        "en": "Visitor events"
+      },
       "origin_date": "2026-09-15",
       "n_training_days": 251,
       "n_origins": 12,
@@ -45,6 +108,58 @@
           "en": "The maintained calendar does not reach 2026-10-01; those days assume no holiday."
         }
       ]
+    },
+    {
+      "venue_id": 2,
+      "name": "Kaupungintalo",
+      "series": "visitor_entries",
+      "series_label": {
+        "fi": "Sisäänmenot",
+        "en": "Entries"
+      },
+      "origin_date": "2026-09-15",
+      "n_training_days": 251,
+      "n_origins": 12,
+      "models": [
+        "baseline",
+        "prophet_xgb"
+      ],
+      "horizon_days": 30,
+      "hourly_days": 7,
+      "warnings": [
+        {
+          "fi": "Ylläpidetty kalenteri ei ulotu päivään 2026-10-01; niiltä päiviltä oletetaan ettei pyhiä ole.",
+          "en": "The maintained calendar does not reach 2026-10-01; those days assume no holiday."
+        }
+      ]
+    },
+    {
+      "venue_id": 2,
+      "name": "Kaupungintalo",
+      "series": "tickets_sold",
+      "series_label": {
+        "fi": "Lipunmyynti ilman ryhmiä",
+        "en": "Tickets sold, groups excluded"
+      },
+      "origin_date": "2026-09-13",
+      "n_training_days": 243,
+      "n_origins": 12,
+      "models": [
+        "baseline",
+        "prophet_xgb"
+      ],
+      "horizon_days": 30,
+      "hourly_days": 0,
+      "warnings": [
+        {
+          "fi": "Mallin baseline peittävyys horisontilla 1-7 on 66%, eli hyväksyttävän välin 70%-90% ulkopuolella.",
+          "en": "Model baseline has 66% coverage at horizon 1-7, outside the acceptable 70%-90% range."
+        },
+        {
+          "fi": "Ylläpidetty kalenteri ei ulotu päivään 2026-10-01; niiltä päiviltä oletetaan ettei pyhiä ole.",
+          "en": "The maintained calendar does not reach 2026-10-01; those days assume no holiday."
+        }
+      ]
     }
   ],
   "ingest": {
@@ -55,6 +170,10 @@
     }
   },
   "warnings": [
+    {
+      "fi": "Mallin baseline peittävyys horisontilla 1-7 on 66%, eli hyväksyttävän välin 70%-90% ulkopuolella.",
+      "en": "Model baseline has 66% coverage at horizon 1-7, outside the acceptable 70%-90% range."
+    },
     {
       "fi": "Ylläpidetty kalenteri ei ulotu päivään 2026-10-01; niiltä päiviltä oletetaan ettei pyhiä ole.",
       "en": "The maintained calendar does not reach 2026-10-01; those days assume no holiday."

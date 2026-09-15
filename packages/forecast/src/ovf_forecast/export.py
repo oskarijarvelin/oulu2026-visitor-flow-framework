@@ -28,6 +28,7 @@ import pandas as pd
 from . import __version__, log_event
 from .dataset import FORECAST_DIR, LOCAL_TIMEZONE
 from .profile import HourProfile, spread_over_hours
+from .series import DEFAULT_SERIES, Series
 
 LATEST_DIR = "latest"
 MANIFEST_NAME = "manifest.json"
@@ -99,6 +100,18 @@ def forecast_root(root: Path) -> Path:
 def venue_dir(base: Path, venue_id: int) -> Path:
     """``.../venue_{id}`` under a forecast directory."""
     return base / f"venue_{venue_id}"
+
+
+def series_dir(base: Path, venue_id: int, series: Series = DEFAULT_SERIES) -> Path:
+    """Where one series writes its files.
+
+    The default series keeps ``venue_{id}/`` exactly as before. Everything that reads a
+    forecast today - the web build, ``report``, the stored archives - points at that
+    path, and moving it to gain symmetry would break all of them to no one's benefit.
+    The added series get ``venue_{id}/{series_id}/`` beneath it.
+    """
+    root = venue_dir(base, venue_id)
+    return root if series.series_id == DEFAULT_SERIES.series_id else root / series.series_id
 
 
 # --------------------------------------------------------------------------------------
@@ -307,21 +320,34 @@ def write_outputs(
     root: Path,
     venue_id: int,
     daily: pd.DataFrame,
-    hourly: pd.DataFrame,
+    hourly: pd.DataFrame | None,
     metrics: dict[str, Any],
     backtest: pd.DataFrame,
     stamp: RunStamp,
+    *,
+    series: Series = DEFAULT_SERIES,
 ) -> list[Path]:
-    """Write one venue's four files under ``latest/``."""
-    target = venue_dir(forecast_root(root) / LATEST_DIR, venue_id)
+    """Write one venue-and-series' files under ``latest/``.
+
+    ``hourly`` is ``None`` for a series with no hourly measurement. The file is then not
+    written at all rather than written empty: an absent file says "this series has no
+    hourly shape", while an empty one invites a reader to believe the shape is zero.
+    """
+    target = series_dir(forecast_root(root) / LATEST_DIR, venue_id, series)
     target.mkdir(parents=True, exist_ok=True)
-    written = [
-        _write_csv(target / DAILY_NAME, daily),
-        _write_csv(target / HOURLY_NAME, hourly),
-        _write_json(target / METRICS_NAME, metrics),
-        _write_csv(target / BACKTEST_NAME, backtest),
-    ]
-    log_event("info", "export", "Wrote venue forecast", venue_id=venue_id, path=str(target))
+    written = [_write_csv(target / DAILY_NAME, daily)]
+    if hourly is not None:
+        written.append(_write_csv(target / HOURLY_NAME, hourly))
+    written.append(_write_json(target / METRICS_NAME, metrics))
+    written.append(_write_csv(target / BACKTEST_NAME, backtest))
+    log_event(
+        "info",
+        "export",
+        "Wrote venue forecast",
+        venue_id=venue_id,
+        series=series.series_id,
+        path=str(target),
+    )
     return written
 
 
@@ -349,14 +375,20 @@ def build_manifest(
     skipped: list[str],
     warnings: list[dict[str, str]],
     ingest_manifest: dict[str, Any] | None,
+    series: list[str] | None = None,
 ) -> dict[str, Any]:
-    """The forecast run manifest, mirroring the ingest one's shape."""
+    """The forecast run manifest, mirroring the ingest one's shape.
+
+    ``venues`` now holds one entry per venue and series rather than one per venue. The
+    key is kept for the readers that already walk it; each entry names its series.
+    """
     return {
         "generated_at": stamp.generated_at,
         "pipeline": "forecast",
         "version": __version__,
         "models": models,
         "skipped_models": skipped,
+        "series": series or [DEFAULT_SERIES.series_id],
         "venues": venues,
         "ingest": {
             "generated_at": (ingest_manifest or {}).get("generated_at"),

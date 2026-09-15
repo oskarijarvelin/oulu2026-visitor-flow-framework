@@ -22,7 +22,11 @@ from datetime import date, timedelta
 import numpy as np
 import pandas as pd
 
-TARGET = "visitors_total"
+# The column every model, the backtest and the interval fit read. It is deliberately
+# neutral: which real quantity it holds is decided by ``series.Series`` and materialised
+# by ``dataset.venue_history``, so nothing below this line knows or cares whether it is
+# looking at visitor events, entries or tickets sold.
+TARGET = "y"
 
 CALENDAR_FEATURES = (
     "day_of_week",

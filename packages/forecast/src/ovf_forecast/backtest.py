@@ -26,7 +26,7 @@ import pandas as pd
 
 from . import log_event
 from .dataset import ProcessedData, as_float, as_int, as_timestamp, venue_future
-from .features import build_future_frame, build_training_frame
+from .features import TARGET, build_future_frame, build_training_frame
 from .intervals import BUCKET_LABELS, Band, apply_bands, bucket_series, fit_bands
 from .models.base import ForecastModel
 
@@ -102,7 +102,7 @@ def run_backtest(
     """Fit and score every model on every origin. Returns one row per prediction."""
     origins = build_origins(history, config)
     records: list[dict[str, object]] = []
-    actuals = history.set_index("date")["visitors_total"]
+    actuals = history.set_index("date")[TARGET]
     for origin in origins:
         training = build_training_frame(history, origin)
         future_covariates = venue_future(data, venue_id, origin, config.horizon_days)

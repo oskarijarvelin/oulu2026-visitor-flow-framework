@@ -59,6 +59,7 @@ def build_profile(
     venue_id: int,
     origin: date,
     *,
+    column: str = "visitors_total",
     lookback_days: int = LOOKBACK_DAYS,
     shrink_k: float = SHRINK_K,
     closed_threshold: float = CLOSED_THRESHOLD,
@@ -67,6 +68,11 @@ def build_profile(
 
     Only days at or before ``origin`` are read, so a profile built inside a backtest
     cannot see the days it is about to be scored on.
+
+    ``column`` picks the hourly measurement the shape is taken from. Entries and exits
+    do not share a shape - people arrive over the morning and leave in a lump at
+    closing - so a series forecasting entries has to spread its day over the entry
+    profile and not over the combined one.
     """
     stamp = pd.Timestamp(origin)
     window_start = stamp - pd.Timedelta(days=lookback_days - 1)
@@ -78,10 +84,10 @@ def build_profile(
         return _flat_profile(venue_id, origin, lookback_days, observed_days=0)
 
     values = selected.assign(
-        visitors_total=pd.to_numeric(selected["visitors_total"], errors="coerce").astype("float64")
+        _value=pd.to_numeric(selected[column], errors="coerce").astype("float64")
     )
     counts = values.pivot_table(
-        index="date", columns="hour", values="visitors_total", aggfunc="sum", fill_value=0.0
+        index="date", columns="hour", values="_value", aggfunc="sum", fill_value=0.0
     ).reindex(columns=range(HOURS_PER_DAY), fill_value=0.0)
     daily_totals = counts.sum(axis=1)
     active = counts.loc[daily_totals > 0]

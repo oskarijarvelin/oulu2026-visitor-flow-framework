@@ -13,6 +13,7 @@ import pytest
 from ovf_forecast.cli import main
 from ovf_forecast.export import DAILY_COLUMNS, HOURLY_COLUMNS
 from ovf_forecast.models.base import BASELINE, BENCHMARK_NAMES, PROPHET_XGB
+from ovf_forecast.series import SERIES_IDS
 
 AS_OF = "2026-07-01T04:00:00Z"
 LATEST = Path("data") / "forecasts" / "latest"
@@ -235,7 +236,12 @@ def test_manifest_records_the_run(baseline_run: Path) -> None:
     assert manifest["pipeline"] == "forecast"
     assert manifest["generated_at"] == AS_OF
     assert manifest["models"] == [BASELINE]
-    assert [entry["venue_id"] for entry in manifest["venues"]] == list(VENUE_IDS)
+    # One entry per venue and series, not per venue: the run forecasts every series the
+    # repository has data for.
+    assert manifest["series"] == list(SERIES_IDS)
+    assert [(entry["venue_id"], entry["series"]) for entry in manifest["venues"]] == [
+        (venue_id, series) for venue_id in VENUE_IDS for series in SERIES_IDS
+    ]
     assert manifest["ingest"]["quality_gates"] == {"passed": True, "warnings": []}
 
 

@@ -23,11 +23,17 @@ import numpy as np
 import pandas as pd
 
 from . import log_event
+from .series import DEFAULT_SERIES, Series
 
 ROOT_MARKERS = ("config/venues.json", "data/processed")
 LOCAL_TIMEZONE = "Europe/Helsinki"
 
 PROCESSED_DIR = "data/processed"
+
+# The column every model reads. Defined here as a literal rather than imported from
+# ``features`` because ``features`` imports nothing and this module must not gain a
+# cycle; ``features.TARGET`` is asserted equal to it in the tests.
+TARGET_COLUMN = "y"
 CLIMATOLOGY_DIR = "data/reference/climatology"
 FORECAST_DIR = "data/forecasts"
 
@@ -92,6 +98,7 @@ class ProcessedData:
     venues: tuple[Venue, ...]
     visitors_daily: pd.DataFrame
     visitors_hourly: pd.DataFrame
+    tickets_daily: pd.DataFrame
     weather_daily: pd.DataFrame
     weather_hourly: pd.DataFrame
     calendar_daily: pd.DataFrame
@@ -167,6 +174,7 @@ def load_dataset(root: Path | None = None) -> ProcessedData:
         venues=venues,
         visitors_daily=_read_daily(processed / "visitors_daily.csv"),
         visitors_hourly=_read_hourly(processed / "visitors_hourly.csv"),
+        tickets_daily=_read_optional_daily(processed / "tickets_daily.csv"),
         weather_daily=_read_daily(processed / "weather_daily.csv"),
         weather_hourly=_read_hourly(processed / "weather_hourly.csv"),
         calendar_daily=_read_daily(processed / "calendar_daily.csv"),
@@ -203,6 +211,19 @@ def _read_daily(path: Path) -> pd.DataFrame:
     frame = pd.read_csv(path)
     frame["date"] = pd.to_datetime(frame["date"], format="%Y-%m-%d")
     return frame
+
+
+def _read_optional_daily(path: Path) -> pd.DataFrame:
+    """Read a daily table that is allowed to be missing.
+
+    Ticket sales are maintained by hand rather than fetched, so a repository without
+    them is a normal state and not a broken one. The visitor series still forecast; the
+    ticket series reports an empty history and is skipped with a warning.
+    """
+    if not path.is_file():
+        log_event("warning", "dataset", "Optional table missing", path=str(path))
+        return pd.DataFrame(columns=["venue_id", "date"])
+    return _read_daily(path)
 
 
 def _read_hourly(path: Path) -> pd.DataFrame:
@@ -332,29 +353,57 @@ def climatology_row(data: ProcessedData, venue_id: int, day: date) -> dict[str, 
 
 
 def venue_history(
-    data: ProcessedData, venue_id: int, *, trim_leading_zeros: bool = True
+    data: ProcessedData,
+    venue_id: int,
+    *,
+    series: Series = DEFAULT_SERIES,
+    trim_leading_zeros: bool = True,
 ) -> pd.DataFrame:
     """Observed daily rows for one venue, joined with weather and calendar covariates.
+
+    The chosen ``series`` is copied into :data:`ovf_forecast.features.TARGET`, so every
+    model, the backtest and the interval fit read one column name and none of them has
+    to know which quantity is being forecast.
 
     The leading run of all-zero days is dropped. Venue 1 reports nothing before
     2026-01-22 and venue 2 nothing before 2026-01-08: that is a sensor that was not
     installed yet, not a museum nobody visited, and training on it would drag every
-    level feature down.
+    level feature down. The same reasoning applies to a ticket series that starts before
+    the box office did, so the trim is made against the series being forecast rather
+    than against the visitor count.
 
     ``trim_leading_zeros=False`` keeps them. The evaluation package asks for that,
     because there the training window is whatever the caller named and the series has
     to start where the file starts; see ``docs/EVALUATION.md``.
     """
-    visitors = data.visitors_daily.loc[data.visitors_daily["venue_id"] == venue_id].copy()
-    if visitors.empty:
-        return visitors
-    visitors = visitors.sort_values("date").reset_index(drop=True)
+    table = data.visitors_daily if series.source == "visitors_daily" else data.tickets_daily
+    if table.empty or "venue_id" not in table.columns:
+        log_event(
+            "warning",
+            "dataset",
+            "No table for series",
+            venue_id=venue_id,
+            series=series.series_id,
+            table=series.source,
+        )
+        return pd.DataFrame(columns=["date", TARGET_COLUMN])
+    rows = table.loc[table["venue_id"] == venue_id].copy()
+    if rows.empty:
+        return rows
+    rows = rows.sort_values("date").reset_index(drop=True)
+    rows = _with_target(rows, series)
     if not trim_leading_zeros:
-        return _as_float_targets(_join_covariates(data, visitors, venue_id))
-    nonzero = visitors.index[visitors["visitors_total"] > 0]
+        return _join_covariates(data, rows, venue_id)
+    nonzero = rows.index[rows[TARGET_COLUMN] > 0]
     if len(nonzero) == 0:
-        log_event("warning", "dataset", "Venue has no non-zero day", venue_id=venue_id)
-        return visitors.iloc[0:0]
+        log_event(
+            "warning",
+            "dataset",
+            "Venue has no non-zero day",
+            venue_id=venue_id,
+            series=series.series_id,
+        )
+        return rows.iloc[0:0]
     trimmed = int(nonzero[0])
     if trimmed:
         log_event(
@@ -362,17 +411,34 @@ def venue_history(
             "dataset",
             "Dropped leading zero days before the first observation",
             venue_id=venue_id,
+            series=series.series_id,
             days=trimmed,
-            first_observed=str(as_timestamp(visitors.loc[trimmed, "date"]).date()),
+            first_observed=str(as_timestamp(rows.loc[trimmed, "date"]).date()),
         )
-    visitors = visitors.iloc[trimmed:].reset_index(drop=True)
-    return _as_float_targets(_join_covariates(data, visitors, venue_id))
+    rows = rows.iloc[trimmed:].reset_index(drop=True)
+    return _join_covariates(data, rows, venue_id)
 
 
-def _as_float_targets(frame: pd.DataFrame) -> pd.DataFrame:
-    """Force the three target columns to float, whatever the CSV made of them."""
-    for column in ("visitors_total", "visitors_in", "visitors_out"):
-        frame[column] = pd.to_numeric(frame[column], errors="coerce").astype("float64")
+def _with_target(frame: pd.DataFrame, series: Series) -> pd.DataFrame:
+    """Force the numeric columns to float and publish the series under ``TARGET``.
+
+    The source columns are kept beside it. They cost nothing, and a reader looking at a
+    history frame can still see what the raw table said.
+    """
+    numeric = (
+        "visitors_total",
+        "visitors_in",
+        "visitors_out",
+        "tickets_sold",
+        "groups_sold",
+        "tickets_total",
+    )
+    for column in numeric:
+        if column in frame.columns:
+            frame[column] = pd.to_numeric(frame[column], errors="coerce").astype("float64")
+    if series.column not in frame.columns:
+        raise KeyError(f"Series {series.series_id} needs column {series.column} in {series.source}")
+    frame[TARGET_COLUMN] = pd.to_numeric(frame[series.column], errors="coerce").astype("float64")
     return frame
 
 

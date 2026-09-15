@@ -625,14 +625,52 @@ sivusto renderöi ne lukijan valitsemalla kielellä eikä arvaa käännöstä.
 
 ## 9. Tuotokset
 
+### 9.1 Ennustettavat sarjat
+
+Työkalu ennustaa kolmea eri suuretta. Ne eivät ole toistensa skaalauksia vaan kolme eri
+mittalaitteen vastausta kolmeen eri kysymykseen, joten jokaiselle koulutetaan oma malli
+ja mitataan oma tarkkuus.
+
+| `series_id` | Lähde | Sarake | Mitä mittaa | Tuntitaso |
+| --- | --- | --- | --- | --- |
+| `visitor_events` | `visitors_daily` | `visitors_total` | Sisään + ulos, eli kävijätapahtumat. Yksi käynti tuottaa tyypillisesti kaksi. | kyllä |
+| `visitor_entries` | `visitors_daily` | `visitors_in` | Pelkät sisäänmenot, lähempänä henkilömäärää | kyllä |
+| `tickets_sold` | `tickets_daily` | `tickets_sold` | Myydyt liput ilman ryhmiä ja erikoisryhmiä | ei |
+
+Mittasuhteista: elokuussa 2026 venue 1:llä kävijätapahtumia oli noin 9 kertaa myytyjen
+lippujen verran, venue 2:lla noin 3 kertaa. Ero on niin suuri ettei yhden sarjan
+ennusteesta voi päätellä toista kertoimella, ja juuri siksi ne ennustetaan erikseen.
+
+`visitor_events` on oletussarja ja säilyttää alkuperäiset polkunsa, koska web-build ja
+jokainen tallennettu arkisto lukee niitä. `tickets_sold` ei saa tuntitiedostoa
+lainkaan: lipunmyynti kirjataan päivätasolla, joten sen levittäminen 24 tunnille olisi
+keksimistä eikä ennustamista, ja puuttuva tiedosto kertoo sen suoraan.
+
+Lipunmyyntisarjan origo on tyypillisesti eri kuin kävijäsarjojen, koska lipputilastot
+ylläpidetään käsin ja laahaavat automaattista laskentaa muutaman päivän. Jokainen sarja
+ennustaa omasta viimeisestä havaintopäivästään eteenpäin.
+
+Sarjat on määritelty tiedostossa `packages/forecast/src/ovf_forecast/series.py`. Putki on
+edelleen yksikohteinen: `venue_history` kopioi valitun sarakkeen nimelle `features.TARGET`,
+ja mallit, backtest ja ennustevälit lukevat sitä yhtä nimeä tietämättä mitä suuretta
+katsovat. Uuden sarjan lisääminen on siis yksi merkintä rekisteriin.
+
+### 9.2 Tiedostot
+
 ```
 data/forecasts/latest/manifest.json
 data/forecasts/latest/venue_{id}/daily_30d.csv      # 30 vrk x 2 mallia = 60 riviä
 data/forecasts/latest/venue_{id}/hourly_7d.csv      # 7 vrk x 24 h x 2 mallia = 336 riviä
 data/forecasts/latest/venue_{id}/metrics.json
 data/forecasts/latest/venue_{id}/backtest.csv
+data/forecasts/latest/venue_{id}/visitor_entries/   # sama neljä tiedostoa
+data/forecasts/latest/venue_{id}/tickets_sold/      # sama, ilman hourly_7d.csv
 data/forecasts/{YYYY-MM-DD}/...                     # arkistokopio samasta rakenteesta
 ```
+
+`metrics.json` kertoo sarjansa kentissä `series`, `series_label`, `series_unit` ja
+`series_source`. Manifestin `series` luettelee ajetut sarjat, ja `venues` sisältää yhden
+merkinnän per venue ja sarja.
 
 Sarakkeet on kuvattu `FRAMEWORK_PLAN.md` luvussa 4.3.
 
@@ -663,6 +701,9 @@ myös aikaleiman, jolloin kaksi ajoa tuottavat tavulleen identtiset tiedostot.
 ```bash
 python -m ovf_forecast run                      # molemmat mallit, kaikki venuet
 python -m ovf_forecast run --model baseline     # vain perusmalli
+python -m ovf_forecast run --series tickets_sold          # vain lipunmyyntisarja
+python -m ovf_forecast run --series visitor_events --series visitor_entries
+python -m ovf_forecast report --series tickets_sold       # yhden sarjan mittarit
 python -m ovf_forecast run --venue 1 --horizon-days 30
 python -m ovf_forecast backtest --origins 12    # pelkkä validointi, ei kirjoiteta mitään
 python -m ovf_forecast report                   # tulostaa metrics.json luettavana

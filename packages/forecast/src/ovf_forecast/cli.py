@@ -79,7 +79,7 @@ from .export import (
     build_hourly_rows,
     build_manifest,
     forecast_root,
-    venue_dir,
+    series_dir,
     write_manifest,
     write_outputs,
 )
@@ -108,6 +108,7 @@ from .quiet import rolling_sweep as quiet_rolling_sweep
 from .quiet import utc_now as quiet_utc_now
 from .quiet.backtest import SWEEP_SIMULATIONS
 from .quiet.model import N_SIMULATIONS
+from .series import DEFAULT_SERIES, SERIES_IDS, Series, resolve_series
 
 EXIT_OK = 0
 EXIT_PARTIAL = 1
@@ -133,12 +134,19 @@ def forecast_venue(
     config: BacktestConfig,
     stamp: RunStamp,
     *,
+    series: Series = DEFAULT_SERIES,
     hourly_days: int = DEFAULT_HOURLY_DAYS,
 ) -> dict[str, Any] | None:
-    """Backtest, fit and export one venue. Returns its manifest entry, or ``None``."""
-    history = venue_history(data, venue.venue_id)
+    """Backtest, fit and export one venue-and-series. Returns its manifest entry."""
+    history = venue_history(data, venue.venue_id, series=series)
     if history.empty:
-        log_event("error", "run", "No observed history", venue_id=venue.venue_id)
+        log_event(
+            "error",
+            "run",
+            "No observed history",
+            venue_id=venue.venue_id,
+            series=series.series_id,
+        )
         return None
     origin: date = history["date"].max().date()
     warnings: list[dict[str, str]] = []
@@ -169,25 +177,34 @@ def forecast_venue(
         predictions[model.name] = predicted
         intervals[model.name] = apply_bands(predicted, future["horizon_days"], bands, model.name)
 
-    profile = build_profile(data.visitors_hourly, venue.venue_id, origin)
     daily = build_daily_rows(venue.venue_id, future, predictions, intervals, stamp)
-    hourly_days_stamps = [
-        pd.Timestamp(day) for day in future.loc[future["horizon_days"] <= hourly_days, "date"]
-    ]
-    hourly = build_hourly_rows(
+    # A series with no hourly measurement gets no hourly file; see ``series.Series``.
+    profile = build_profile(
+        data.visitors_hourly,
         venue.venue_id,
-        future,
-        predictions,
-        intervals,
-        profile,
-        hourly_weather(data, venue.venue_id, hourly_days_stamps),
-        stamp,
-        days=hourly_days,
+        origin,
+        column=series.hourly_column or DEFAULT_SERIES.column,
     )
+    hourly: pd.DataFrame | None = None
+    if series.has_hourly:
+        hourly_days_stamps = [
+            pd.Timestamp(day) for day in future.loc[future["horizon_days"] <= hourly_days, "date"]
+        ]
+        hourly = build_hourly_rows(
+            venue.venue_id,
+            future,
+            predictions,
+            intervals,
+            profile,
+            hourly_weather(data, venue.venue_id, hourly_days_stamps),
+            stamp,
+            days=hourly_days,
+        )
 
     warnings.extend(_venue_warnings(data, venue, metrics, backtest, origin, config, profile.observed_days))
     metrics_payload = _metrics_payload(
         venue=venue,
+        series=series,
         origin=origin,
         history=history,
         backtest=backtest,
@@ -201,17 +218,28 @@ def forecast_venue(
         warnings=warnings,
         stamp=stamp,
     )
-    write_outputs(data.root, venue.venue_id, daily, hourly, metrics_payload, backtest, stamp)
-    _log_honesty_gate(venue, metrics, comparison)
+    write_outputs(
+        data.root,
+        venue.venue_id,
+        daily,
+        hourly,
+        metrics_payload,
+        backtest,
+        stamp,
+        series=series,
+    )
+    _log_honesty_gate(venue, metrics, comparison, series)
     return {
         "venue_id": venue.venue_id,
         "name": venue.name,
+        "series": series.series_id,
+        "series_label": {"fi": series.label_fi, "en": series.label_en},
         "origin_date": origin.isoformat(),
         "n_training_days": len(history),
         "n_origins": origin_count(backtest),
         "models": sorted(predictions),
         "horizon_days": config.horizon_days,
-        "hourly_days": hourly_days,
+        "hourly_days": hourly_days if series.has_hourly else 0,
         "warnings": warnings,
     }
 
@@ -277,6 +305,7 @@ def _venue_warnings(
 def _metrics_payload(
     *,
     venue: Venue,
+    series: Series,
     origin: date,
     history: pd.DataFrame,
     backtest: pd.DataFrame,
@@ -296,6 +325,10 @@ def _metrics_payload(
     return {
         "venue_id": venue.venue_id,
         "venue_name": venue.name,
+        "series": series.series_id,
+        "series_label": {"fi": series.label_fi, "en": series.label_en},
+        "series_unit": {"fi": series.unit_fi, "en": series.unit_en},
+        "series_source": f"{series.source}.{series.column}",
         "generated_at": stamp.generated_at,
         "trained_at": stamp.generated_at,
         "origin_date": origin.isoformat(),
@@ -332,6 +365,7 @@ def _log_honesty_gate(
     venue: Venue,
     metrics: dict[str, dict[str, dict[str, float | int]]],
     comparison: dict[str, dict[str, dict[str, bool | float]]],
+    series: Series = DEFAULT_SERIES,
 ) -> None:
     """Log, per model, whether the near horizon actually beats the naive benchmarks."""
     for model, buckets in comparison.items():
@@ -348,6 +382,7 @@ def _log_honesty_gate(
                 "quality-gate",
                 "Model does not beat every benchmark at the near horizon",
                 venue_id=venue.venue_id,
+                series=series.series_id,
                 model=model,
                 bucket=NEAR_HORIZON_BUCKET,
                 mae=mae,
@@ -359,6 +394,7 @@ def _log_honesty_gate(
                 "quality-gate",
                 "Model beats every benchmark at the near horizon",
                 venue_id=venue.venue_id,
+                series=series.series_id,
                 model=model,
                 bucket=NEAR_HORIZON_BUCKET,
                 mae=mae,
@@ -380,26 +416,86 @@ def command_run(data: ProcessedData, args: argparse.Namespace) -> int:
     if not usable:
         log_event("error", "run", "No model available", requested=list(model_names))
         return EXIT_FAILED
+    requested = resolve_series(tuple(args.series) if args.series else None)
+    series_list = _available_series(data, requested, explicit=bool(args.series))
+    if not series_list:
+        log_event("error", "run", "No series has any data", requested=[s.series_id for s in requested])
+        return EXIT_FAILED
     entries: list[dict[str, Any]] = []
-    failed: list[int] = []
+    failed: list[str] = []
+    # Venue outer, series inner: one venue's three series land next to each other on
+    # disk and in the log, which is the order a reader follows them in.
     for venue in data.select_venues(args.venue):
-        entry = forecast_venue(data, venue, usable, config, stamp, hourly_days=args.hourly_days)
-        if entry is None:
-            failed.append(venue.venue_id)
-        else:
-            entries.append(entry)
+        for series in series_list:
+            entry = forecast_venue(
+                data,
+                venue,
+                usable,
+                config,
+                stamp,
+                series=series,
+                hourly_days=args.hourly_days,
+            )
+            if entry is None:
+                failed.append(f"{venue.venue_id}/{series.series_id}")
+            else:
+                entries.append(entry)
     if not entries:
         return EXIT_FAILED
     warnings = _unique_notes(
         [warning for entry in entries for warning in entry["warnings"]]
         + [note("skipped_model", model=name) for name in skipped]
     )
-    manifest = build_manifest(stamp, entries, list(usable), skipped, warnings, data.ingest_manifest)
+    manifest = build_manifest(
+        stamp,
+        entries,
+        list(usable),
+        skipped,
+        warnings,
+        data.ingest_manifest,
+        series=[series.series_id for series in series_list],
+    )
     write_manifest(data.root, manifest)
     if not args.no_archive:
         archive_latest(data.root, stamp)
-    log_event("info", "run", "Run complete", venues=[entry["venue_id"] for entry in entries])
+    log_event(
+        "info",
+        "run",
+        "Run complete",
+        venues=sorted({entry["venue_id"] for entry in entries}),
+        series=[series.series_id for series in series_list],
+        failed=failed,
+    )
     return EXIT_PARTIAL if failed else EXIT_OK
+
+
+def _available_series(
+    data: ProcessedData, requested: tuple[Series, ...], *, explicit: bool
+) -> tuple[Series, ...]:
+    """Drop the series whose source table is not in this repository at all.
+
+    Ticket sales are maintained by hand, so a checkout without them is ordinary rather
+    than broken, and the visitor forecasts should still run and still exit zero. A
+    series the caller named explicitly is never dropped silently: asking for it and
+    getting nothing is an error worth an exit code.
+    """
+    available: list[Series] = []
+    for series in requested:
+        table = data.visitors_daily if series.source == "visitors_daily" else data.tickets_daily
+        if not table.empty and "venue_id" in table.columns:
+            available.append(series)
+            continue
+        if explicit:
+            available.append(series)
+            continue
+        log_event(
+            "warning",
+            "run",
+            "Skipping series, its source table is missing",
+            series=series.series_id,
+            table=series.source,
+        )
+    return tuple(available)
 
 
 def command_backtest(data: ProcessedData, args: argparse.Namespace) -> int:
@@ -435,15 +531,20 @@ def command_report(data: ProcessedData, args: argparse.Namespace) -> int:
     import json
 
     base = forecast_root(data.root) / LATEST_DIR
+    series_list = resolve_series(tuple(args.series) if args.series else None)
     found = 0
     for venue in data.select_venues(args.venue):
-        path = venue_dir(base, venue.venue_id) / METRICS_NAME
-        if not path.is_file():
-            print(say(args, "no_metrics", venue_id=venue.venue_id))
-            continue
-        payload = json.loads(path.read_text(encoding="utf-8"))
-        _print_report(payload, args)
-        found += 1
+        for series in series_list:
+            path = series_dir(base, venue.venue_id, series) / METRICS_NAME
+            if not path.is_file():
+                # Only complain about a series that was actually asked for; the default
+                # run writes all of them, but an older archive may hold just the one.
+                if args.series or series.series_id == DEFAULT_SERIES.series_id:
+                    print(say(args, "no_metrics", venue_id=venue.venue_id))
+                continue
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            _print_report(payload, args)
+            found += 1
     return EXIT_OK if found else EXIT_FAILED
 
 
@@ -875,6 +976,13 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument(
         "--hourly-days", type=int, default=DEFAULT_HOURLY_DAYS, help="Days covered by the hourly export"
     )
+    run_parser.add_argument(
+        "--series",
+        action="append",
+        default=None,
+        choices=SERIES_IDS,
+        help=f"Forecast one series; repeatable. Default: all of {', '.join(SERIES_IDS)}",
+    )
     run_parser.add_argument("--no-archive", action="store_true", help="Skip the dated archive copy")
     run_parser.add_argument("--as-of", default=None, help="Override the run timestamp, for reproducible runs")
     _add_language_argument(run_parser, default=None)
@@ -887,6 +995,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     report_parser = subparsers.add_parser("report", help="Print the metrics of the last run")
     report_parser.add_argument("--venue", action="append", type=int, default=None, help="Limit to one venue")
+    report_parser.add_argument(
+        "--series",
+        action="append",
+        default=None,
+        choices=SERIES_IDS,
+        help="Report one series; repeatable. Default: every series the run wrote",
+    )
     _add_language_argument(report_parser, default=None)
     report_parser.set_defaults(handler=command_report)
 

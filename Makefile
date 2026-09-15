@@ -3,7 +3,8 @@ VENV := .venv
 BIN := $(VENV)/bin
 
 .PHONY: help venv install install-prophet ingest ingest-full climatology verify \
-        forecast forecast-baseline backtest report evaluate evaluate-sweep evaluate-list \
+        forecast forecast-baseline forecast-visitors forecast-tickets \
+        backtest report evaluate evaluate-sweep evaluate-list \
         quiet quiet-backtest quiet-list \
         test lint typecheck check clean \
         web-install web-data web web-dev web-preview web-check web-test web-e2e all
@@ -15,8 +16,10 @@ help:
 	@echo "make ingest-full  Full rebuild from 2026-01-01"
 	@echo "make climatology  Fetch 10-year weather normals (run once)"
 	@echo "make verify       Run the quality gates against data/processed without fetching"
-	@echo "make forecast     Run both models and write data/forecasts"
+	@echo "make forecast     Run both models and write data/forecasts (every series)"
 	@echo "make forecast-baseline  Run only the baseline model"
+	@echo "make forecast-visitors  Only the visitor-event series, as before the series split"
+	@echo "make forecast-tickets   Only the ticket-sales series"
 	@echo "make backtest     Validate the models without writing forecasts"
 	@echo "make report       Print the metrics of the last forecast run"
 	@echo "make evaluate     Evaluate one window: train to 31.3., forecast April"
@@ -71,6 +74,14 @@ forecast:
 
 forecast-baseline:
 	$(BIN)/python -m ovf_forecast run --model baseline
+
+# One series at a time. `forecast` writes all three; these are for a quick loop on one.
+# See docs/FORECAST_MODEL.md chapter 8 for what the three measure.
+forecast-visitors:
+	$(BIN)/python -m ovf_forecast run --series visitor_events
+
+forecast-tickets:
+	$(BIN)/python -m ovf_forecast run --series tickets_sold
 
 backtest:
 	$(BIN)/python -m ovf_forecast backtest

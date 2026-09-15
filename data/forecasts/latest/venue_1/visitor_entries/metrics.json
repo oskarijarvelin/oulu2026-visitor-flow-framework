@@ -1,16 +1,16 @@
 {
   "venue_id": 1,
   "venue_name": "Pekuri",
-  "series": "visitor_events",
+  "series": "visitor_entries",
   "series_label": {
-    "fi": "Kävijätapahtumat",
-    "en": "Visitor events"
+    "fi": "Sisäänmenot",
+    "en": "Entries"
   },
   "series_unit": {
-    "fi": "kävijätapahtumaa",
-    "en": "visitor events"
+    "fi": "sisäänmenoa",
+    "en": "entries"
   },
-  "series_source": "visitors_daily.visitors_total",
+  "series_source": "visitors_daily.visitors_in",
   "generated_at": "2026-09-15T20:53:25Z",
   "trained_at": "2026-09-15T20:53:25Z",
   "origin_date": "2026-09-15",
@@ -40,104 +40,104 @@
   "metrics": {
     "baseline": {
       "1-7": {
-        "mae": 134.555,
-        "rmse": 180.144,
-        "smape": 28.457,
-        "bias": -13.03,
-        "coverage_80": 0.7619,
+        "mae": 66.921,
+        "rmse": 89.105,
+        "smape": 28.481,
+        "bias": -4.587,
+        "coverage_80": 0.7738,
         "n": 84
       },
       "8-14": {
-        "mae": 165.282,
-        "rmse": 201.048,
-        "smape": 35.307,
-        "bias": -1.581,
+        "mae": 80.714,
+        "rmse": 97.77,
+        "smape": 34.596,
+        "bias": -0.34,
         "coverage_80": 0.7403,
         "n": 77
       },
       "15-30": {
-        "mae": 193.704,
-        "rmse": 225.822,
-        "smape": 41.382,
-        "bias": 32.846,
-        "coverage_80": 0.745,
+        "mae": 96.072,
+        "rmse": 111.424,
+        "smape": 41.18,
+        "bias": 18.366,
+        "coverage_80": 0.7517,
         "n": 149
       }
     },
     "moving_average_28d": {
       "1-7": {
-        "mae": 137.588,
-        "rmse": 175.299,
-        "smape": 29.419,
-        "bias": 9.97,
+        "mae": 68.733,
+        "rmse": 87.629,
+        "smape": 29.442,
+        "bias": 4.908,
         "coverage_80": 0.75,
         "n": 84
       },
       "8-14": {
-        "mae": 160.053,
-        "rmse": 195.175,
-        "smape": 34.019,
-        "bias": 8.36,
+        "mae": 80.114,
+        "rmse": 97.701,
+        "smape": 34.11,
+        "bias": 4.071,
         "coverage_80": 0.7792,
         "n": 77
       },
       "15-30": {
-        "mae": 174.158,
-        "rmse": 208.674,
-        "smape": 37.351,
-        "bias": 19.15,
+        "mae": 87.358,
+        "rmse": 104.597,
+        "smape": 37.527,
+        "bias": 9.469,
         "coverage_80": 0.7584,
         "n": 149
       }
     },
     "prophet_xgb": {
       "1-7": {
-        "mae": 143.176,
-        "rmse": 184.488,
-        "smape": 30.668,
-        "bias": 14.2,
+        "mae": 71.616,
+        "rmse": 92.576,
+        "smape": 30.894,
+        "bias": 6.62,
         "coverage_80": 0.7619,
         "n": 84
       },
       "8-14": {
-        "mae": 168.786,
-        "rmse": 202.218,
-        "smape": 35.858,
-        "bias": 27.87,
-        "coverage_80": 0.7532,
+        "mae": 87.295,
+        "rmse": 103.811,
+        "smape": 37.033,
+        "bias": 13.622,
+        "coverage_80": 0.7662,
         "n": 77
       },
       "15-30": {
-        "mae": 209.609,
-        "rmse": 246.053,
-        "smape": 44.083,
-        "bias": 69.536,
-        "coverage_80": 0.745,
+        "mae": 105.649,
+        "rmse": 124.208,
+        "smape": 44.715,
+        "bias": 33.312,
+        "coverage_80": 0.7383,
         "n": 149
       }
     },
     "seasonal_naive": {
       "1-7": {
-        "mae": 149.19,
-        "rmse": 211.897,
-        "smape": 31.454,
-        "bias": -1.833,
+        "mae": 74.583,
+        "rmse": 105.887,
+        "smape": 31.484,
+        "bias": -0.845,
         "coverage_80": 0.7738,
         "n": 84
       },
       "8-14": {
-        "mae": 160.545,
-        "rmse": 214.565,
-        "smape": 32.93,
-        "bias": 2.182,
+        "mae": 80.429,
+        "rmse": 107.177,
+        "smape": 33.057,
+        "bias": 1.13,
         "coverage_80": 0.7662,
         "n": 77
       },
       "15-30": {
-        "mae": 186.336,
-        "rmse": 236.85,
-        "smape": 39.063,
-        "bias": 28.013,
+        "mae": 93.289,
+        "rmse": 118.513,
+        "smape": 39.174,
+        "bias": 14.0,
         "coverage_80": 0.745,
         "n": 149
       }
@@ -147,41 +147,41 @@
     "baseline": {
       "1-7": {
         "beats_seasonal_naive": true,
-        "mae_ratio_vs_seasonal_naive": 0.9019,
+        "mae_ratio_vs_seasonal_naive": 0.8973,
         "beats_moving_average_28d": true,
-        "mae_ratio_vs_moving_average_28d": 0.978
+        "mae_ratio_vs_moving_average_28d": 0.9736
       },
       "8-14": {
         "beats_seasonal_naive": false,
-        "mae_ratio_vs_seasonal_naive": 1.0295,
+        "mae_ratio_vs_seasonal_naive": 1.0035,
         "beats_moving_average_28d": false,
-        "mae_ratio_vs_moving_average_28d": 1.0327
+        "mae_ratio_vs_moving_average_28d": 1.0075
       },
       "15-30": {
         "beats_seasonal_naive": false,
-        "mae_ratio_vs_seasonal_naive": 1.0395,
+        "mae_ratio_vs_seasonal_naive": 1.0298,
         "beats_moving_average_28d": false,
-        "mae_ratio_vs_moving_average_28d": 1.1122
+        "mae_ratio_vs_moving_average_28d": 1.0998
       }
     },
     "prophet_xgb": {
       "1-7": {
         "beats_seasonal_naive": true,
-        "mae_ratio_vs_seasonal_naive": 0.9597,
+        "mae_ratio_vs_seasonal_naive": 0.9602,
         "beats_moving_average_28d": false,
-        "mae_ratio_vs_moving_average_28d": 1.0406
+        "mae_ratio_vs_moving_average_28d": 1.0419
       },
       "8-14": {
         "beats_seasonal_naive": false,
-        "mae_ratio_vs_seasonal_naive": 1.0513,
+        "mae_ratio_vs_seasonal_naive": 1.0854,
         "beats_moving_average_28d": false,
-        "mae_ratio_vs_moving_average_28d": 1.0546
+        "mae_ratio_vs_moving_average_28d": 1.0896
       },
       "15-30": {
         "beats_seasonal_naive": false,
-        "mae_ratio_vs_seasonal_naive": 1.1249,
+        "mae_ratio_vs_seasonal_naive": 1.1325,
         "beats_moving_average_28d": false,
-        "mae_ratio_vs_moving_average_28d": 1.2036
+        "mae_ratio_vs_moving_average_28d": 1.2094
       }
     }
   },
@@ -190,22 +190,22 @@
     "baseline": [
       {
         "bucket": "1-7",
-        "q10": 0.6086,
-        "q90": 1.5767,
+        "q10": 0.6205,
+        "q90": 1.5448,
         "n": 84,
         "is_default": false
       },
       {
         "bucket": "8-14",
-        "q10": 0.5598,
-        "q90": 1.6574,
+        "q10": 0.5672,
+        "q90": 1.6778,
         "n": 77,
         "is_default": false
       },
       {
         "bucket": "15-30",
-        "q10": 0.491,
-        "q90": 1.784,
+        "q10": 0.4978,
+        "q90": 1.7175,
         "n": 149,
         "is_default": false
       }
@@ -213,22 +213,22 @@
     "moving_average_28d": [
       {
         "bucket": "1-7",
-        "q10": 0.5743,
-        "q90": 1.5817,
+        "q10": 0.5738,
+        "q90": 1.5826,
         "n": 84,
         "is_default": false
       },
       {
         "bucket": "8-14",
-        "q10": 0.5575,
-        "q90": 1.611,
+        "q10": 0.5535,
+        "q90": 1.6141,
         "n": 77,
         "is_default": false
       },
       {
         "bucket": "15-30",
-        "q10": 0.5125,
-        "q90": 1.6185,
+        "q10": 0.5108,
+        "q90": 1.6224,
         "n": 149,
         "is_default": false
       }
@@ -236,22 +236,22 @@
     "prophet_xgb": [
       {
         "bucket": "1-7",
-        "q10": 0.584,
-        "q90": 1.6513,
+        "q10": 0.5977,
+        "q90": 1.7339,
         "n": 84,
         "is_default": false
       },
       {
         "bucket": "8-14",
-        "q10": 0.5623,
-        "q90": 1.5697,
+        "q10": 0.5538,
+        "q90": 1.6134,
         "n": 77,
         "is_default": false
       },
       {
         "bucket": "15-30",
-        "q10": 0.469,
-        "q90": 1.7572,
+        "q10": 0.4643,
+        "q90": 1.7526,
         "n": 149,
         "is_default": false
       }
@@ -259,22 +259,22 @@
     "seasonal_naive": [
       {
         "bucket": "1-7",
-        "q10": 0.5924,
-        "q90": 1.7896,
+        "q10": 0.5975,
+        "q90": 1.7828,
         "n": 84,
         "is_default": false
       },
       {
         "bucket": "8-14",
-        "q10": 0.625,
-        "q90": 1.7615,
+        "q10": 0.6263,
+        "q90": 1.7562,
         "n": 77,
         "is_default": false
       },
       {
         "bucket": "15-30",
-        "q10": 0.4751,
-        "q90": 1.7161,
+        "q10": 0.4775,
+        "q90": 1.7132,
         "n": 149,
         "is_default": false
       }

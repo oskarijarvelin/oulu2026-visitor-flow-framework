@@ -1,28 +1,28 @@
 {
   "venue_id": 1,
   "venue_name": "Pekuri",
-  "series": "visitor_events",
+  "series": "tickets_sold",
   "series_label": {
-    "fi": "Kävijätapahtumat",
-    "en": "Visitor events"
+    "fi": "Lipunmyynti ilman ryhmiä",
+    "en": "Tickets sold, groups excluded"
   },
   "series_unit": {
-    "fi": "kävijätapahtumaa",
-    "en": "visitor events"
+    "fi": "lippua",
+    "en": "tickets"
   },
-  "series_source": "visitors_daily.visitors_total",
+  "series_source": "tickets_daily.tickets_sold",
   "generated_at": "2026-09-15T20:53:25Z",
   "trained_at": "2026-09-15T20:53:25Z",
-  "origin_date": "2026-09-15",
-  "n_training_days": 237,
+  "origin_date": "2026-09-13",
+  "n_training_days": 243,
   "training_window": [
-    "2026-01-22",
-    "2026-09-15"
+    "2026-01-14",
+    "2026-09-13"
   ],
   "n_origins": 12,
   "backtest_window": [
-    "2026-06-24",
-    "2026-09-15"
+    "2026-06-22",
+    "2026-09-13"
   ],
   "horizon_buckets": [
     "1-7",
@@ -40,105 +40,105 @@
   "metrics": {
     "baseline": {
       "1-7": {
-        "mae": 134.555,
-        "rmse": 180.144,
-        "smape": 28.457,
-        "bias": -13.03,
+        "mae": 24.208,
+        "rmse": 31.773,
+        "smape": 40.814,
+        "bias": -4.636,
         "coverage_80": 0.7619,
         "n": 84
       },
       "8-14": {
-        "mae": 165.282,
-        "rmse": 201.048,
-        "smape": 35.307,
-        "bias": -1.581,
-        "coverage_80": 0.7403,
+        "mae": 31.322,
+        "rmse": 39.159,
+        "smape": 48.985,
+        "bias": -1.552,
+        "coverage_80": 0.7273,
         "n": 77
       },
       "15-30": {
-        "mae": 193.704,
-        "rmse": 225.822,
-        "smape": 41.382,
-        "bias": 32.846,
-        "coverage_80": 0.745,
+        "mae": 47.65,
+        "rmse": 55.272,
+        "smape": 70.228,
+        "bias": 8.044,
+        "coverage_80": 0.7248,
         "n": 149
       }
     },
     "moving_average_28d": {
       "1-7": {
-        "mae": 137.588,
-        "rmse": 175.299,
-        "smape": 29.419,
-        "bias": 9.97,
-        "coverage_80": 0.75,
+        "mae": 27.695,
+        "rmse": 34.994,
+        "smape": 43.104,
+        "bias": 2.354,
+        "coverage_80": 0.7381,
         "n": 84
       },
       "8-14": {
-        "mae": 160.053,
-        "rmse": 195.175,
-        "smape": 34.019,
-        "bias": 8.36,
-        "coverage_80": 0.7792,
+        "mae": 35.715,
+        "rmse": 41.404,
+        "smape": 54.554,
+        "bias": 4.529,
+        "coverage_80": 0.7532,
         "n": 77
       },
       "15-30": {
-        "mae": 174.158,
-        "rmse": 208.674,
-        "smape": 37.351,
-        "bias": 19.15,
-        "coverage_80": 0.7584,
+        "mae": 44.481,
+        "rmse": 50.428,
+        "smape": 66.909,
+        "bias": 9.083,
+        "coverage_80": 0.745,
         "n": 149
       }
     },
     "prophet_xgb": {
       "1-7": {
-        "mae": 143.176,
-        "rmse": 184.488,
-        "smape": 30.668,
-        "bias": 14.2,
+        "mae": 28.682,
+        "rmse": 37.577,
+        "smape": 48.848,
+        "bias": -1.418,
         "coverage_80": 0.7619,
         "n": 84
       },
       "8-14": {
-        "mae": 168.786,
-        "rmse": 202.218,
-        "smape": 35.858,
-        "bias": 27.87,
-        "coverage_80": 0.7532,
+        "mae": 37.213,
+        "rmse": 45.687,
+        "smape": 59.234,
+        "bias": 3.59,
+        "coverage_80": 0.7273,
         "n": 77
       },
       "15-30": {
-        "mae": 209.609,
-        "rmse": 246.053,
-        "smape": 44.083,
-        "bias": 69.536,
-        "coverage_80": 0.745,
+        "mae": 59.72,
+        "rmse": 68.144,
+        "smape": 85.685,
+        "bias": 16.59,
+        "coverage_80": 0.7517,
         "n": 149
       }
     },
     "seasonal_naive": {
       "1-7": {
-        "mae": 149.19,
-        "rmse": 211.897,
-        "smape": 31.454,
-        "bias": -1.833,
-        "coverage_80": 0.7738,
+        "mae": 25.786,
+        "rmse": 32.528,
+        "smape": 42.696,
+        "bias": 0.81,
+        "coverage_80": 0.7857,
         "n": 84
       },
       "8-14": {
-        "mae": 160.545,
-        "rmse": 214.565,
-        "smape": 32.93,
-        "bias": 2.182,
-        "coverage_80": 0.7662,
+        "mae": 29.286,
+        "rmse": 36.795,
+        "smape": 45.573,
+        "bias": 3.727,
+        "coverage_80": 0.7922,
         "n": 77
       },
       "15-30": {
-        "mae": 186.336,
-        "rmse": 236.85,
-        "smape": 39.063,
-        "bias": 28.013,
-        "coverage_80": 0.745,
+        "mae": 43.55,
+        "rmse": 50.957,
+        "smape": 63.222,
+        "bias": 12.342,
+        "coverage_80": 0.7584,
         "n": 149
       }
     }
@@ -147,41 +147,41 @@
     "baseline": {
       "1-7": {
         "beats_seasonal_naive": true,
-        "mae_ratio_vs_seasonal_naive": 0.9019,
+        "mae_ratio_vs_seasonal_naive": 0.9388,
         "beats_moving_average_28d": true,
-        "mae_ratio_vs_moving_average_28d": 0.978
+        "mae_ratio_vs_moving_average_28d": 0.8741
       },
       "8-14": {
         "beats_seasonal_naive": false,
-        "mae_ratio_vs_seasonal_naive": 1.0295,
-        "beats_moving_average_28d": false,
-        "mae_ratio_vs_moving_average_28d": 1.0327
+        "mae_ratio_vs_seasonal_naive": 1.0695,
+        "beats_moving_average_28d": true,
+        "mae_ratio_vs_moving_average_28d": 0.877
       },
       "15-30": {
         "beats_seasonal_naive": false,
-        "mae_ratio_vs_seasonal_naive": 1.0395,
+        "mae_ratio_vs_seasonal_naive": 1.0941,
         "beats_moving_average_28d": false,
-        "mae_ratio_vs_moving_average_28d": 1.1122
+        "mae_ratio_vs_moving_average_28d": 1.0712
       }
     },
     "prophet_xgb": {
       "1-7": {
-        "beats_seasonal_naive": true,
-        "mae_ratio_vs_seasonal_naive": 0.9597,
+        "beats_seasonal_naive": false,
+        "mae_ratio_vs_seasonal_naive": 1.1123,
         "beats_moving_average_28d": false,
-        "mae_ratio_vs_moving_average_28d": 1.0406
+        "mae_ratio_vs_moving_average_28d": 1.0356
       },
       "8-14": {
         "beats_seasonal_naive": false,
-        "mae_ratio_vs_seasonal_naive": 1.0513,
+        "mae_ratio_vs_seasonal_naive": 1.2707,
         "beats_moving_average_28d": false,
-        "mae_ratio_vs_moving_average_28d": 1.0546
+        "mae_ratio_vs_moving_average_28d": 1.0419
       },
       "15-30": {
         "beats_seasonal_naive": false,
-        "mae_ratio_vs_seasonal_naive": 1.1249,
+        "mae_ratio_vs_seasonal_naive": 1.3713,
         "beats_moving_average_28d": false,
-        "mae_ratio_vs_moving_average_28d": 1.2036
+        "mae_ratio_vs_moving_average_28d": 1.3426
       }
     }
   },
@@ -190,22 +190,22 @@
     "baseline": [
       {
         "bucket": "1-7",
-        "q10": 0.6086,
-        "q90": 1.5767,
+        "q10": 0.5174,
+        "q90": 1.8812,
         "n": 84,
         "is_default": false
       },
       {
         "bucket": "8-14",
-        "q10": 0.5598,
-        "q90": 1.6574,
+        "q10": 0.4524,
+        "q90": 2.3276,
         "n": 77,
         "is_default": false
       },
       {
         "bucket": "15-30",
-        "q10": 0.491,
-        "q90": 1.784,
+        "q10": 0.3341,
+        "q90": 3.0576,
         "n": 149,
         "is_default": false
       }
@@ -213,22 +213,22 @@
     "moving_average_28d": [
       {
         "bucket": "1-7",
-        "q10": 0.5743,
-        "q90": 1.5817,
+        "q10": 0.4607,
+        "q90": 1.7126,
         "n": 84,
         "is_default": false
       },
       {
         "bucket": "8-14",
-        "q10": 0.5575,
-        "q90": 1.611,
+        "q10": 0.4039,
+        "q90": 1.8782,
         "n": 77,
         "is_default": false
       },
       {
         "bucket": "15-30",
-        "q10": 0.5125,
-        "q90": 1.6185,
+        "q10": 0.2895,
+        "q90": 2.2384,
         "n": 149,
         "is_default": false
       }
@@ -236,45 +236,45 @@
     "prophet_xgb": [
       {
         "bucket": "1-7",
-        "q10": 0.584,
-        "q90": 1.6513,
-        "n": 84,
+        "q10": 0.5178,
+        "q90": 2.3963,
+        "n": 83,
         "is_default": false
       },
       {
         "bucket": "8-14",
-        "q10": 0.5623,
-        "q90": 1.5697,
-        "n": 77,
+        "q10": 0.3785,
+        "q90": 3.1487,
+        "n": 75,
         "is_default": false
       },
       {
         "bucket": "15-30",
-        "q10": 0.469,
-        "q90": 1.7572,
-        "n": 149,
+        "q10": 0.2838,
+        "q90": 4.8288,
+        "n": 145,
         "is_default": false
       }
     ],
     "seasonal_naive": [
       {
         "bucket": "1-7",
-        "q10": 0.5924,
-        "q90": 1.7896,
+        "q10": 0.4549,
+        "q90": 1.9161,
         "n": 84,
         "is_default": false
       },
       {
         "bucket": "8-14",
-        "q10": 0.625,
-        "q90": 1.7615,
+        "q10": 0.4224,
+        "q90": 2.0172,
         "n": 77,
         "is_default": false
       },
       {
         "bucket": "15-30",
-        "q10": 0.4751,
-        "q90": 1.7161,
+        "q10": 0.3204,
+        "q90": 2.3067,
         "n": 149,
         "is_default": false
       }
@@ -300,8 +300,8 @@
     ]
   },
   "weather": {
-    "forecast_days": 15,
-    "climatology_days": 15,
+    "forecast_days": 16,
+    "climatology_days": 14,
     "max_forecast_days": 16
   },
   "do_not_trust": [
