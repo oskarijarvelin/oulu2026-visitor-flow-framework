@@ -1,0 +1,2718 @@
+{
+  "kind": "window",
+  "schema_version": "v1",
+  "run_id": "eval_v1_2026-07-31_2026-08-01_2026-08-31_baseline",
+  "window": {
+    "origin": "2026-07-31",
+    "test_start": "2026-08-01",
+    "test_end": "2026-08-31",
+    "horizon_days": 31,
+    "train_window": "all"
+  },
+  "venues": [
+    {
+      "venue_id": 1,
+      "venue_name": "Pekuri",
+      "diagnostics": {
+        "venue_id": 1,
+        "venue_name": "Pekuri",
+        "training_start": "2026-01-01",
+        "training_days": 212,
+        "training_zero_days": 21,
+        "leading_zero_days": 21,
+        "mase_denominator": 163.078,
+        "nested_origins": 12,
+        "missing_test_days": [],
+        "weather_days": {
+          "perfect": {
+            "observed": 31,
+            "climatology": 0
+          },
+          "operational": {
+            "observed": 16,
+            "climatology": 15
+          },
+          "climatology": {
+            "observed": 0,
+            "climatology": 31
+          }
+        },
+        "default_bands": []
+      },
+      "reference": "climatology_dow",
+      "scores": [
+        {
+          "model": "baseline",
+          "weather_mode": "climatology",
+          "bucket": "all",
+          "n": 31,
+          "mae": 253.021,
+          "rmse": 278.451,
+          "mase": 1.552,
+          "bias": 228.057,
+          "bias_pct": 52.314,
+          "pinball": {
+            "q10": 30.724,
+            "q50": 126.511,
+            "q90": 86.313
+          },
+          "coverage_80": 0.6452,
+          "smape": 48.94,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 435.935
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "climatology",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 256.928,
+          "rmse": 269.076,
+          "mase": 1.575,
+          "bias": 256.928,
+          "bias_pct": 59.435,
+          "pinball": {
+            "q10": 6.505,
+            "q50": 128.464,
+            "q90": 69.233
+          },
+          "coverage_80": 1.0,
+          "smape": 45.732,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 432.286
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "climatology",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 176.457,
+          "rmse": 202.996,
+          "mase": 1.082,
+          "bias": 70.459,
+          "bias_pct": 12.097,
+          "pinball": {
+            "q10": 27.818,
+            "q50": 88.229,
+            "q90": 58.48
+          },
+          "coverage_80": 0.7143,
+          "smape": 31.445,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 582.429
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "climatology",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 282.939,
+          "rmse": 307.582,
+          "mase": 1.735,
+          "bias": 281.062,
+          "bias_pct": 74.529,
+          "pinball": {
+            "q10": 41.893,
+            "q50": 141.469,
+            "q90": 104.807
+          },
+          "coverage_80": 0.4706,
+          "smape": 57.465,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 377.118
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "climatology",
+          "bucket": "all",
+          "n": 31,
+          "mae": 128.0,
+          "rmse": 180.397,
+          "mase": 0.785,
+          "bias": 21.236,
+          "bias_pct": 4.871,
+          "pinball": {
+            "q10": 20.703,
+            "q50": 64.0,
+            "q90": 50.053
+          },
+          "coverage_80": 0.8387,
+          "smape": 27.18,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 435.935
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "climatology",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 82.78,
+          "rmse": 95.39,
+          "mase": 0.508,
+          "bias": 24.351,
+          "bias_pct": 5.633,
+          "pinball": {
+            "q10": 14.975,
+            "q50": 41.39,
+            "q90": 40.243
+          },
+          "coverage_80": 1.0,
+          "smape": 17.641,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 432.286
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "climatology",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 177.962,
+          "rmse": 276.89,
+          "mase": 1.091,
+          "bias": -125.792,
+          "bias_pct": -21.598,
+          "pinball": {
+            "q10": 30.371,
+            "q50": 88.981,
+            "q90": 72.858
+          },
+          "coverage_80": 0.7143,
+          "smape": 29.585,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 582.429
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "climatology",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 126.048,
+          "rmse": 155.007,
+          "mase": 0.773,
+          "bias": 80.495,
+          "bias_pct": 21.345,
+          "pinball": {
+            "q10": 19.081,
+            "q50": 63.024,
+            "q90": 44.701
+          },
+          "coverage_80": 0.8235,
+          "smape": 30.117,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 377.118
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "climatology",
+          "bucket": "all",
+          "n": 31,
+          "mae": 200.813,
+          "rmse": 225.593,
+          "mase": 1.231,
+          "bias": 127.422,
+          "bias_pct": 29.229,
+          "pinball": {
+            "q10": 22.975,
+            "q50": 100.407,
+            "q90": 55.683
+          },
+          "coverage_80": 0.7419,
+          "smape": 41.666,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 435.935
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "climatology",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 131.071,
+          "rmse": 145.652,
+          "mase": 0.804,
+          "bias": 131.071,
+          "bias_pct": 30.321,
+          "pinball": {
+            "q10": 12.565,
+            "q50": 65.536,
+            "q90": 47.024
+          },
+          "coverage_80": 1.0,
+          "smape": 27.301,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 432.286
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "climatology",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 219.765,
+          "rmse": 264.395,
+          "mase": 1.348,
+          "bias": -19.071,
+          "bias_pct": -3.274,
+          "pinball": {
+            "q10": 33.964,
+            "q50": 109.883,
+            "q90": 58.099
+          },
+          "coverage_80": 0.7143,
+          "smape": 38.154,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 582.429
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "climatology",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 221.727,
+          "rmse": 235.125,
+          "mase": 1.36,
+          "bias": 186.239,
+          "bias_pct": 49.385,
+          "pinball": {
+            "q10": 22.736,
+            "q50": 110.863,
+            "q90": 58.253
+          },
+          "coverage_80": 0.6471,
+          "smape": 49.027,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 377.118
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "climatology",
+          "bucket": "all",
+          "n": 31,
+          "mae": 218.613,
+          "rmse": 271.822,
+          "mase": 1.341,
+          "bias": 168.806,
+          "bias_pct": 38.723,
+          "pinball": {
+            "q10": 29.948,
+            "q50": 109.306,
+            "q90": 79.991
+          },
+          "coverage_80": 0.7742,
+          "smape": 42.031,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 435.935
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "climatology",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 196.429,
+          "rmse": 227.603,
+          "mase": 1.205,
+          "bias": 163.857,
+          "bias_pct": 37.905,
+          "pinball": {
+            "q10": 11.728,
+            "q50": 98.214,
+            "q90": 80.175
+          },
+          "coverage_80": 1.0,
+          "smape": 36.424,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 432.286
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "climatology",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 170.286,
+          "rmse": 242.104,
+          "mase": 1.044,
+          "bias": 13.714,
+          "bias_pct": 2.355,
+          "pinball": {
+            "q10": 30.949,
+            "q50": 85.143,
+            "q90": 67.243
+          },
+          "coverage_80": 1.0,
+          "smape": 28.557,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 582.429
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "climatology",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 247.647,
+          "rmse": 298.78,
+          "mase": 1.519,
+          "bias": 234.706,
+          "bias_pct": 62.237,
+          "pinball": {
+            "q10": 37.038,
+            "q50": 123.824,
+            "q90": 85.164
+          },
+          "coverage_80": 0.5882,
+          "smape": 49.888,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 377.118
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "operational",
+          "bucket": "all",
+          "n": 31,
+          "mae": 255.801,
+          "rmse": 281.089,
+          "mase": 1.569,
+          "bias": 214.796,
+          "bias_pct": 49.272,
+          "pinball": {
+            "q10": 35.196,
+            "q50": 127.901,
+            "q90": 83.253
+          },
+          "coverage_80": 0.5806,
+          "smape": 48.966,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 435.935
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "operational",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 244.762,
+          "rmse": 267.351,
+          "mase": 1.501,
+          "bias": 244.762,
+          "bias_pct": 56.62,
+          "pinball": {
+            "q10": 17.982,
+            "q50": 122.381,
+            "q90": 63.97
+          },
+          "coverage_80": 0.7143,
+          "smape": 43.583,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 432.286
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "operational",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 196.768,
+          "rmse": 219.736,
+          "mase": 1.207,
+          "bias": 36.005,
+          "bias_pct": 6.182,
+          "pinball": {
+            "q10": 26.511,
+            "q50": 98.384,
+            "q90": 53.906
+          },
+          "coverage_80": 0.8571,
+          "smape": 33.554,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 582.429
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "operational",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 284.655,
+          "rmse": 307.841,
+          "mase": 1.746,
+          "bias": 276.077,
+          "bias_pct": 73.207,
+          "pinball": {
+            "q10": 45.861,
+            "q50": 142.327,
+            "q90": 103.277
+          },
+          "coverage_80": 0.4118,
+          "smape": 57.529,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 377.118
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "operational",
+          "bucket": "all",
+          "n": 31,
+          "mae": 128.0,
+          "rmse": 180.397,
+          "mase": 0.785,
+          "bias": 21.236,
+          "bias_pct": 4.871,
+          "pinball": {
+            "q10": 20.703,
+            "q50": 64.0,
+            "q90": 50.053
+          },
+          "coverage_80": 0.8387,
+          "smape": 27.18,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 435.935
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "operational",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 82.78,
+          "rmse": 95.39,
+          "mase": 0.508,
+          "bias": 24.351,
+          "bias_pct": 5.633,
+          "pinball": {
+            "q10": 14.975,
+            "q50": 41.39,
+            "q90": 40.243
+          },
+          "coverage_80": 1.0,
+          "smape": 17.641,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 432.286
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "operational",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 177.962,
+          "rmse": 276.89,
+          "mase": 1.091,
+          "bias": -125.792,
+          "bias_pct": -21.598,
+          "pinball": {
+            "q10": 30.371,
+            "q50": 88.981,
+            "q90": 72.858
+          },
+          "coverage_80": 0.7143,
+          "smape": 29.585,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 582.429
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "operational",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 126.048,
+          "rmse": 155.007,
+          "mase": 0.773,
+          "bias": 80.495,
+          "bias_pct": 21.345,
+          "pinball": {
+            "q10": 19.081,
+            "q50": 63.024,
+            "q90": 44.701
+          },
+          "coverage_80": 0.8235,
+          "smape": 30.117,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 377.118
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "operational",
+          "bucket": "all",
+          "n": 31,
+          "mae": 200.813,
+          "rmse": 225.593,
+          "mase": 1.231,
+          "bias": 127.422,
+          "bias_pct": 29.229,
+          "pinball": {
+            "q10": 22.975,
+            "q50": 100.407,
+            "q90": 55.683
+          },
+          "coverage_80": 0.7419,
+          "smape": 41.666,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 435.935
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "operational",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 131.071,
+          "rmse": 145.652,
+          "mase": 0.804,
+          "bias": 131.071,
+          "bias_pct": 30.321,
+          "pinball": {
+            "q10": 12.565,
+            "q50": 65.536,
+            "q90": 47.024
+          },
+          "coverage_80": 1.0,
+          "smape": 27.301,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 432.286
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "operational",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 219.765,
+          "rmse": 264.395,
+          "mase": 1.348,
+          "bias": -19.071,
+          "bias_pct": -3.274,
+          "pinball": {
+            "q10": 33.964,
+            "q50": 109.883,
+            "q90": 58.099
+          },
+          "coverage_80": 0.7143,
+          "smape": 38.154,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 582.429
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "operational",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 221.727,
+          "rmse": 235.125,
+          "mase": 1.36,
+          "bias": 186.239,
+          "bias_pct": 49.385,
+          "pinball": {
+            "q10": 22.736,
+            "q50": 110.863,
+            "q90": 58.253
+          },
+          "coverage_80": 0.6471,
+          "smape": 49.027,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 377.118
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "operational",
+          "bucket": "all",
+          "n": 31,
+          "mae": 218.613,
+          "rmse": 271.822,
+          "mase": 1.341,
+          "bias": 168.806,
+          "bias_pct": 38.723,
+          "pinball": {
+            "q10": 29.948,
+            "q50": 109.306,
+            "q90": 79.991
+          },
+          "coverage_80": 0.7742,
+          "smape": 42.031,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 435.935
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "operational",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 196.429,
+          "rmse": 227.603,
+          "mase": 1.205,
+          "bias": 163.857,
+          "bias_pct": 37.905,
+          "pinball": {
+            "q10": 11.728,
+            "q50": 98.214,
+            "q90": 80.175
+          },
+          "coverage_80": 1.0,
+          "smape": 36.424,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 432.286
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "operational",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 170.286,
+          "rmse": 242.104,
+          "mase": 1.044,
+          "bias": 13.714,
+          "bias_pct": 2.355,
+          "pinball": {
+            "q10": 30.949,
+            "q50": 85.143,
+            "q90": 67.243
+          },
+          "coverage_80": 1.0,
+          "smape": 28.557,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 582.429
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "operational",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 247.647,
+          "rmse": 298.78,
+          "mase": 1.519,
+          "bias": 234.706,
+          "bias_pct": 62.237,
+          "pinball": {
+            "q10": 37.038,
+            "q50": 123.824,
+            "q90": 85.164
+          },
+          "coverage_80": 0.5882,
+          "smape": 49.888,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 377.118
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "perfect",
+          "bucket": "all",
+          "n": 31,
+          "mae": 223.499,
+          "rmse": 246.882,
+          "mase": 1.371,
+          "bias": 182.494,
+          "bias_pct": 41.863,
+          "pinball": {
+            "q10": 28.097,
+            "q50": 111.75,
+            "q90": 74.256
+          },
+          "coverage_80": 0.5806,
+          "smape": 44.214,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 435.935
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "perfect",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 244.762,
+          "rmse": 267.351,
+          "mase": 1.501,
+          "bias": 244.762,
+          "bias_pct": 56.62,
+          "pinball": {
+            "q10": 17.982,
+            "q50": 122.381,
+            "q90": 63.97
+          },
+          "coverage_80": 0.7143,
+          "smape": 43.583,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 432.286
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "perfect",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 196.768,
+          "rmse": 219.736,
+          "mase": 1.207,
+          "bias": 36.005,
+          "bias_pct": 6.182,
+          "pinball": {
+            "q10": 26.511,
+            "q50": 98.384,
+            "q90": 53.906
+          },
+          "coverage_80": 0.8571,
+          "smape": 33.554,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 582.429
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "perfect",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 225.751,
+          "rmse": 248.66,
+          "mase": 1.384,
+          "bias": 217.173,
+          "bias_pct": 57.588,
+          "pinball": {
+            "q10": 32.916,
+            "q50": 112.875,
+            "q90": 86.87
+          },
+          "coverage_80": 0.4118,
+          "smape": 48.863,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 377.118
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "perfect",
+          "bucket": "all",
+          "n": 31,
+          "mae": 128.0,
+          "rmse": 180.397,
+          "mase": 0.785,
+          "bias": 21.236,
+          "bias_pct": 4.871,
+          "pinball": {
+            "q10": 20.703,
+            "q50": 64.0,
+            "q90": 50.053
+          },
+          "coverage_80": 0.8387,
+          "smape": 27.18,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 435.935
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "perfect",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 82.78,
+          "rmse": 95.39,
+          "mase": 0.508,
+          "bias": 24.351,
+          "bias_pct": 5.633,
+          "pinball": {
+            "q10": 14.975,
+            "q50": 41.39,
+            "q90": 40.243
+          },
+          "coverage_80": 1.0,
+          "smape": 17.641,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 432.286
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "perfect",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 177.962,
+          "rmse": 276.89,
+          "mase": 1.091,
+          "bias": -125.792,
+          "bias_pct": -21.598,
+          "pinball": {
+            "q10": 30.371,
+            "q50": 88.981,
+            "q90": 72.858
+          },
+          "coverage_80": 0.7143,
+          "smape": 29.585,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 582.429
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "perfect",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 126.048,
+          "rmse": 155.007,
+          "mase": 0.773,
+          "bias": 80.495,
+          "bias_pct": 21.345,
+          "pinball": {
+            "q10": 19.081,
+            "q50": 63.024,
+            "q90": 44.701
+          },
+          "coverage_80": 0.8235,
+          "smape": 30.117,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 377.118
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "perfect",
+          "bucket": "all",
+          "n": 31,
+          "mae": 200.813,
+          "rmse": 225.593,
+          "mase": 1.231,
+          "bias": 127.422,
+          "bias_pct": 29.229,
+          "pinball": {
+            "q10": 22.975,
+            "q50": 100.407,
+            "q90": 55.683
+          },
+          "coverage_80": 0.7419,
+          "smape": 41.666,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 435.935
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "perfect",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 131.071,
+          "rmse": 145.652,
+          "mase": 0.804,
+          "bias": 131.071,
+          "bias_pct": 30.321,
+          "pinball": {
+            "q10": 12.565,
+            "q50": 65.536,
+            "q90": 47.024
+          },
+          "coverage_80": 1.0,
+          "smape": 27.301,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 432.286
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "perfect",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 219.765,
+          "rmse": 264.395,
+          "mase": 1.348,
+          "bias": -19.071,
+          "bias_pct": -3.274,
+          "pinball": {
+            "q10": 33.964,
+            "q50": 109.883,
+            "q90": 58.099
+          },
+          "coverage_80": 0.7143,
+          "smape": 38.154,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 582.429
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "perfect",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 221.727,
+          "rmse": 235.125,
+          "mase": 1.36,
+          "bias": 186.239,
+          "bias_pct": 49.385,
+          "pinball": {
+            "q10": 22.736,
+            "q50": 110.863,
+            "q90": 58.253
+          },
+          "coverage_80": 0.6471,
+          "smape": 49.027,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 377.118
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "perfect",
+          "bucket": "all",
+          "n": 31,
+          "mae": 218.613,
+          "rmse": 271.822,
+          "mase": 1.341,
+          "bias": 168.806,
+          "bias_pct": 38.723,
+          "pinball": {
+            "q10": 29.948,
+            "q50": 109.306,
+            "q90": 79.991
+          },
+          "coverage_80": 0.7742,
+          "smape": 42.031,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 435.935
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "perfect",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 196.429,
+          "rmse": 227.603,
+          "mase": 1.205,
+          "bias": 163.857,
+          "bias_pct": 37.905,
+          "pinball": {
+            "q10": 11.728,
+            "q50": 98.214,
+            "q90": 80.175
+          },
+          "coverage_80": 1.0,
+          "smape": 36.424,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 432.286
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "perfect",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 170.286,
+          "rmse": 242.104,
+          "mase": 1.044,
+          "bias": 13.714,
+          "bias_pct": 2.355,
+          "pinball": {
+            "q10": 30.949,
+            "q50": 85.143,
+            "q90": 67.243
+          },
+          "coverage_80": 1.0,
+          "smape": 28.557,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 582.429
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "perfect",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 247.647,
+          "rmse": 298.78,
+          "mase": 1.519,
+          "bias": 234.706,
+          "bias_pct": 62.237,
+          "pinball": {
+            "q10": 37.038,
+            "q50": 123.824,
+            "q90": 85.164
+          },
+          "coverage_80": 0.5882,
+          "smape": 49.888,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 377.118
+        }
+      ],
+      "totals": [
+        {
+          "model": "baseline",
+          "weather_mode": "perfect",
+          "predicted": 19171.3,
+          "actual": 13514.0,
+          "difference": 5657.3,
+          "difference_pct": 41.86,
+          "p10": 17823.6,
+          "p90": 25809.3,
+          "covers_actual": false,
+          "summed_daily_p10": 11142.6,
+          "summed_daily_p90": 36533.3,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 292,
+          "is_thin": false,
+          "median_ratio": 1.02,
+          "is_drifted": false
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "perfect",
+          "predicted": 14172.3,
+          "actual": 13514.0,
+          "difference": 658.3,
+          "difference_pct": 4.87,
+          "p10": 13065.8,
+          "p90": 16902.2,
+          "covers_actual": true,
+          "summed_daily_p10": 8596.8,
+          "summed_daily_p90": 25385.6,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 372,
+          "is_thin": false,
+          "median_ratio": 0.922,
+          "is_drifted": false
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "perfect",
+          "predicted": 17464.1,
+          "actual": 13514.0,
+          "difference": 3950.1,
+          "difference_pct": 29.23,
+          "p10": 15214.3,
+          "p90": 20614.8,
+          "covers_actual": false,
+          "summed_daily_p10": 9747.8,
+          "summed_daily_p90": 28922.6,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 372,
+          "is_thin": false,
+          "median_ratio": 0.899,
+          "is_drifted": false
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "perfect",
+          "predicted": 18747.0,
+          "actual": 13514.0,
+          "difference": 5233.0,
+          "difference_pct": 38.72,
+          "p10": 18747.0,
+          "p90": 26305.0,
+          "covers_actual": false,
+          "summed_daily_p10": 9631.6,
+          "summed_daily_p90": 38311.1,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 372,
+          "is_thin": false,
+          "median_ratio": 1.082,
+          "is_drifted": false
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "operational",
+          "predicted": 20172.7,
+          "actual": 13514.0,
+          "difference": 6658.7,
+          "difference_pct": 49.27,
+          "p10": 18620.5,
+          "p90": 27236.7,
+          "covers_actual": false,
+          "summed_daily_p10": 11569.0,
+          "summed_daily_p90": 39322.4,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 292,
+          "is_thin": false,
+          "median_ratio": 1.002,
+          "is_drifted": false
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "operational",
+          "predicted": 14172.3,
+          "actual": 13514.0,
+          "difference": 658.3,
+          "difference_pct": 4.87,
+          "p10": 13065.8,
+          "p90": 16902.2,
+          "covers_actual": true,
+          "summed_daily_p10": 8596.8,
+          "summed_daily_p90": 25385.6,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 372,
+          "is_thin": false,
+          "median_ratio": 0.922,
+          "is_drifted": false
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "operational",
+          "predicted": 17464.1,
+          "actual": 13514.0,
+          "difference": 3950.1,
+          "difference_pct": 29.23,
+          "p10": 15214.3,
+          "p90": 20614.8,
+          "covers_actual": false,
+          "summed_daily_p10": 9747.8,
+          "summed_daily_p90": 28922.6,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 372,
+          "is_thin": false,
+          "median_ratio": 0.899,
+          "is_drifted": false
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "operational",
+          "predicted": 18747.0,
+          "actual": 13514.0,
+          "difference": 5233.0,
+          "difference_pct": 38.72,
+          "p10": 18747.0,
+          "p90": 26305.0,
+          "covers_actual": false,
+          "summed_daily_p10": 9631.6,
+          "summed_daily_p90": 38311.1,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 372,
+          "is_thin": false,
+          "median_ratio": 1.082,
+          "is_drifted": false
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "climatology",
+          "predicted": 20583.8,
+          "actual": 13514.0,
+          "difference": 7069.8,
+          "difference_pct": 52.31,
+          "p10": 18805.3,
+          "p90": 27621.6,
+          "covers_actual": false,
+          "summed_daily_p10": 11583.2,
+          "summed_daily_p90": 40271.1,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 292,
+          "is_thin": false,
+          "median_ratio": 0.951,
+          "is_drifted": false
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "climatology",
+          "predicted": 14172.3,
+          "actual": 13514.0,
+          "difference": 658.3,
+          "difference_pct": 4.87,
+          "p10": 13065.8,
+          "p90": 16902.2,
+          "covers_actual": true,
+          "summed_daily_p10": 8596.8,
+          "summed_daily_p90": 25385.6,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 372,
+          "is_thin": false,
+          "median_ratio": 0.922,
+          "is_drifted": false
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "climatology",
+          "predicted": 17464.1,
+          "actual": 13514.0,
+          "difference": 3950.1,
+          "difference_pct": 29.23,
+          "p10": 15214.3,
+          "p90": 20614.8,
+          "covers_actual": false,
+          "summed_daily_p10": 9747.8,
+          "summed_daily_p90": 28922.6,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 372,
+          "is_thin": false,
+          "median_ratio": 0.899,
+          "is_drifted": false
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "climatology",
+          "predicted": 18747.0,
+          "actual": 13514.0,
+          "difference": 5233.0,
+          "difference_pct": 38.72,
+          "p10": 18747.0,
+          "p90": 26305.0,
+          "covers_actual": false,
+          "summed_daily_p10": 9631.6,
+          "summed_daily_p90": 38311.1,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 372,
+          "is_thin": false,
+          "median_ratio": 1.082,
+          "is_drifted": false
+        }
+      ],
+      "worst_days": {
+        "baseline": [
+          {
+            "date": "2026-08-22",
+            "weekday": {
+              "fi": "lauantai",
+              "en": "Saturday"
+            },
+            "y_true": 287.0,
+            "p50": 788.693146192498,
+            "error": 501.69314619249803,
+            "abs_error": 501.69314619249803,
+            "horizon_days": 22,
+            "note": {
+              "fi": "malli sai klimatologiasään (horisontti 22 vrk); viikonloppu",
+              "en": "the model got climatology weather (horizon 22 days); weekend"
+            }
+          },
+          {
+            "date": "2026-08-04",
+            "weekday": {
+              "fi": "tiistai",
+              "en": "Tuesday"
+            },
+            "y_true": 397.0,
+            "p50": 835.1341057837886,
+            "error": 438.13410578378864,
+            "abs_error": 438.13410578378864,
+            "horizon_days": 4,
+            "note": {
+              "fi": "ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne",
+              "en": "no identified cause, possibly an event the model does not know about"
+            }
+          },
+          {
+            "date": "2026-08-31",
+            "weekday": {
+              "fi": "maanantai",
+              "en": "Monday"
+            },
+            "y_true": 263.0,
+            "p50": 685.3703724721935,
+            "error": 422.3703724721935,
+            "abs_error": 422.3703724721935,
+            "horizon_days": 31,
+            "note": {
+              "fi": "malli sai klimatologiasään (horisontti 31 vrk)",
+              "en": "the model got climatology weather (horizon 31 days)"
+            }
+          },
+          {
+            "date": "2026-08-14",
+            "weekday": {
+              "fi": "perjantai",
+              "en": "Friday"
+            },
+            "y_true": 1084.0,
+            "p50": 667.7272199365565,
+            "error": -416.2727800634435,
+            "abs_error": 416.2727800634435,
+            "horizon_days": 14,
+            "note": {
+              "fi": "ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne",
+              "en": "no identified cause, possibly an event the model does not know about"
+            }
+          },
+          {
+            "date": "2026-08-24",
+            "weekday": {
+              "fi": "maanantai",
+              "en": "Monday"
+            },
+            "y_true": 313.0,
+            "p50": 713.7254020209309,
+            "error": 400.7254020209309,
+            "abs_error": 400.7254020209309,
+            "horizon_days": 24,
+            "note": {
+              "fi": "malli sai klimatologiasään (horisontti 24 vrk)",
+              "en": "the model got climatology weather (horizon 24 days)"
+            }
+          }
+        ]
+      },
+      "weather_sensitivity": {
+        "baseline": {
+          "perfect": 223.49918382751906,
+          "operational": 255.80147247204278,
+          "climatology": 253.02112939387558,
+          "gap": 29.52194556635652,
+          "gap_pct": 11.667778749181057
+        }
+      }
+    },
+    {
+      "venue_id": 2,
+      "venue_name": "Kaupungintalo",
+      "diagnostics": {
+        "venue_id": 2,
+        "venue_name": "Kaupungintalo",
+        "training_start": "2026-01-01",
+        "training_days": 212,
+        "training_zero_days": 13,
+        "leading_zero_days": 7,
+        "mase_denominator": 100.1659,
+        "nested_origins": 12,
+        "missing_test_days": [],
+        "weather_days": {
+          "perfect": {
+            "observed": 31,
+            "climatology": 0
+          },
+          "operational": {
+            "observed": 16,
+            "climatology": 15
+          },
+          "climatology": {
+            "observed": 0,
+            "climatology": 31
+          }
+        },
+        "default_bands": []
+      },
+      "reference": "climatology_dow",
+      "scores": [
+        {
+          "model": "baseline",
+          "weather_mode": "climatology",
+          "bucket": "all",
+          "n": 31,
+          "mae": 39.152,
+          "rmse": 65.394,
+          "mase": 0.391,
+          "bias": -18.253,
+          "bias_pct": -11.629,
+          "pinball": {
+            "q10": 11.474,
+            "q50": 19.576,
+            "q90": 21.085
+          },
+          "coverage_80": 0.9677,
+          "smape": 30.369,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 156.968
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "climatology",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 26.171,
+          "rmse": 32.215,
+          "mase": 0.261,
+          "bias": -18.665,
+          "bias_pct": -11.351,
+          "pinball": {
+            "q10": 10.744,
+            "q50": 13.085,
+            "q90": 18.1
+          },
+          "coverage_80": 1.0,
+          "smape": 17.773,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 164.429
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "climatology",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 30.086,
+          "rmse": 48.241,
+          "mase": 0.3,
+          "bias": -27.981,
+          "bias_pct": -15.911,
+          "pinball": {
+            "q10": 10.494,
+            "q50": 15.043,
+            "q90": 20.767
+          },
+          "coverage_80": 1.0,
+          "smape": 24.799,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 175.857
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "climatology",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 48.23,
+          "rmse": 80.078,
+          "mase": 0.482,
+          "bias": -14.078,
+          "bias_pct": -9.635,
+          "pinball": {
+            "q10": 12.178,
+            "q50": 24.115,
+            "q90": 22.444
+          },
+          "coverage_80": 0.9412,
+          "smape": 37.849,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 146.118
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "climatology",
+          "bucket": "all",
+          "n": 31,
+          "mae": 36.78,
+          "rmse": 60.299,
+          "mase": 0.367,
+          "bias": 4.902,
+          "bias_pct": 3.123,
+          "pinball": {
+            "q10": 10.99,
+            "q50": 18.39,
+            "q90": 12.746
+          },
+          "coverage_80": 0.7742,
+          "smape": 27.492,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 156.968
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "climatology",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 16.9,
+          "rmse": 19.418,
+          "mase": 0.169,
+          "bias": 1.948,
+          "bias_pct": 1.185,
+          "pinball": {
+            "q10": 9.867,
+            "q50": 8.45,
+            "q90": 8.556
+          },
+          "coverage_80": 1.0,
+          "smape": 9.634,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 164.429
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "climatology",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 25.557,
+          "rmse": 40.17,
+          "mase": 0.255,
+          "bias": -9.481,
+          "bias_pct": -5.391,
+          "pinball": {
+            "q10": 10.323,
+            "q50": 12.778,
+            "q90": 9.057
+          },
+          "coverage_80": 0.7143,
+          "smape": 19.748,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 175.857
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "climatology",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 49.586,
+          "rmse": 76.227,
+          "mase": 0.495,
+          "bias": 12.041,
+          "bias_pct": 8.241,
+          "pinball": {
+            "q10": 11.727,
+            "q50": 24.793,
+            "q90": 15.991
+          },
+          "coverage_80": 0.7059,
+          "smape": 38.033,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 146.118
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "climatology",
+          "bucket": "all",
+          "n": 31,
+          "mae": 75.671,
+          "rmse": 97.506,
+          "mase": 0.755,
+          "bias": 47.961,
+          "bias_pct": 30.555,
+          "pinball": {
+            "q10": 14.425,
+            "q50": 37.835,
+            "q90": 25.215
+          },
+          "coverage_80": 0.871,
+          "smape": 51.619,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 156.968
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "climatology",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 53.684,
+          "rmse": 76.44,
+          "mase": 0.536,
+          "bias": 40.5,
+          "bias_pct": 24.631,
+          "pinball": {
+            "q10": 14.417,
+            "q50": 26.842,
+            "q90": 23.226
+          },
+          "coverage_80": 0.8571,
+          "smape": 37.238,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 164.429
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "climatology",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 57.398,
+          "rmse": 76.443,
+          "mase": 0.573,
+          "bias": 29.071,
+          "bias_pct": 16.531,
+          "pinball": {
+            "q10": 14.834,
+            "q50": 28.699,
+            "q90": 22.955
+          },
+          "coverage_80": 1.0,
+          "smape": 36.083,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 175.857
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "climatology",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 92.248,
+          "rmse": 111.914,
+          "mase": 0.921,
+          "bias": 58.811,
+          "bias_pct": 40.249,
+          "pinball": {
+            "q10": 14.26,
+            "q50": 46.124,
+            "q90": 26.965
+          },
+          "coverage_80": 0.8235,
+          "smape": 63.938,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 146.118
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "climatology",
+          "bucket": "all",
+          "n": 31,
+          "mae": 100.548,
+          "rmse": 130.086,
+          "mase": 1.004,
+          "bias": 17.0,
+          "bias_pct": 10.83,
+          "pinball": {
+            "q10": 11.798,
+            "q50": 50.274,
+            "q90": 57.527
+          },
+          "coverage_80": 0.7419,
+          "smape": 71.844,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 156.968
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "climatology",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 79.857,
+          "rmse": 103.955,
+          "mase": 0.797,
+          "bias": 18.429,
+          "bias_pct": 11.208,
+          "pinball": {
+            "q10": 11.886,
+            "q50": 39.929,
+            "q90": 54.414
+          },
+          "coverage_80": 0.8571,
+          "smape": 56.433,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 164.429
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "climatology",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 87.286,
+          "rmse": 107.803,
+          "mase": 0.871,
+          "bias": 7.0,
+          "bias_pct": 3.981,
+          "pinball": {
+            "q10": 9.761,
+            "q50": 43.643,
+            "q90": 47.689
+          },
+          "coverage_80": 0.7143,
+          "smape": 67.941,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 175.857
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "climatology",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 114.529,
+          "rmse": 147.048,
+          "mase": 1.143,
+          "bias": 20.529,
+          "bias_pct": 14.05,
+          "pinball": {
+            "q10": 12.6,
+            "q50": 57.265,
+            "q90": 62.86
+          },
+          "coverage_80": 0.7059,
+          "smape": 79.797,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 146.118
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "operational",
+          "bucket": "all",
+          "n": 31,
+          "mae": 37.012,
+          "rmse": 63.353,
+          "mase": 0.37,
+          "bias": -17.123,
+          "bias_pct": -10.908,
+          "pinball": {
+            "q10": 11.899,
+            "q50": 18.506,
+            "q90": 20.53
+          },
+          "coverage_80": 0.9677,
+          "smape": 29.494,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 156.968
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "operational",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 12.395,
+          "rmse": 17.902,
+          "mase": 0.124,
+          "bias": -9.084,
+          "bias_pct": -5.524,
+          "pinball": {
+            "q10": 11.236,
+            "q50": 6.198,
+            "q90": 15.072
+          },
+          "coverage_80": 1.0,
+          "smape": 10.214,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 164.429
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "operational",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 33.548,
+          "rmse": 42.809,
+          "mase": 0.335,
+          "bias": -31.721,
+          "bias_pct": -18.038,
+          "pinball": {
+            "q10": 11.81,
+            "q50": 16.774,
+            "q90": 21.574
+          },
+          "coverage_80": 1.0,
+          "smape": 27.862,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 175.857
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "operational",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 48.574,
+          "rmse": 80.203,
+          "mase": 0.485,
+          "bias": -14.422,
+          "bias_pct": -9.87,
+          "pinball": {
+            "q10": 12.209,
+            "q50": 24.287,
+            "q90": 22.347
+          },
+          "coverage_80": 0.9412,
+          "smape": 38.105,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 146.118
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "operational",
+          "bucket": "all",
+          "n": 31,
+          "mae": 36.78,
+          "rmse": 60.299,
+          "mase": 0.367,
+          "bias": 4.902,
+          "bias_pct": 3.123,
+          "pinball": {
+            "q10": 10.99,
+            "q50": 18.39,
+            "q90": 12.746
+          },
+          "coverage_80": 0.7742,
+          "smape": 27.492,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 156.968
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "operational",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 16.9,
+          "rmse": 19.418,
+          "mase": 0.169,
+          "bias": 1.948,
+          "bias_pct": 1.185,
+          "pinball": {
+            "q10": 9.867,
+            "q50": 8.45,
+            "q90": 8.556
+          },
+          "coverage_80": 1.0,
+          "smape": 9.634,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 164.429
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "operational",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 25.557,
+          "rmse": 40.17,
+          "mase": 0.255,
+          "bias": -9.481,
+          "bias_pct": -5.391,
+          "pinball": {
+            "q10": 10.323,
+            "q50": 12.778,
+            "q90": 9.057
+          },
+          "coverage_80": 0.7143,
+          "smape": 19.748,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 175.857
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "operational",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 49.586,
+          "rmse": 76.227,
+          "mase": 0.495,
+          "bias": 12.041,
+          "bias_pct": 8.241,
+          "pinball": {
+            "q10": 11.727,
+            "q50": 24.793,
+            "q90": 15.991
+          },
+          "coverage_80": 0.7059,
+          "smape": 38.033,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 146.118
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "operational",
+          "bucket": "all",
+          "n": 31,
+          "mae": 75.671,
+          "rmse": 97.506,
+          "mase": 0.755,
+          "bias": 47.961,
+          "bias_pct": 30.555,
+          "pinball": {
+            "q10": 14.425,
+            "q50": 37.835,
+            "q90": 25.215
+          },
+          "coverage_80": 0.871,
+          "smape": 51.619,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 156.968
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "operational",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 53.684,
+          "rmse": 76.44,
+          "mase": 0.536,
+          "bias": 40.5,
+          "bias_pct": 24.631,
+          "pinball": {
+            "q10": 14.417,
+            "q50": 26.842,
+            "q90": 23.226
+          },
+          "coverage_80": 0.8571,
+          "smape": 37.238,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 164.429
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "operational",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 57.398,
+          "rmse": 76.443,
+          "mase": 0.573,
+          "bias": 29.071,
+          "bias_pct": 16.531,
+          "pinball": {
+            "q10": 14.834,
+            "q50": 28.699,
+            "q90": 22.955
+          },
+          "coverage_80": 1.0,
+          "smape": 36.083,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 175.857
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "operational",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 92.248,
+          "rmse": 111.914,
+          "mase": 0.921,
+          "bias": 58.811,
+          "bias_pct": 40.249,
+          "pinball": {
+            "q10": 14.26,
+            "q50": 46.124,
+            "q90": 26.965
+          },
+          "coverage_80": 0.8235,
+          "smape": 63.938,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 146.118
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "operational",
+          "bucket": "all",
+          "n": 31,
+          "mae": 100.548,
+          "rmse": 130.086,
+          "mase": 1.004,
+          "bias": 17.0,
+          "bias_pct": 10.83,
+          "pinball": {
+            "q10": 11.798,
+            "q50": 50.274,
+            "q90": 57.527
+          },
+          "coverage_80": 0.7419,
+          "smape": 71.844,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 156.968
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "operational",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 79.857,
+          "rmse": 103.955,
+          "mase": 0.797,
+          "bias": 18.429,
+          "bias_pct": 11.208,
+          "pinball": {
+            "q10": 11.886,
+            "q50": 39.929,
+            "q90": 54.414
+          },
+          "coverage_80": 0.8571,
+          "smape": 56.433,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 164.429
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "operational",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 87.286,
+          "rmse": 107.803,
+          "mase": 0.871,
+          "bias": 7.0,
+          "bias_pct": 3.981,
+          "pinball": {
+            "q10": 9.761,
+            "q50": 43.643,
+            "q90": 47.689
+          },
+          "coverage_80": 0.7143,
+          "smape": 67.941,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 175.857
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "operational",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 114.529,
+          "rmse": 147.048,
+          "mase": 1.143,
+          "bias": 20.529,
+          "bias_pct": 14.05,
+          "pinball": {
+            "q10": 12.6,
+            "q50": 57.265,
+            "q90": 62.86
+          },
+          "coverage_80": 0.7059,
+          "smape": 79.797,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 146.118
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "perfect",
+          "bucket": "all",
+          "n": 31,
+          "mae": 36.993,
+          "rmse": 60.926,
+          "mase": 0.369,
+          "bias": -14.045,
+          "bias_pct": -8.947,
+          "pinball": {
+            "q10": 11.753,
+            "q50": 18.497,
+            "q90": 21.036
+          },
+          "coverage_80": 0.9677,
+          "smape": 29.534,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 156.968
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "perfect",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 12.395,
+          "rmse": 17.902,
+          "mase": 0.124,
+          "bias": -9.084,
+          "bias_pct": -5.524,
+          "pinball": {
+            "q10": 11.236,
+            "q50": 6.198,
+            "q90": 15.072
+          },
+          "coverage_80": 1.0,
+          "smape": 10.214,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 164.429
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "perfect",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 33.548,
+          "rmse": 42.809,
+          "mase": 0.335,
+          "bias": -31.721,
+          "bias_pct": -18.038,
+          "pinball": {
+            "q10": 11.81,
+            "q50": 16.774,
+            "q90": 21.574
+          },
+          "coverage_80": 1.0,
+          "smape": 27.862,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 175.857
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "perfect",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 48.541,
+          "rmse": 76.697,
+          "mase": 0.485,
+          "bias": -8.809,
+          "bias_pct": -6.028,
+          "pinball": {
+            "q10": 11.943,
+            "q50": 24.27,
+            "q90": 23.27
+          },
+          "coverage_80": 0.9412,
+          "smape": 38.178,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 146.118
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "perfect",
+          "bucket": "all",
+          "n": 31,
+          "mae": 36.78,
+          "rmse": 60.299,
+          "mase": 0.367,
+          "bias": 4.902,
+          "bias_pct": 3.123,
+          "pinball": {
+            "q10": 10.99,
+            "q50": 18.39,
+            "q90": 12.746
+          },
+          "coverage_80": 0.7742,
+          "smape": 27.492,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 156.968
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "perfect",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 16.9,
+          "rmse": 19.418,
+          "mase": 0.169,
+          "bias": 1.948,
+          "bias_pct": 1.185,
+          "pinball": {
+            "q10": 9.867,
+            "q50": 8.45,
+            "q90": 8.556
+          },
+          "coverage_80": 1.0,
+          "smape": 9.634,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 164.429
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "perfect",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 25.557,
+          "rmse": 40.17,
+          "mase": 0.255,
+          "bias": -9.481,
+          "bias_pct": -5.391,
+          "pinball": {
+            "q10": 10.323,
+            "q50": 12.778,
+            "q90": 9.057
+          },
+          "coverage_80": 0.7143,
+          "smape": 19.748,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 175.857
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "perfect",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 49.586,
+          "rmse": 76.227,
+          "mase": 0.495,
+          "bias": 12.041,
+          "bias_pct": 8.241,
+          "pinball": {
+            "q10": 11.727,
+            "q50": 24.793,
+            "q90": 15.991
+          },
+          "coverage_80": 0.7059,
+          "smape": 38.033,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 146.118
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "perfect",
+          "bucket": "all",
+          "n": 31,
+          "mae": 75.671,
+          "rmse": 97.506,
+          "mase": 0.755,
+          "bias": 47.961,
+          "bias_pct": 30.555,
+          "pinball": {
+            "q10": 14.425,
+            "q50": 37.835,
+            "q90": 25.215
+          },
+          "coverage_80": 0.871,
+          "smape": 51.619,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 156.968
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "perfect",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 53.684,
+          "rmse": 76.44,
+          "mase": 0.536,
+          "bias": 40.5,
+          "bias_pct": 24.631,
+          "pinball": {
+            "q10": 14.417,
+            "q50": 26.842,
+            "q90": 23.226
+          },
+          "coverage_80": 0.8571,
+          "smape": 37.238,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 164.429
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "perfect",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 57.398,
+          "rmse": 76.443,
+          "mase": 0.573,
+          "bias": 29.071,
+          "bias_pct": 16.531,
+          "pinball": {
+            "q10": 14.834,
+            "q50": 28.699,
+            "q90": 22.955
+          },
+          "coverage_80": 1.0,
+          "smape": 36.083,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 175.857
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "perfect",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 92.248,
+          "rmse": 111.914,
+          "mase": 0.921,
+          "bias": 58.811,
+          "bias_pct": 40.249,
+          "pinball": {
+            "q10": 14.26,
+            "q50": 46.124,
+            "q90": 26.965
+          },
+          "coverage_80": 0.8235,
+          "smape": 63.938,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 146.118
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "perfect",
+          "bucket": "all",
+          "n": 31,
+          "mae": 100.548,
+          "rmse": 130.086,
+          "mase": 1.004,
+          "bias": 17.0,
+          "bias_pct": 10.83,
+          "pinball": {
+            "q10": 11.798,
+            "q50": 50.274,
+            "q90": 57.527
+          },
+          "coverage_80": 0.7419,
+          "smape": 71.844,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 156.968
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "perfect",
+          "bucket": "1-7",
+          "n": 7,
+          "mae": 79.857,
+          "rmse": 103.955,
+          "mase": 0.797,
+          "bias": 18.429,
+          "bias_pct": 11.208,
+          "pinball": {
+            "q10": 11.886,
+            "q50": 39.929,
+            "q90": 54.414
+          },
+          "coverage_80": 0.8571,
+          "smape": 56.433,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 164.429
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "perfect",
+          "bucket": "8-14",
+          "n": 7,
+          "mae": 87.286,
+          "rmse": 107.803,
+          "mase": 0.871,
+          "bias": 7.0,
+          "bias_pct": 3.981,
+          "pinball": {
+            "q10": 9.761,
+            "q50": 43.643,
+            "q90": 47.689
+          },
+          "coverage_80": 0.7143,
+          "smape": 67.941,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 175.857
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "perfect",
+          "bucket": "15-30",
+          "n": 17,
+          "mae": 114.529,
+          "rmse": 147.048,
+          "mase": 1.143,
+          "bias": 20.529,
+          "bias_pct": 14.05,
+          "pinball": {
+            "q10": 12.6,
+            "q50": 57.265,
+            "q90": 62.86
+          },
+          "coverage_80": 0.7059,
+          "smape": 79.797,
+          "smape_reliable": true,
+          "zero_days": 0,
+          "mean_actual": 146.118
+        }
+      ],
+      "totals": [
+        {
+          "model": "baseline",
+          "weather_mode": "perfect",
+          "predicted": 4430.6,
+          "actual": 4866.0,
+          "difference": -435.4,
+          "difference_pct": -8.95,
+          "p10": 4155.2,
+          "p90": 7398.5,
+          "covers_actual": true,
+          "summed_daily_p10": 1598.3,
+          "summed_daily_p90": 11387.2,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 372,
+          "is_thin": false,
+          "median_ratio": 1.003,
+          "is_drifted": false
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "perfect",
+          "predicted": 5018.0,
+          "actual": 4866.0,
+          "difference": 152.0,
+          "difference_pct": 3.12,
+          "p10": 4267.7,
+          "p90": 5629.2,
+          "covers_actual": true,
+          "summed_daily_p10": 2155.9,
+          "summed_daily_p90": 7884.0,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 372,
+          "is_thin": false,
+          "median_ratio": 0.937,
+          "is_drifted": false
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "perfect",
+          "predicted": 6352.8,
+          "actual": 4866.0,
+          "difference": 1486.8,
+          "difference_pct": 30.55,
+          "p10": 5730.2,
+          "p90": 8160.4,
+          "covers_actual": false,
+          "summed_daily_p10": 819.9,
+          "summed_daily_p90": 12682.7,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 372,
+          "is_thin": false,
+          "median_ratio": 1.057,
+          "is_drifted": false
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "perfect",
+          "predicted": 5393.0,
+          "actual": 4866.0,
+          "difference": 527.0,
+          "difference_pct": 10.83,
+          "p10": 5129.9,
+          "p90": 16173.7,
+          "covers_actual": false,
+          "summed_daily_p10": 2163.9,
+          "summed_daily_p90": 12183.2,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 359,
+          "is_thin": false,
+          "median_ratio": 1.059,
+          "is_drifted": false
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "operational",
+          "predicted": 4335.2,
+          "actual": 4866.0,
+          "difference": -530.8,
+          "difference_pct": -10.91,
+          "p10": 4166.5,
+          "p90": 7382.4,
+          "covers_actual": true,
+          "summed_daily_p10": 1647.0,
+          "summed_daily_p90": 11230.3,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 372,
+          "is_thin": false,
+          "median_ratio": 1.055,
+          "is_drifted": false
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "operational",
+          "predicted": 5018.0,
+          "actual": 4866.0,
+          "difference": 152.0,
+          "difference_pct": 3.12,
+          "p10": 4267.7,
+          "p90": 5629.2,
+          "covers_actual": true,
+          "summed_daily_p10": 2155.9,
+          "summed_daily_p90": 7884.0,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 372,
+          "is_thin": false,
+          "median_ratio": 0.937,
+          "is_drifted": false
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "operational",
+          "predicted": 6352.8,
+          "actual": 4866.0,
+          "difference": 1486.8,
+          "difference_pct": 30.55,
+          "p10": 5730.2,
+          "p90": 8160.4,
+          "covers_actual": false,
+          "summed_daily_p10": 819.9,
+          "summed_daily_p90": 12682.7,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 372,
+          "is_thin": false,
+          "median_ratio": 1.057,
+          "is_drifted": false
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "operational",
+          "predicted": 5393.0,
+          "actual": 4866.0,
+          "difference": 527.0,
+          "difference_pct": 10.83,
+          "p10": 5129.9,
+          "p90": 16173.7,
+          "covers_actual": false,
+          "summed_daily_p10": 2163.9,
+          "summed_daily_p90": 12183.2,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 359,
+          "is_thin": false,
+          "median_ratio": 1.059,
+          "is_drifted": false
+        },
+        {
+          "model": "baseline",
+          "weather_mode": "climatology",
+          "predicted": 4300.2,
+          "actual": 4866.0,
+          "difference": -565.8,
+          "difference_pct": -11.63,
+          "p10": 4274.3,
+          "p90": 7313.2,
+          "covers_actual": true,
+          "summed_daily_p10": 1788.8,
+          "summed_daily_p90": 11402.2,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 372,
+          "is_thin": false,
+          "median_ratio": 1.101,
+          "is_drifted": false
+        },
+        {
+          "model": "climatology_dow",
+          "weather_mode": "climatology",
+          "predicted": 5018.0,
+          "actual": 4866.0,
+          "difference": 152.0,
+          "difference_pct": 3.12,
+          "p10": 4267.7,
+          "p90": 5629.2,
+          "covers_actual": true,
+          "summed_daily_p10": 2155.9,
+          "summed_daily_p90": 7884.0,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 372,
+          "is_thin": false,
+          "median_ratio": 0.937,
+          "is_drifted": false
+        },
+        {
+          "model": "moving_average_28d",
+          "weather_mode": "climatology",
+          "predicted": 6352.8,
+          "actual": 4866.0,
+          "difference": 1486.8,
+          "difference_pct": 30.55,
+          "p10": 5730.2,
+          "p90": 8160.4,
+          "covers_actual": false,
+          "summed_daily_p10": 819.9,
+          "summed_daily_p90": 12682.7,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 372,
+          "is_thin": false,
+          "median_ratio": 1.057,
+          "is_drifted": false
+        },
+        {
+          "model": "seasonal_naive",
+          "weather_mode": "climatology",
+          "predicted": 5393.0,
+          "actual": 4866.0,
+          "difference": 527.0,
+          "difference_pct": 10.83,
+          "p10": 5129.9,
+          "p90": 16173.7,
+          "covers_actual": false,
+          "summed_daily_p10": 2163.9,
+          "summed_daily_p90": 12183.2,
+          "interval_method": "block_bootstrap_of_training_window_relative_errors",
+          "n_ratio_samples": 359,
+          "is_thin": false,
+          "median_ratio": 1.059,
+          "is_drifted": false
+        }
+      ],
+      "worst_days": {
+        "baseline": [
+          {
+            "date": "2026-08-15",
+            "weekday": {
+              "fi": "lauantai",
+              "en": "Saturday"
+            },
+            "y_true": 371.0,
+            "p50": 154.80966752600736,
+            "error": -216.19033247399264,
+            "abs_error": 216.19033247399264,
+            "horizon_days": 15,
+            "note": {
+              "fi": "runsas sade 8,7 mm; viikonloppu",
+              "en": "heavy rain 8.7 mm; weekend"
+            }
+          },
+          {
+            "date": "2026-08-27",
+            "weekday": {
+              "fi": "torstai",
+              "en": "Thursday"
+            },
+            "y_true": 317.0,
+            "p50": 142.59050811016184,
+            "error": -174.40949188983816,
+            "abs_error": 174.40949188983816,
+            "horizon_days": 27,
+            "note": {
+              "fi": "malli sai klimatologiasään (horisontti 27 vrk)",
+              "en": "the model got climatology weather (horizon 27 days)"
+            }
+          },
+          {
+            "date": "2026-08-26",
+            "weekday": {
+              "fi": "keskiviikko",
+              "en": "Wednesday"
+            },
+            "y_true": 21.0,
+            "p50": 173.27367837047223,
+            "error": 152.27367837047223,
+            "abs_error": 152.27367837047223,
+            "horizon_days": 26,
+            "note": {
+              "fi": "malli sai klimatologiasään (horisontti 26 vrk)",
+              "en": "the model got climatology weather (horizon 26 days)"
+            }
+          },
+          {
+            "date": "2026-08-13",
+            "weekday": {
+              "fi": "torstai",
+              "en": "Thursday"
+            },
+            "y_true": 284.0,
+            "p50": 189.61341931526528,
+            "error": -94.38658068473472,
+            "abs_error": 94.38658068473472,
+            "horizon_days": 13,
+            "note": {
+              "fi": "ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne",
+              "en": "no identified cause, possibly an event the model does not know about"
+            }
+          },
+          {
+            "date": "2026-08-18",
+            "weekday": {
+              "fi": "tiistai",
+              "en": "Tuesday"
+            },
+            "y_true": 155.0,
+            "p50": 214.129758202874,
+            "error": 59.129758202874,
+            "abs_error": 59.129758202874,
+            "horizon_days": 18,
+            "note": {
+              "fi": "runsas sade 7,0 mm; malli sai klimatologiasään (horisontti 18 vrk)",
+              "en": "heavy rain 7.0 mm; the model got climatology weather (horizon 18 days)"
+            }
+          }
+        ]
+      },
+      "weather_sensitivity": {
+        "baseline": {
+          "perfect": 36.993316089427694,
+          "operational": 37.01159676574133,
+          "climatology": 39.152112521575425,
+          "gap": 2.1587964321477315,
+          "gap_pct": 5.513869605268658
+        }
+      }
+    }
+  ]
+}

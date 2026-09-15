@@ -1272,53 +1272,83 @@
         "baseline": [
           {
             "date": "2026-04-16",
-            "weekday": "torstai",
+            "weekday": {
+              "fi": "torstai",
+              "en": "Thursday"
+            },
             "y_true": 788.0,
             "p50": 385.9814727351766,
             "error": -402.0185272648234,
             "abs_error": 402.0185272648234,
             "horizon_days": 16,
-            "note": "ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne"
+            "note": {
+              "fi": "ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne",
+              "en": "no identified cause, possibly an event the model does not know about"
+            }
           },
           {
             "date": "2026-04-24",
-            "weekday": "perjantai",
+            "weekday": {
+              "fi": "perjantai",
+              "en": "Friday"
+            },
             "y_true": 683.0,
             "p50": 471.7629954115191,
             "error": -211.2370045884809,
             "abs_error": 211.2370045884809,
             "horizon_days": 24,
-            "note": "malli sai klimatologiasään (horisontti 24 vrk)"
+            "note": {
+              "fi": "malli sai klimatologiasään (horisontti 24 vrk)",
+              "en": "the model got climatology weather (horizon 24 days)"
+            }
           },
           {
             "date": "2026-04-05",
-            "weekday": "sunnuntai",
+            "weekday": {
+              "fi": "sunnuntai",
+              "en": "Sunday"
+            },
             "y_true": 485.0,
             "p50": 279.82820339142063,
             "error": -205.17179660857937,
             "abs_error": 205.17179660857937,
             "horizon_days": 5,
-            "note": "pyhäpäivä: Toinen pääsiäispäivä; viikonloppu"
+            "note": {
+              "fi": "pyhäpäivä: Toinen pääsiäispäivä; viikonloppu",
+              "en": "public holiday: Toinen pääsiäispäivä; weekend"
+            }
           },
           {
             "date": "2026-04-10",
-            "weekday": "perjantai",
+            "weekday": {
+              "fi": "perjantai",
+              "en": "Friday"
+            },
             "y_true": 625.0,
             "p50": 422.4006910423253,
             "error": -202.59930895767468,
             "abs_error": 202.59930895767468,
             "horizon_days": 10,
-            "note": "ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne"
+            "note": {
+              "fi": "ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne",
+              "en": "no identified cause, possibly an event the model does not know about"
+            }
           },
           {
             "date": "2026-04-08",
-            "weekday": "keskiviikko",
+            "weekday": {
+              "fi": "keskiviikko",
+              "en": "Wednesday"
+            },
             "y_true": 360.0,
             "p50": 543.4170828807763,
             "error": 183.41708288077632,
             "abs_error": 183.41708288077632,
             "horizon_days": 8,
-            "note": "ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne"
+            "note": {
+              "fi": "ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne",
+              "en": "no identified cause, possibly an event the model does not know about"
+            }
           }
         ]
       },
@@ -2594,53 +2624,83 @@
         "baseline": [
           {
             "date": "2026-04-18",
-            "weekday": "lauantai",
+            "weekday": {
+              "fi": "lauantai",
+              "en": "Saturday"
+            },
             "y_true": 5.0,
             "p50": 266.7170980138401,
             "error": 261.7170980138401,
             "abs_error": 261.7170980138401,
             "horizon_days": 18,
-            "note": "malli sai klimatologiasään (horisontti 18 vrk); viikonloppu"
+            "note": {
+              "fi": "malli sai klimatologiasään (horisontti 18 vrk); viikonloppu",
+              "en": "the model got climatology weather (horizon 18 days); weekend"
+            }
           },
           {
             "date": "2026-04-15",
-            "weekday": "keskiviikko",
+            "weekday": {
+              "fi": "keskiviikko",
+              "en": "Wednesday"
+            },
             "y_true": 53.0,
             "p50": 277.4306704488629,
             "error": 224.43067044886288,
             "abs_error": 224.43067044886288,
             "horizon_days": 15,
-            "note": "ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne"
+            "note": {
+              "fi": "ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne",
+              "en": "no identified cause, possibly an event the model does not know about"
+            }
           },
           {
             "date": "2026-04-03",
-            "weekday": "perjantai",
+            "weekday": {
+              "fi": "perjantai",
+              "en": "Friday"
+            },
             "y_true": 0.0,
             "p50": 196.40179611681293,
             "error": 196.40179611681293,
             "abs_error": 196.40179611681293,
             "horizon_days": 3,
-            "note": "pyhäpäivä: Pitkäperjantai; toteuma 0, venue todennäköisesti kiinni"
+            "note": {
+              "fi": "pyhäpäivä: Pitkäperjantai; toteuma 0, venue todennäköisesti kiinni",
+              "en": "public holiday: Pitkäperjantai; actual 0, the venue was probably closed"
+            }
           },
           {
             "date": "2026-04-12",
-            "weekday": "sunnuntai",
+            "weekday": {
+              "fi": "sunnuntai",
+              "en": "Sunday"
+            },
             "y_true": 85.0,
             "p50": 273.9146570695917,
             "error": 188.91465706959173,
             "abs_error": 188.91465706959173,
             "horizon_days": 12,
-            "note": "viikonloppu"
+            "note": {
+              "fi": "viikonloppu",
+              "en": "weekend"
+            }
           },
           {
             "date": "2026-04-21",
-            "weekday": "tiistai",
+            "weekday": {
+              "fi": "tiistai",
+              "en": "Tuesday"
+            },
             "y_true": 51.0,
             "p50": 229.19330307857672,
             "error": 178.19330307857672,
             "abs_error": 178.19330307857672,
             "horizon_days": 21,
-            "note": "malli sai klimatologiasään (horisontti 21 vrk)"
+            "note": {
+              "fi": "malli sai klimatologiasään (horisontti 21 vrk)",
+              "en": "the model got climatology weather (horizon 21 days)"
+            }
           }
         ]
       },

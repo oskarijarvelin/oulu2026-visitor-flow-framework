@@ -15,7 +15,7 @@ Ikkuna 2026-04-01–2026-04-30 (30 vrk), koulutus päättyy 2026-03-31, koulutus
 - Vertailukohdat: seasonal_naive, moving_average_28d, climatology_dow
 - Päävertailukohdan valinta: `best`
 - Sään tilat: perfect, operational, climatology (verdikti tilasta `operational`)
-- Bootstrap: 10 000 uudelleenotantaa, lohkon pituus 7 vrk, siemen 20260101
+- Bootstrap: 10 000 uudelleenotantaa, lohkon pituus 7 vrk, siemen 20260101
 
 | Venue | Koulutus alkaa | Koulutuspäiviä | Nollapäiviä | Sisäkkäisiä origoja | MASE-nimittäjä |
 | --- | --- | --- | --- | --- | --- |
@@ -30,10 +30,10 @@ Ennustevälien kvantiilit tulevat sisäkkäisestä backtestistä, joka ajetaan k
 
 | Malli | Ennuste | Toteuma | Ero | Ero % | 80 % väli | Väli osuu | Naiivi päiväsummaväli |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| baseline | 13 639 | 13 189 | +450 | +3,4 % | 13 639 – 20 089 | ei | 9 021 – 28 852 |
-| climatology_dow | 13 292 | 13 189 | +103 | +0,8 % | 13 292 – 28 944 | ei | 13 292 – 37 419 |
-| moving_average_28d | 17 336 | 13 189 | +4 147 | +31,4 % | 17 336 – 20 813 | ei | 12 546 – 27 846 |
-| seasonal_naive | 15 172 | 13 189 | +1 983 | +15,0 % | 15 172 – 19 406 | ei | 10 655 – 23 270 |
+| baseline | 13 639 | 13 189 | +450 | +3,4 % | 13 639 – 20 089 | ei | 9 021 – 28 852 |
+| climatology_dow | 13 292 | 13 189 | +103 | +0,8 % | 13 292 – 28 944 | ei | 13 292 – 37 419 |
+| moving_average_28d | 17 336 | 13 189 | +4 147 | +31,4 % | 17 336 – 20 813 | ei | 12 546 – 27 846 |
+| seasonal_naive | 15 172 | 13 189 | +1 983 | +15,0 % | 15 172 – 19 406 | ei | 10 655 – 23 270 |
 
 Kokonaismäärän väli on simuloitu: koulutusikkunan sisäisen backtestin päivätason suhteellisia virheitä bootstrapataan lohkoina kokonaisiksi jaksoiksi, jokainen simuloitu polku summataan ja väli luetaan summien jakaumasta. Viimeinen sarake näyttää, mihin päivien p10- ja p90-arvojen summaaminen olisi johtanut; se olettaa kaikkien päivien virheiden osuvan samaan suuntaan eikä ole kokonaismäärän väli.
 
@@ -70,7 +70,7 @@ Päävertailukohta tällä ikkunalla: **climatology_dow** (MAE 96,2). Vertailuko
 
 | Malli | Keskiero d | 95 % väli | Verdikti | Taitopistemäärä | Taidon 95 % väli | MDE | MDE / vertailun MAE | DM | DM p (raaka) | DM p (Holm) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| baseline | +6,7 | -3,2 … +30,7 | ei havaittavaa eroa vertailukohtaan | -0,070 | -0,314 … 0,034 | 34,5 | 35,9 % | 0,56 | 0,610 | 0,610 |
+| baseline | +6,7 | -3,2 … +30,7 | ei havaittavaa eroa vertailukohtaan | -0,070 | -0,314 … 0,034 | 34,5 | 35,9 % | 0,56 | 0,610 | 0,610 |
 
 `d` on mallin ja vertailukohdan absoluuttisten päivävirheiden erotus; negatiivinen tarkoittaa että malli on lähempänä. Väli on liikkuvan lohkon bootstrapista (lohko 7 vrk), joka on tämän arvion ensisijainen menetelmä.
 
@@ -82,7 +82,7 @@ Päävertailukohta tällä ikkunalla: **climatology_dow** (MAE 96,2). Vertailuko
 
 | Malli | Peittävyys 80 % | Clopper-Pearson 95 % | Kalibrointi | Bias | Bias 95 % väli | Bias % toteumasta | Biasin verdikti |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| baseline | 0,90 (27/30) | 0,73 … 0,98 | kalibroitu | +15,0 | -16,7 … +56,4 | +3,4 % | ei systemaattista harhaa |
+| baseline | 0,90 (27/30) | 0,73 … 0,98 | kalibroitu | +15,0 | -16,7 … +56,4 | +3,4 % | ei systemaattista harhaa |
 
 Kalibrointi on "kalibroitu", jos 0,80 on Clopper-Pearsonin eksaktin binomivälin sisällä. Bias on keskivirhe etumerkillä (ennuste miinus toteuma); jos sen väli ei sisällä nollaa, malli yli- tai aliarvioi systemaattisesti.
 
@@ -90,7 +90,7 @@ Kalibrointi on "kalibroitu", jos 0,80 on Clopper-Pearsonin eksaktin binomivälin
 
 | Malli | perfect MAE | operational MAE | climatology MAE | Sään tuoma parannus (climatology − perfect) | Osuus climatologyn MAE:sta |
 | --- | --- | --- | --- | --- | --- |
-| baseline | 108,1 | 102,9 | 107,9 | -0,2 | -0,2 % |
+| baseline | 108,1 | 102,9 | 107,9 | -0,2 | -0,2 % |
 
 `perfect` on yläraja: mihin malli pystyisi jos sää tiedettäisiin täydellisesti. `climatology` on alaraja: mihin se pystyy ilman sääennustetta. `operational` on realistisin arvio ja se olettaa hyvän sääennusteen. Sään tuoma parannus on `climatology`n MAE miinus `perfect`in MAE: **positiivinen luku tarkoittaa että sään tunteminen auttaa**, ja se on se osa mallin osumatarkkuudesta joka lepää sään tuntemisen varassa.
 
@@ -122,10 +122,10 @@ Tämä on raportin käytännöllisin osa: se kertoo mitä mallista puuttuu. Tois
 
 | Malli | Ennuste | Toteuma | Ero | Ero % | 80 % väli | Väli osuu | Naiivi päiväsummaväli |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| baseline | 6 155 | 3 791 | +2 364 | +62,4 % | 3 666 – 6 155 | kyllä | 1 409 – 8 945 |
-| climatology_dow | 5 346 | 3 791 | +1 555 | +41,0 % | 5 346 – 7 603 | ei | 2 595 – 12 230 |
-| moving_average_28d | 5 802 | 3 791 | +2 011 | +53,0 % | 5 554 – 7 626 | ei | 1 213 – 12 548 |
-| seasonal_naive | 7 656 | 3 791 | +3 865 | +102,0 % | 7 093 – 14 491 | ei | 3 273 – 20 184 |
+| baseline | 6 155 | 3 791 | +2 364 | +62,4 % | 3 666 – 6 155 | kyllä | 1 409 – 8 945 |
+| climatology_dow | 5 346 | 3 791 | +1 555 | +41,0 % | 5 346 – 7 603 | ei | 2 595 – 12 230 |
+| moving_average_28d | 5 802 | 3 791 | +2 011 | +53,0 % | 5 554 – 7 626 | ei | 1 213 – 12 548 |
+| seasonal_naive | 7 656 | 3 791 | +3 865 | +102,0 % | 7 093 – 14 491 | ei | 3 273 – 20 184 |
 
 Kokonaismäärän väli on simuloitu: koulutusikkunan sisäisen backtestin päivätason suhteellisia virheitä bootstrapataan lohkoina kokonaisiksi jaksoiksi, jokainen simuloitu polku summataan ja väli luetaan summien jakaumasta. Viimeinen sarake näyttää, mihin päivien p10- ja p90-arvojen summaaminen olisi johtanut; se olettaa kaikkien päivien virheiden osuvan samaan suuntaan eikä ole kokonaismäärän väli.
 
@@ -137,20 +137,20 @@ Sään tila `operational`. Pinball-tappio kvantiileille 0,1 / 0,5 / 0,9.
 
 | Malli | Horisontti | MAE | RMSE | MASE | Bias | Pinball 0,1 | Pinball 0,5 | Pinball 0,9 | Peittävyys 80 % | sMAPE | n |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| baseline | all | 95,1 | 117,3 | 0,740 | +78,8 | 11,9 | 47,6 | 20,0 | 0,80 | 69,0 ⚠ | 30 |
-| baseline | 1-7 | 80,9 | 102,2 | 0,629 | +34,3 | 19,4 | 40,5 | 18,9 | 0,57 | 80,0 ⚠ | 7 |
+| baseline | all | 95,1 | 117,3 | 0,740 | +78,8 | 11,9 | 47,6 | 20,0 | 0,80 | 69,0 ⚠ | 30 |
+| baseline | 1-7 | 80,9 | 102,2 | 0,629 | +34,3 | 19,4 | 40,5 | 18,9 | 0,57 | 80,0 ⚠ | 7 |
 | baseline | 8-14 | 94,6 | 111,1 | 0,736 | +94,6 | 8,7 | 47,3 | 16,0 | 1,00 | 49,6 | 7 |
 | baseline | 15-30 | 101,5 | 125,8 | 0,790 | +91,3 | 10,0 | 50,8 | 22,1 | 0,81 | 72,8 | 16 |
-| climatology_dow | all | 75,1 | 95,6 | 0,584 | +51,8 | 18,1 | 37,6 | 28,8 | 0,70 | 61,5 ⚠ | 30 |
-| climatology_dow | 1-7 | 81,3 | 102,3 | 0,632 | +28,9 | 22,2 | 40,7 | 31,8 | 0,71 | 81,5 ⚠ | 7 |
+| climatology_dow | all | 75,1 | 95,6 | 0,584 | +51,8 | 18,1 | 37,6 | 28,8 | 0,70 | 61,5 ⚠ | 30 |
+| climatology_dow | 1-7 | 81,3 | 102,3 | 0,632 | +28,9 | 22,2 | 40,7 | 31,8 | 0,71 | 81,5 ⚠ | 7 |
 | climatology_dow | 8-14 | 52,0 | 63,4 | 0,404 | +17,8 | 7,9 | 26,0 | 24,0 | 1,00 | 32,6 | 7 |
 | climatology_dow | 15-30 | 82,6 | 103,9 | 0,642 | +76,7 | 20,7 | 41,3 | 29,6 | 0,56 | 65,3 | 16 |
-| moving_average_28d | all | 88,2 | 106,3 | 0,686 | +67,0 | 14,7 | 44,1 | 29,2 | 0,83 | 68,4 ⚠ | 30 |
-| moving_average_28d | 1-7 | 103,9 | 119,5 | 0,808 | +46,0 | 26,3 | 52,0 | 29,9 | 0,71 | 82,1 ⚠ | 7 |
+| moving_average_28d | all | 88,2 | 106,3 | 0,686 | +67,0 | 14,7 | 44,1 | 29,2 | 0,83 | 68,4 ⚠ | 30 |
+| moving_average_28d | 1-7 | 103,9 | 119,5 | 0,808 | +46,0 | 26,3 | 52,0 | 29,9 | 0,71 | 82,1 ⚠ | 7 |
 | moving_average_28d | 8-14 | 67,5 | 86,8 | 0,525 | +34,8 | 13,1 | 33,7 | 21,9 | 1,00 | 45,8 | 7 |
 | moving_average_28d | 15-30 | 90,3 | 107,9 | 0,703 | +90,3 | 10,3 | 45,2 | 32,0 | 0,81 | 72,3 | 16 |
-| seasonal_naive | all | 138,6 | 171,3 | 1,078 | +128,8 | 27,3 | 69,3 | 54,6 | 0,67 | 78,9 ⚠ | 30 |
-| seasonal_naive | 1-7 | 112,1 | 140,2 | 0,872 | +98,7 | 19,9 | 56,1 | 68,2 | 0,57 | 90,2 ⚠ | 7 |
+| seasonal_naive | all | 138,6 | 171,3 | 1,078 | +128,8 | 27,3 | 69,3 | 54,6 | 0,67 | 78,9 ⚠ | 30 |
+| seasonal_naive | 1-7 | 112,1 | 140,2 | 0,872 | +98,7 | 19,9 | 56,1 | 68,2 | 0,57 | 90,2 ⚠ | 7 |
 | seasonal_naive | 8-14 | 105,0 | 127,8 | 0,817 | +87,6 | 7,7 | 52,5 | 51,3 | 1,00 | 45,9 | 7 |
 | seasonal_naive | 15-30 | 164,8 | 198,2 | 1,282 | +160,1 | 39,1 | 82,4 | 50,2 | 0,56 | 88,4 | 16 |
 
@@ -162,7 +162,7 @@ Päävertailukohta tällä ikkunalla: **climatology_dow** (MAE 75,1). Vertailuko
 
 | Malli | Keskiero d | 95 % väli | Verdikti | Taitopistemäärä | Taidon 95 % väli | MDE | MDE / vertailun MAE | DM | DM p (raaka) | DM p (Holm) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| baseline | +20,0 | +7,8 … +48,9 | huonompi kuin vertailukohta | -0,266 | -0,759 … -0,107 | 24,7 | 32,9 % | 1,42 | 0,293 | 0,586 |
+| baseline | +20,0 | +7,8 … +48,9 | huonompi kuin vertailukohta | -0,266 | -0,759 … -0,107 | 24,7 | 32,9 % | 1,42 | 0,293 | 0,586 |
 
 `d` on mallin ja vertailukohdan absoluuttisten päivävirheiden erotus; negatiivinen tarkoittaa että malli on lähempänä. Väli on liikkuvan lohkon bootstrapista (lohko 7 vrk), joka on tämän arvion ensisijainen menetelmä.
 
@@ -174,7 +174,7 @@ Päävertailukohta tällä ikkunalla: **climatology_dow** (MAE 75,1). Vertailuko
 
 | Malli | Peittävyys 80 % | Clopper-Pearson 95 % | Kalibrointi | Bias | Bias 95 % väli | Bias % toteumasta | Biasin verdikti |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| baseline | 0,80 (24/30) | 0,61 … 0,92 | kalibroitu | +78,8 | +52,0 … +125,8 | +62,4 % | yliarvioi systemaattisesti |
+| baseline | 0,80 (24/30) | 0,61 … 0,92 | kalibroitu | +78,8 | +52,0 … +125,8 | +62,4 % | yliarvioi systemaattisesti |
 
 Kalibrointi on "kalibroitu", jos 0,80 on Clopper-Pearsonin eksaktin binomivälin sisällä. Bias on keskivirhe etumerkillä (ennuste miinus toteuma); jos sen väli ei sisällä nollaa, malli yli- tai aliarvioi systemaattisesti.
 
@@ -182,7 +182,7 @@ Kalibrointi on "kalibroitu", jos 0,80 on Clopper-Pearsonin eksaktin binomivälin
 
 | Malli | perfect MAE | operational MAE | climatology MAE | Sään tuoma parannus (climatology − perfect) | Osuus climatologyn MAE:sta |
 | --- | --- | --- | --- | --- | --- |
-| baseline | 101,5 | 95,1 | 81,5 | -20,0 | -24,5 % |
+| baseline | 101,5 | 95,1 | 81,5 | -20,0 | -24,5 % |
 
 `perfect` on yläraja: mihin malli pystyisi jos sää tiedettäisiin täydellisesti. `climatology` on alaraja: mihin se pystyy ilman sääennustetta. `operational` on realistisin arvio ja se olettaa hyvän sääennusteen. Sään tuoma parannus on `climatology`n MAE miinus `perfect`in MAE: **positiivinen luku tarkoittaa että sään tunteminen auttaa**, ja se on se osa mallin osumatarkkuudesta joka lepää sään tuntemisen varassa.
 

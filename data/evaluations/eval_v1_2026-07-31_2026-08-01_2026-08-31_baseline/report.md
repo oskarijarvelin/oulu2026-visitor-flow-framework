@@ -1,15 +1,15 @@
-# Ennusteen arviointiraportti: 2026-06-01 – 2026-06-30
+# Ennusteen arviointiraportti: 2026-08-01 – 2026-08-31
 
-Ajon tunniste: `eval_v1_2026-05-31_2026-06-01_2026-06-30_baseline`
+Ajon tunniste: `eval_v1_2026-07-31_2026-08-01_2026-08-31_baseline`
 
 ## 1. Verdikti
 
-Ikkuna 2026-06-01–2026-06-30 (30 vrk), koulutus päättyy 2026-05-31, koulutusikkuna all, sään tila operational. Venue 1 (Pekuri): malli baseline teki keskimäärin 305,0 kävijän päivävirheen, päävertailukohta climatology_dow 138,9. Malli häviää vertailukohdalle tilastollisesti: ero +166,1 kävijää päivässä (95 % väli +62,6…+264,5). Yksinkertainen sääntö climatology_dow on tällä ikkunalla parempi kuin malli. Tämä otos (30 päivää) olisi erottanut vasta 102,0 kävijän eron, eli 73,4 % vertailukohdan MAE:sta. Jakson kokonaismäärä: ennuste 2 961, toteuma 11 865, ero -75,0 %, 80 % väli 2 166–3 328. Venue 2 (Kaupungintalo): malli baseline teki keskimäärin 60,7 kävijän päivävirheen, päävertailukohta climatology_dow 44,5. Eroa ei havaittu: +16,2 kävijää päivässä (95 % väli -9,0…+41,3). Tämä otos (30 päivää) olisi erottanut vasta 36,7 kävijän eron, eli 82,5 % vertailukohdan MAE:sta; "ei eroa" ei siis tarkoita samanveroisuutta. Jakson kokonaismäärä: ennuste 2 900, toteuma 4 254, ero -31,8 %, 80 % väli 2 344–3 730. Yhden ikkunan tulos on kuvaileva, ei todistava: varsinainen näyttö syntyy usean ikkunan koosteesta.
+Ikkuna 2026-08-01–2026-08-31 (31 vrk), koulutus päättyy 2026-07-31, koulutusikkuna all, sään tila operational. Venue 1 (Pekuri): malli baseline teki keskimäärin 255,8 kävijän päivävirheen, päävertailukohta climatology_dow 128,0. Malli häviää vertailukohdalle tilastollisesti: ero +127,8 kävijää päivässä (95 % väli +44,2…+184,1). Yksinkertainen sääntö climatology_dow on tällä ikkunalla parempi kuin malli. Tämä otos (31 päivää) olisi erottanut vasta 70,8 kävijän eron, eli 55,3 % vertailukohdan MAE:sta. Jakson kokonaismäärä: ennuste 20 173, toteuma 13 514, ero +49,3 %, 80 % väli 18 620–27 237. Venue 2 (Kaupungintalo): malli baseline teki keskimäärin 37,0 kävijän päivävirheen, päävertailukohta climatology_dow 36,8. Eroa ei havaittu: +0,2 kävijää päivässä (95 % väli -10,6…+8,5). Tämä otos (31 päivää) olisi erottanut vasta 10,6 kävijän eron, eli 28,8 % vertailukohdan MAE:sta; "ei eroa" ei siis tarkoita samanveroisuutta. Jakson kokonaismäärä: ennuste 4 335, toteuma 4 866, ero -10,9 %, 80 % väli 4 166–7 382. Yhden ikkunan tulos on kuvaileva, ei todistava: varsinainen näyttö syntyy usean ikkunan koosteesta.
 
 ## 2. Ikkuna ja asetelma
 
-- Origo (viimeinen koulutuspäivä): **2026-05-31**
-- Testijakso: **2026-06-01 – 2026-06-30** (30 vrk, horisontit 1–30)
+- Origo (viimeinen koulutuspäivä): **2026-07-31**
+- Testijakso: **2026-08-01 – 2026-08-31** (31 vrk, horisontit 1–31)
 - Koulutusikkuna: `all`
 - Mallit: baseline
 - Vertailukohdat: seasonal_naive, moving_average_28d, climatology_dow
@@ -19,8 +19,8 @@ Ikkuna 2026-06-01–2026-06-30 (30 vrk), koulutus päättyy 2026-05-31, koulutus
 
 | Venue | Koulutus alkaa | Koulutuspäiviä | Nollapäiviä | Sisäkkäisiä origoja | MASE-nimittäjä |
 | --- | --- | --- | --- | --- | --- |
-| 1 (Pekuri) | 2026-01-01 | 151 | 21 | 11 | 170,43 |
-| 2 (Kaupungintalo) | 2026-01-01 | 151 | 10 | 11 | 115,36 |
+| 1 (Pekuri) | 2026-01-01 | 212 | 21 | 12 | 163,08 |
+| 2 (Kaupungintalo) | 2026-01-01 | 212 | 13 | 12 | 100,17 |
 
 Ennustevälien kvantiilit tulevat sisäkkäisestä backtestistä, joka ajetaan kokonaan koulutusikkunan sisällä: sen viimeinen sisäorigo on origo miinus horisontti, joten yksikään sisäennuste ei ylety testijaksoon.
 
@@ -30,10 +30,10 @@ Ennustevälien kvantiilit tulevat sisäkkäisestä backtestistä, joka ajetaan k
 
 | Malli | Ennuste | Toteuma | Ero | Ero % | 80 % väli | Väli osuu | Naiivi päiväsummaväli |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| baseline | 2 961 | 11 865 | -8 904 | -75,0 % | 2 166 – 3 328 | ei | 1 695 – 4 228 |
-| climatology_dow | 13 327 | 11 865 | +1 462 | +12,3 % | 13 327 – 19 805 | ei | 9 493 – 26 445 |
-| moving_average_28d | 14 457 | 11 865 | +2 592 | +21,8 % | 11 717 – 15 181 | kyllä | 7 548 – 21 891 |
-| seasonal_naive | 13 351 | 11 865 | +1 486 | +12,5 % | 11 444 – 15 998 | kyllä | 7 750 – 20 133 |
+| baseline | 20 173 | 13 514 | +6 659 | +49,3 % | 18 620 – 27 237 | ei | 11 569 – 39 322 |
+| climatology_dow | 14 172 | 13 514 | +658 | +4,9 % | 13 066 – 16 902 | kyllä | 8 597 – 25 386 |
+| moving_average_28d | 17 464 | 13 514 | +3 950 | +29,2 % | 15 214 – 20 615 | ei | 9 748 – 28 923 |
+| seasonal_naive | 18 747 | 13 514 | +5 233 | +38,7 % | 18 747 – 26 305 | ei | 9 632 – 38 311 |
 
 Kokonaismäärän väli on simuloitu: koulutusikkunan sisäisen backtestin päivätason suhteellisia virheitä bootstrapataan lohkoina kokonaisiksi jaksoiksi, jokainen simuloitu polku summataan ja väli luetaan summien jakaumasta. Viimeinen sarake näyttää, mihin päivien p10- ja p90-arvojen summaaminen olisi johtanut; se olettaa kaikkien päivien virheiden osuvan samaan suuntaan eikä ole kokonaismäärän väli.
 
@@ -43,32 +43,32 @@ Sään tila `operational`. Pinball-tappio kvantiileille 0,1 / 0,5 / 0,9.
 
 | Malli | Horisontti | MAE | RMSE | MASE | Bias | Pinball 0,1 | Pinball 0,5 | Pinball 0,9 | Peittävyys 80 % | sMAPE | n |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| baseline | all | 305,0 | 375,3 | 1,790 | -296,8 | 33,9 | 152,5 | 252,9 | 0,27 | 142,4 | 30 |
-| baseline | 1-7 | 97,2 | 121,0 | 0,570 | -61,9 | 19,8 | 48,6 | 23,9 | 0,71 | 26,9 | 7 |
-| baseline | 8-14 | 358,6 | 494,9 | 2,104 | -358,6 | 40,4 | 179,3 | 293,5 | 0,43 | 126,2 | 7 |
-| baseline | 15-30 | 372,5 | 388,0 | 2,186 | -372,5 | 37,3 | 186,3 | 335,3 | 0,00 | 200,0 | 16 |
-| climatology_dow | all | 138,9 | 201,7 | 0,815 | +48,7 | 32,7 | 69,5 | 53,2 | 0,73 | 31,0 | 30 |
-| climatology_dow | 1-7 | 110,7 | 124,9 | 0,649 | +71,1 | 21,2 | 55,3 | 54,7 | 0,71 | 28,7 | 7 |
-| climatology_dow | 8-14 | 160,2 | 259,1 | 0,940 | -16,9 | 25,0 | 80,1 | 61,8 | 0,71 | 26,6 | 7 |
-| climatology_dow | 15-30 | 142,0 | 200,3 | 0,833 | +67,6 | 41,2 | 71,0 | 48,8 | 0,75 | 33,9 | 16 |
-| moving_average_28d | all | 150,4 | 191,0 | 0,883 | +86,4 | 21,6 | 75,2 | 46,0 | 0,83 | 35,5 | 30 |
-| moving_average_28d | 1-7 | 150,0 | 171,8 | 0,880 | +104,2 | 26,3 | 75,0 | 34,0 | 0,86 | 38,9 | 7 |
-| moving_average_28d | 8-14 | 196,5 | 269,4 | 1,153 | +16,2 | 20,6 | 98,2 | 80,9 | 0,86 | 37,4 | 7 |
-| moving_average_28d | 15-30 | 130,5 | 153,9 | 0,766 | +109,3 | 20,0 | 65,2 | 36,0 | 0,81 | 33,2 | 16 |
-| seasonal_naive | all | 186,1 | 263,4 | 1,092 | +49,5 | 32,4 | 93,1 | 53,7 | 0,60 | 39,2 | 30 |
-| seasonal_naive | 1-7 | 171,7 | 197,3 | 1,008 | +48,0 | 15,8 | 85,9 | 47,8 | 0,71 | 41,7 | 7 |
-| seasonal_naive | 8-14 | 267,7 | 374,6 | 1,571 | -40,0 | 56,9 | 133,9 | 107,2 | 0,43 | 49,7 | 7 |
-| seasonal_naive | 15-30 | 156,8 | 227,4 | 0,920 | +89,4 | 29,1 | 78,4 | 32,9 | 0,62 | 33,4 | 16 |
+| baseline | all | 255,8 | 281,1 | 1,569 | +214,8 | 35,2 | 127,9 | 83,3 | 0,58 | 49,0 | 31 |
+| baseline | 1-7 | 244,8 | 267,4 | 1,501 | +244,8 | 18,0 | 122,4 | 64,0 | 0,71 | 43,6 | 7 |
+| baseline | 8-14 | 196,8 | 219,7 | 1,207 | +36,0 | 26,5 | 98,4 | 53,9 | 0,86 | 33,6 | 7 |
+| baseline | 15-30 | 284,7 | 307,8 | 1,746 | +276,1 | 45,9 | 142,3 | 103,3 | 0,41 | 57,5 | 17 |
+| climatology_dow | all | 128,0 | 180,4 | 0,785 | +21,2 | 20,7 | 64,0 | 50,1 | 0,84 | 27,2 | 31 |
+| climatology_dow | 1-7 | 82,8 | 95,4 | 0,508 | +24,4 | 15,0 | 41,4 | 40,2 | 1,00 | 17,6 | 7 |
+| climatology_dow | 8-14 | 178,0 | 276,9 | 1,091 | -125,8 | 30,4 | 89,0 | 72,9 | 0,71 | 29,6 | 7 |
+| climatology_dow | 15-30 | 126,0 | 155,0 | 0,773 | +80,5 | 19,1 | 63,0 | 44,7 | 0,82 | 30,1 | 17 |
+| moving_average_28d | all | 200,8 | 225,6 | 1,231 | +127,4 | 23,0 | 100,4 | 55,7 | 0,74 | 41,7 | 31 |
+| moving_average_28d | 1-7 | 131,1 | 145,7 | 0,804 | +131,1 | 12,6 | 65,5 | 47,0 | 1,00 | 27,3 | 7 |
+| moving_average_28d | 8-14 | 219,8 | 264,4 | 1,348 | -19,1 | 34,0 | 109,9 | 58,1 | 0,71 | 38,2 | 7 |
+| moving_average_28d | 15-30 | 221,7 | 235,1 | 1,360 | +186,2 | 22,7 | 110,9 | 58,3 | 0,65 | 49,0 | 17 |
+| seasonal_naive | all | 218,6 | 271,8 | 1,341 | +168,8 | 29,9 | 109,3 | 80,0 | 0,77 | 42,0 | 31 |
+| seasonal_naive | 1-7 | 196,4 | 227,6 | 1,205 | +163,9 | 11,7 | 98,2 | 80,2 | 1,00 | 36,4 | 7 |
+| seasonal_naive | 8-14 | 170,3 | 242,1 | 1,044 | +13,7 | 30,9 | 85,1 | 67,2 | 1,00 | 28,6 | 7 |
+| seasonal_naive | 15-30 | 247,6 | 298,8 | 1,519 | +234,7 | 37,0 | 123,8 | 85,2 | 0,59 | 49,9 | 17 |
 
 Testijaksolla ei ole nollapäiviä, joten sMAPE on tässä ikkunassa luettavissa.
 
 ### 5. Tilastollinen arvio
 
-Päävertailukohta tällä ikkunalla: **climatology_dow** (MAE 138,9). Vertailukohtien MAE: seasonal_naive 186,1, moving_average_28d 150,4, climatology_dow 138,9.
+Päävertailukohta tällä ikkunalla: **climatology_dow** (MAE 128,0). Vertailukohtien MAE: seasonal_naive 218,6, moving_average_28d 200,8, climatology_dow 128,0.
 
 | Malli | Keskiero d | 95 % väli | Verdikti | Taitopistemäärä | Taidon 95 % väli | MDE | MDE / vertailun MAE | DM | DM p (raaka) | DM p (Holm) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| baseline | +166,1 | +62,6 … +264,5 | huonompi kuin vertailukohta | -1,196 | -1,835 … -0,469 | 102,0 | 73,4 % | 2,63 | 0,043 | 0,087 |
+| baseline | +127,8 | +44,2 … +184,1 | huonompi kuin vertailukohta | -0,998 | -1,664 … -0,273 | 70,8 | 55,3 % | 3,17 | 0,055 | 0,111 |
 
 `d` on mallin ja vertailukohdan absoluuttisten päivävirheiden erotus; negatiivinen tarkoittaa että malli on lähempänä. Väli on liikkuvan lohkon bootstrapista (lohko 7 vrk), joka on tämän arvion ensisijainen menetelmä.
 
@@ -80,7 +80,7 @@ Päävertailukohta tällä ikkunalla: **climatology_dow** (MAE 138,9). Vertailuk
 
 | Malli | Peittävyys 80 % | Clopper-Pearson 95 % | Kalibrointi | Bias | Bias 95 % väli | Bias % toteumasta | Biasin verdikti |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| baseline | 0,27 (8/30) | 0,12 … 0,46 | liian kapea | -296,8 | -424,1 … -167,4 | -75,0 % | aliarvioi systemaattisesti |
+| baseline | 0,58 (18/31) | 0,39 … 0,75 | liian kapea | +214,8 | +84,6 … +306,1 | +49,3 % | yliarvioi systemaattisesti |
 
 Kalibrointi on "kalibroitu", jos 0,80 on Clopper-Pearsonin eksaktin binomivälin sisällä. Bias on keskivirhe etumerkillä (ennuste miinus toteuma); jos sen väli ei sisällä nollaa, malli yli- tai aliarvioi systemaattisesti.
 
@@ -88,17 +88,15 @@ Kalibrointi on "kalibroitu", jos 0,80 on Clopper-Pearsonin eksaktin binomivälin
 
 | Malli | perfect MAE | operational MAE | climatology MAE | Sään tuoma parannus (climatology − perfect) | Osuus climatologyn MAE:sta |
 | --- | --- | --- | --- | --- | --- |
-| baseline | 305,0 | 305,0 | 303,6 | -1,4 | -0,5 % |
+| baseline | 223,5 | 255,8 | 253,0 | +29,5 | 11,7 % |
 
 `perfect` on yläraja: mihin malli pystyisi jos sää tiedettäisiin täydellisesti. `climatology` on alaraja: mihin se pystyy ilman sääennustetta. `operational` on realistisin arvio ja se olettaa hyvän sääennusteen. Sään tuoma parannus on `climatology`n MAE miinus `perfect`in MAE: **positiivinen luku tarkoittaa että sään tunteminen auttaa**, ja se on se osa mallin osumatarkkuudesta joka lepää sään tuntemisen varassa.
 
-⚠ **Parannus on negatiivinen**, eli malli ennustaa tällä ikkunalla *paremmin* keskiarvosäällä kuin toteutuneella säällä. Se ei ole mittausvirhe vaan tulos: mallin oppima sääriippuvuus ei yleisty tähän jaksoon, vaan toteutunut sää vie ennustetta väärään suuntaan. Sääpiirteet sopivat siis koulutusjakson kohinaan enemmän kuin kävijöiden todelliseen sääkäyttäytymiseen.
-
 | Sään tila | Toteutunutta säätä | Klimatologiaa |
 | --- | --- | --- |
-| perfect (toteutunut sää) | 30 | 0 |
-| operational (toteutunut vrk 1-16, klimatologia 17+) | 16 | 14 |
-| climatology (klimatologia koko jaksolta) | 0 | 30 |
+| perfect (toteutunut sää) | 31 | 0 |
+| operational (toteutunut vrk 1-16, klimatologia 17+) | 16 | 15 |
+| climatology (klimatologia koko jaksolta) | 0 | 31 |
 
 ### 9. Pahiten menneet päivät
 
@@ -106,11 +104,11 @@ Kalibrointi on "kalibroitu", jos 0,80 on Clopper-Pearsonin eksaktin binomivälin
 
 | Päivä | Viikonpäivä | Toteuma | Ennuste | Virhe | Mahdollinen syy |
 | --- | --- | --- | --- | --- | --- |
-| 2026-06-12 | perjantai | 1 113 | 0 | -1 113 | ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne |
-| 2026-06-22 | maanantai | 620 | 0 | -620 | malli sai klimatologiasään (horisontti 22 vrk) |
-| 2026-06-15 | maanantai | 513 | 0 | -513 | ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne |
-| 2026-06-23 | tiistai | 457 | 0 | -457 | malli sai klimatologiasään (horisontti 23 vrk) |
-| 2026-06-13 | lauantai | 449 | 0 | -449 | viikonloppu |
+| 2026-08-22 | lauantai | 287 | 789 | +502 | malli sai klimatologiasään (horisontti 22 vrk); viikonloppu |
+| 2026-08-04 | tiistai | 397 | 835 | +438 | ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne |
+| 2026-08-31 | maanantai | 263 | 685 | +422 | malli sai klimatologiasään (horisontti 31 vrk) |
+| 2026-08-14 | perjantai | 1 084 | 668 | -416 | ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne |
+| 2026-08-24 | maanantai | 313 | 714 | +401 | malli sai klimatologiasään (horisontti 24 vrk) |
 
 Tämä on raportin käytännöllisin osa: se kertoo mitä mallista puuttuu. Toistuva syy samassa sarakkeessa on suora ehdotus seuraavaksi piirteeksi.
 
@@ -120,10 +118,10 @@ Tämä on raportin käytännöllisin osa: se kertoo mitä mallista puuttuu. Tois
 
 | Malli | Ennuste | Toteuma | Ero | Ero % | 80 % väli | Väli osuu | Naiivi päiväsummaväli |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| baseline | 2 900 | 4 254 | -1 354 | -31,8 % | 2 344 – 3 730 | ei | 1 092 – 5 751 |
-| climatology_dow | 4 815 | 4 254 | +561 | +13,2 % | 4 059 – 5 882 | kyllä | 2 012 – 8 866 |
-| moving_average_28d | 5 159 | 4 254 | +905 | +21,3 % | 4 024 – 6 146 | kyllä | 880 – 9 806 |
-| seasonal_naive | 3 401 | 4 254 | -853 | -20,1 % | 3 166 – 10 448 | kyllä | 1 084 – 10 104 |
+| baseline | 4 335 | 4 866 | -531 | -10,9 % | 4 166 – 7 382 | kyllä | 1 647 – 11 230 |
+| climatology_dow | 5 018 | 4 866 | +152 | +3,1 % | 4 268 – 5 629 | kyllä | 2 156 – 7 884 |
+| moving_average_28d | 6 353 | 4 866 | +1 487 | +30,6 % | 5 730 – 8 160 | ei | 820 – 12 683 |
+| seasonal_naive | 5 393 | 4 866 | +527 | +10,8 % | 5 130 – 16 174 | ei | 2 164 – 12 183 |
 
 Kokonaismäärän väli on simuloitu: koulutusikkunan sisäisen backtestin päivätason suhteellisia virheitä bootstrapataan lohkoina kokonaisiksi jaksoiksi, jokainen simuloitu polku summataan ja väli luetaan summien jakaumasta. Viimeinen sarake näyttää, mihin päivien p10- ja p90-arvojen summaaminen olisi johtanut; se olettaa kaikkien päivien virheiden osuvan samaan suuntaan eikä ole kokonaismäärän väli.
 
@@ -133,32 +131,32 @@ Sään tila `operational`. Pinball-tappio kvantiileille 0,1 / 0,5 / 0,9.
 
 | Malli | Horisontti | MAE | RMSE | MASE | Bias | Pinball 0,1 | Pinball 0,5 | Pinball 0,9 | Peittävyys 80 % | sMAPE | n |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| baseline | all | 60,7 | 78,5 | 0,526 | -45,2 | 12,3 | 30,4 | 13,5 | 0,67 | 62,1 ⚠ | 30 |
-| baseline | 1-7 | 35,6 | 47,4 | 0,309 | -34,6 | 10,3 | 17,8 | 6,7 | 1,00 | 24,0 | 7 |
-| baseline | 8-14 | 44,2 | 58,5 | 0,383 | -24,2 | 11,6 | 22,1 | 11,4 | 0,86 | 31,9 | 7 |
-| baseline | 15-30 | 78,9 | 95,3 | 0,684 | -58,9 | 13,5 | 39,5 | 17,4 | 0,44 | 92,0 ⚠ | 16 |
-| climatology_dow | all | 44,5 | 70,1 | 0,386 | +18,7 | 15,0 | 22,3 | 15,4 | 0,87 | 38,2 ⚠ | 30 |
-| climatology_dow | 1-7 | 23,7 | 30,3 | 0,205 | +23,7 | 7,2 | 11,8 | 17,4 | 1,00 | 17,3 | 7 |
-| climatology_dow | 8-14 | 41,9 | 51,6 | 0,363 | -9,8 | 10,4 | 20,9 | 12,8 | 0,86 | 28,3 | 7 |
-| climatology_dow | 15-30 | 54,8 | 87,4 | 0,475 | +29,0 | 20,4 | 27,4 | 15,7 | 0,81 | 51,7 ⚠ | 16 |
-| moving_average_28d | all | 71,4 | 93,3 | 0,619 | +30,2 | 15,8 | 35,7 | 18,5 | 0,77 | 60,6 ⚠ | 30 |
-| moving_average_28d | 1-7 | 42,6 | 65,0 | 0,369 | +32,0 | 12,2 | 21,3 | 19,0 | 0,86 | 36,1 | 7 |
-| moving_average_28d | 8-14 | 63,7 | 77,0 | 0,552 | -1,5 | 14,7 | 31,9 | 14,2 | 1,00 | 39,6 | 7 |
-| moving_average_28d | 15-30 | 87,4 | 109,0 | 0,757 | +43,2 | 17,8 | 43,7 | 20,2 | 0,62 | 80,5 ⚠ | 16 |
-| seasonal_naive | all | 62,4 | 76,0 | 0,541 | -28,4 | 14,1 | 31,2 | 20,2 | 0,83 | 57,9 ⚠ | 30 |
-| seasonal_naive | 1-7 | 53,1 | 62,3 | 0,461 | -27,7 | 10,3 | 26,6 | 21,8 | 1,00 | 39,7 | 7 |
-| seasonal_naive | 8-14 | 61,1 | 72,8 | 0,530 | -61,1 | 14,4 | 30,6 | 14,6 | 0,86 | 48,2 | 7 |
-| seasonal_naive | 15-30 | 67,1 | 82,5 | 0,581 | -14,4 | 15,6 | 33,5 | 21,9 | 0,75 | 70,2 ⚠ | 16 |
+| baseline | all | 37,0 | 63,4 | 0,370 | -17,1 | 11,9 | 18,5 | 20,5 | 0,97 | 29,5 | 31 |
+| baseline | 1-7 | 12,4 | 17,9 | 0,124 | -9,1 | 11,2 | 6,2 | 15,1 | 1,00 | 10,2 | 7 |
+| baseline | 8-14 | 33,5 | 42,8 | 0,335 | -31,7 | 11,8 | 16,8 | 21,6 | 1,00 | 27,9 | 7 |
+| baseline | 15-30 | 48,6 | 80,2 | 0,485 | -14,4 | 12,2 | 24,3 | 22,3 | 0,94 | 38,1 | 17 |
+| climatology_dow | all | 36,8 | 60,3 | 0,367 | +4,9 | 11,0 | 18,4 | 12,7 | 0,77 | 27,5 | 31 |
+| climatology_dow | 1-7 | 16,9 | 19,4 | 0,169 | +1,9 | 9,9 | 8,4 | 8,6 | 1,00 | 9,6 | 7 |
+| climatology_dow | 8-14 | 25,6 | 40,2 | 0,255 | -9,5 | 10,3 | 12,8 | 9,1 | 0,71 | 19,7 | 7 |
+| climatology_dow | 15-30 | 49,6 | 76,2 | 0,495 | +12,0 | 11,7 | 24,8 | 16,0 | 0,71 | 38,0 | 17 |
+| moving_average_28d | all | 75,7 | 97,5 | 0,755 | +48,0 | 14,4 | 37,8 | 25,2 | 0,87 | 51,6 | 31 |
+| moving_average_28d | 1-7 | 53,7 | 76,4 | 0,536 | +40,5 | 14,4 | 26,8 | 23,2 | 0,86 | 37,2 | 7 |
+| moving_average_28d | 8-14 | 57,4 | 76,4 | 0,573 | +29,1 | 14,8 | 28,7 | 23,0 | 1,00 | 36,1 | 7 |
+| moving_average_28d | 15-30 | 92,2 | 111,9 | 0,921 | +58,8 | 14,3 | 46,1 | 27,0 | 0,82 | 63,9 | 17 |
+| seasonal_naive | all | 100,5 | 130,1 | 1,004 | +17,0 | 11,8 | 50,3 | 57,5 | 0,74 | 71,8 | 31 |
+| seasonal_naive | 1-7 | 79,9 | 104,0 | 0,797 | +18,4 | 11,9 | 39,9 | 54,4 | 0,86 | 56,4 | 7 |
+| seasonal_naive | 8-14 | 87,3 | 107,8 | 0,871 | +7,0 | 9,8 | 43,6 | 47,7 | 0,71 | 67,9 | 7 |
+| seasonal_naive | 15-30 | 114,5 | 147,0 | 1,143 | +20,5 | 12,6 | 57,3 | 62,9 | 0,71 | 79,8 | 17 |
 
-⚠ sMAPE on merkitty epäluotettavaksi: testijaksolla on nollapäiviä (enimmillään 3 korissa). Nollapäivällä symmetrinen suhde saavuttaa kattonsa riippumatta siitä kuinka lähellä ennuste oli. sMAPEa ei käytetä verdiktin perustana.
+Testijaksolla ei ole nollapäiviä, joten sMAPE on tässä ikkunassa luettavissa.
 
 ### 5. Tilastollinen arvio
 
-Päävertailukohta tällä ikkunalla: **climatology_dow** (MAE 44,5). Vertailukohtien MAE: seasonal_naive 62,4, moving_average_28d 71,4, climatology_dow 44,5.
+Päävertailukohta tällä ikkunalla: **climatology_dow** (MAE 36,8). Vertailukohtien MAE: seasonal_naive 100,5, moving_average_28d 75,7, climatology_dow 36,8.
 
 | Malli | Keskiero d | 95 % väli | Verdikti | Taitopistemäärä | Taidon 95 % väli | MDE | MDE / vertailun MAE | DM | DM p (raaka) | DM p (Holm) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| baseline | +16,2 | -9,0 … +41,3 | ei havaittavaa eroa vertailukohtaan | -0,363 | -1,364 … 0,126 | 36,7 | 82,5 % | 1,00 | 0,259 | 0,259 |
+| baseline | +0,2 | -10,6 … +8,5 | ei havaittavaa eroa vertailukohtaan | -0,006 | -0,205 … 0,295 | 10,6 | 28,8 % | 0,04 | 0,967 | 0,967 |
 
 `d` on mallin ja vertailukohdan absoluuttisten päivävirheiden erotus; negatiivinen tarkoittaa että malli on lähempänä. Väli on liikkuvan lohkon bootstrapista (lohko 7 vrk), joka on tämän arvion ensisijainen menetelmä.
 
@@ -170,7 +168,7 @@ Päävertailukohta tällä ikkunalla: **climatology_dow** (MAE 44,5). Vertailuko
 
 | Malli | Peittävyys 80 % | Clopper-Pearson 95 % | Kalibrointi | Bias | Bias 95 % väli | Bias % toteumasta | Biasin verdikti |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| baseline | 0,67 (20/30) | 0,47 … 0,83 | kalibroitu | -45,2 | -64,3 … -28,6 | -31,8 % | aliarvioi systemaattisesti |
+| baseline | 0,97 (30/31) | 0,83 … 1,00 | liian leveä | -17,1 | -38,8 … +2,4 | -10,9 % | ei systemaattista harhaa |
 
 Kalibrointi on "kalibroitu", jos 0,80 on Clopper-Pearsonin eksaktin binomivälin sisällä. Bias on keskivirhe etumerkillä (ennuste miinus toteuma); jos sen väli ei sisällä nollaa, malli yli- tai aliarvioi systemaattisesti.
 
@@ -178,15 +176,15 @@ Kalibrointi on "kalibroitu", jos 0,80 on Clopper-Pearsonin eksaktin binomivälin
 
 | Malli | perfect MAE | operational MAE | climatology MAE | Sään tuoma parannus (climatology − perfect) | Osuus climatologyn MAE:sta |
 | --- | --- | --- | --- | --- | --- |
-| baseline | 56,9 | 60,7 | 63,1 | +6,2 | 9,9 % |
+| baseline | 37,0 | 37,0 | 39,2 | +2,2 | 5,5 % |
 
 `perfect` on yläraja: mihin malli pystyisi jos sää tiedettäisiin täydellisesti. `climatology` on alaraja: mihin se pystyy ilman sääennustetta. `operational` on realistisin arvio ja se olettaa hyvän sääennusteen. Sään tuoma parannus on `climatology`n MAE miinus `perfect`in MAE: **positiivinen luku tarkoittaa että sään tunteminen auttaa**, ja se on se osa mallin osumatarkkuudesta joka lepää sään tuntemisen varassa.
 
 | Sään tila | Toteutunutta säätä | Klimatologiaa |
 | --- | --- | --- |
-| perfect (toteutunut sää) | 30 | 0 |
-| operational (toteutunut vrk 1-16, klimatologia 17+) | 16 | 14 |
-| climatology (klimatologia koko jaksolta) | 0 | 30 |
+| perfect (toteutunut sää) | 31 | 0 |
+| operational (toteutunut vrk 1-16, klimatologia 17+) | 16 | 15 |
+| climatology (klimatologia koko jaksolta) | 0 | 31 |
 
 ### 9. Pahiten menneet päivät
 
@@ -194,17 +192,17 @@ Kalibrointi on "kalibroitu", jos 0,80 on Clopper-Pearsonin eksaktin binomivälin
 
 | Päivä | Viikonpäivä | Toteuma | Ennuste | Virhe | Mahdollinen syy |
 | --- | --- | --- | --- | --- | --- |
-| 2026-06-18 | torstai | 239 | 57 | -182 | malli sai klimatologiasään (horisontti 18 vrk) |
-| 2026-06-16 | tiistai | 316 | 143 | -173 | runsas sade 9,5 mm |
-| 2026-06-27 | lauantai | 207 | 69 | -138 | malli sai klimatologiasään (horisontti 27 vrk); viikonloppu |
-| 2026-06-09 | tiistai | 309 | 178 | -131 | ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne |
-| 2026-06-24 | keskiviikko | 204 | 77 | -127 | malli sai klimatologiasään (horisontti 24 vrk) |
+| 2026-08-15 | lauantai | 371 | 155 | -216 | runsas sade 8,7 mm; viikonloppu |
+| 2026-08-27 | torstai | 317 | 143 | -174 | malli sai klimatologiasään (horisontti 27 vrk) |
+| 2026-08-26 | keskiviikko | 21 | 173 | +152 | malli sai klimatologiasään (horisontti 26 vrk) |
+| 2026-08-13 | torstai | 284 | 190 | -94 | ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne |
+| 2026-08-18 | tiistai | 155 | 214 | +59 | runsas sade 7,0 mm; malli sai klimatologiasään (horisontti 18 vrk) |
 
 Tämä on raportin käytännöllisin osa: se kertoo mitä mallista puuttuu. Toistuva syy samassa sarakkeessa on suora ehdotus seuraavaksi piirteeksi.
 
 ## 8. Rajoitteet
 
-- **Otoskoko.** Yksi ikkuna on 30 päivää yhdestä origosta. Ne eivät ole 30 riippumatonta havaintoa: kaikki jakavat saman koulutusjoukon ja saman kuukauden sään.
+- **Otoskoko.** Yksi ikkuna on 31 päivää yhdestä origosta. Ne eivät ole 31 riippumatonta havaintoa: kaikki jakavat saman koulutusjoukon ja saman kuukauden sään.
 - **Yhden ikkunan verdikti on kuvaileva, ei todistava.** Varsinainen näyttö syntyy usean ikkunan koosteesta (`--sweep monthly` tai `--sweep rolling`).
 - **"Ei havaittavaa eroa" ei tarkoita samanveroisuutta.** Lue MDE kohdasta 5 ennen kuin teet siitä johtopäätöksen.
 - **sMAPEa ei käytetä verdiktin perustana**, koska nollapäivät rikkovat sen.

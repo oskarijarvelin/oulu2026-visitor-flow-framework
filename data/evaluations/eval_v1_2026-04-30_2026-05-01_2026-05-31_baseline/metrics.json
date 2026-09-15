@@ -1272,53 +1272,83 @@
         "baseline": [
           {
             "date": "2026-05-15",
-            "weekday": "perjantai",
+            "weekday": {
+              "fi": "perjantai",
+              "en": "Friday"
+            },
             "y_true": 1174.0,
             "p50": 440.6025280936948,
             "error": -733.3974719063052,
             "abs_error": 733.3974719063052,
             "horizon_days": 15,
-            "note": "ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne"
+            "note": {
+              "fi": "ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne",
+              "en": "no identified cause, possibly an event the model does not know about"
+            }
           },
           {
             "date": "2026-05-26",
-            "weekday": "tiistai",
+            "weekday": {
+              "fi": "tiistai",
+              "en": "Tuesday"
+            },
             "y_true": 890.0,
             "p50": 319.3884446966488,
             "error": -570.6115553033512,
             "abs_error": 570.6115553033512,
             "horizon_days": 26,
-            "note": "malli sai klimatologiasään (horisontti 26 vrk)"
+            "note": {
+              "fi": "malli sai klimatologiasään (horisontti 26 vrk)",
+              "en": "the model got climatology weather (horizon 26 days)"
+            }
           },
           {
             "date": "2026-05-05",
-            "weekday": "tiistai",
+            "weekday": {
+              "fi": "tiistai",
+              "en": "Tuesday"
+            },
             "y_true": 841.0,
             "p50": 364.2734408834081,
             "error": -476.7265591165919,
             "abs_error": 476.7265591165919,
             "horizon_days": 5,
-            "note": "runsas sade 9.6 mm"
+            "note": {
+              "fi": "runsas sade 9,6 mm",
+              "en": "heavy rain 9.6 mm"
+            }
           },
           {
             "date": "2026-05-13",
-            "weekday": "keskiviikko",
+            "weekday": {
+              "fi": "keskiviikko",
+              "en": "Wednesday"
+            },
             "y_true": 731.0,
             "p50": 268.835533696999,
             "error": -462.164466303001,
             "abs_error": 462.164466303001,
             "horizon_days": 13,
-            "note": "ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne"
+            "note": {
+              "fi": "ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne",
+              "en": "no identified cause, possibly an event the model does not know about"
+            }
           },
           {
             "date": "2026-05-30",
-            "weekday": "lauantai",
+            "weekday": {
+              "fi": "lauantai",
+              "en": "Saturday"
+            },
             "y_true": 265.0,
             "p50": 699.9623931349969,
             "error": 434.9623931349969,
             "abs_error": 434.9623931349969,
             "horizon_days": 30,
-            "note": "malli sai klimatologiasään (horisontti 30 vrk); viikonloppu"
+            "note": {
+              "fi": "malli sai klimatologiasään (horisontti 30 vrk); viikonloppu",
+              "en": "the model got climatology weather (horizon 30 days); weekend"
+            }
           }
         ]
       },
@@ -1368,18 +1398,18 @@
           "weather_mode": "climatology",
           "bucket": "all",
           "n": 31,
-          "mae": 79.866,
-          "rmse": 120.443,
-          "mase": 0.657,
-          "bias": -66.987,
-          "bias_pct": -40.33,
+          "mae": 80.099,
+          "rmse": 120.842,
+          "mase": 0.659,
+          "bias": -68.43,
+          "bias_pct": -41.199,
           "pinball": {
-            "q10": 13.303,
-            "q50": 39.933,
-            "q90": 25.52
+            "q10": 13.31,
+            "q50": 40.05,
+            "q90": 24.097
           },
           "coverage_80": 0.7742,
-          "smape": 50.259,
+          "smape": 50.498,
           "smape_reliable": true,
           "zero_days": 0,
           "mean_actual": 166.097
@@ -1389,18 +1419,18 @@
           "weather_mode": "climatology",
           "bucket": "1-7",
           "n": 7,
-          "mae": 105.003,
-          "rmse": 174.629,
-          "mase": 0.864,
-          "bias": -99.154,
-          "bias_pct": -51.11,
+          "mae": 108.654,
+          "rmse": 176.371,
+          "mase": 0.894,
+          "bias": -103.42,
+          "bias_pct": -53.309,
           "pinball": {
-            "q10": 16.006,
-            "q50": 52.502,
-            "q90": 43.418
+            "q10": 15.91,
+            "q50": 54.327,
+            "q90": 42.26
           },
           "coverage_80": 0.8571,
-          "smape": 49.795,
+          "smape": 53.095,
           "smape_reliable": true,
           "zero_days": 0,
           "mean_actual": 194.0
@@ -1410,18 +1440,18 @@
           "weather_mode": "climatology",
           "bucket": "8-14",
           "n": 7,
-          "mae": 65.682,
-          "rmse": 88.287,
-          "mase": 0.54,
-          "bias": -52.0,
-          "bias_pct": -34.437,
+          "mae": 65.113,
+          "rmse": 88.492,
+          "mase": 0.536,
+          "bias": -51.21,
+          "bias_pct": -33.914,
           "pinball": {
-            "q10": 11.889,
-            "q50": 32.841,
-            "q90": 13.083
+            "q10": 11.922,
+            "q50": 32.556,
+            "q90": 14.097
           },
           "coverage_80": 0.8571,
-          "smape": 52.855,
+          "smape": 52.719,
           "smape_reliable": true,
           "zero_days": 0,
           "mean_actual": 151.0
@@ -1431,18 +1461,18 @@
           "weather_mode": "climatology",
           "bucket": "15-30",
           "n": 17,
-          "mae": 75.356,
-          "rmse": 103.376,
-          "mase": 0.62,
-          "bias": -59.912,
-          "bias_pct": -37.253,
+          "mae": 74.512,
+          "rmse": 102.934,
+          "mase": 0.613,
+          "bias": -61.113,
+          "bias_pct": -38.0,
           "pinball": {
-            "q10": 12.772,
-            "q50": 37.678,
-            "q90": 23.272
+            "q10": 12.812,
+            "q50": 37.256,
+            "q90": 20.736
           },
           "coverage_80": 0.7059,
-          "smape": 49.38,
+          "smape": 48.515,
           "smape_reliable": true,
           "zero_days": 0,
           "mean_actual": 160.824
@@ -1704,18 +1734,18 @@
           "weather_mode": "operational",
           "bucket": "all",
           "n": 31,
-          "mae": 76.447,
-          "rmse": 109.087,
-          "mase": 0.629,
-          "bias": -61.524,
-          "bias_pct": -37.041,
+          "mae": 75.785,
+          "rmse": 108.623,
+          "mase": 0.624,
+          "bias": -61.984,
+          "bias_pct": -37.318,
           "pinball": {
-            "q10": 13.007,
-            "q50": 38.223,
-            "q90": 18.472
+            "q10": 13.022,
+            "q50": 37.893,
+            "q90": 17.808
           },
-          "coverage_80": 0.8065,
-          "smape": 48.676,
+          "coverage_80": 0.7419,
+          "smape": 48.022,
           "smape_reliable": true,
           "zero_days": 0,
           "mean_actual": 166.097
@@ -1767,18 +1797,18 @@
           "weather_mode": "operational",
           "bucket": "15-30",
           "n": 17,
-          "mae": 73.166,
-          "rmse": 100.96,
-          "mase": 0.602,
-          "bias": -57.721,
-          "bias_pct": -35.891,
+          "mae": 71.959,
+          "rmse": 100.044,
+          "mase": 0.592,
+          "bias": -58.56,
+          "bias_pct": -36.413,
           "pinball": {
-            "q10": 12.7,
-            "q50": 36.583,
-            "q90": 20.848
+            "q10": 12.728,
+            "q50": 35.98,
+            "q90": 19.636
           },
-          "coverage_80": 0.7647,
-          "smape": 47.553,
+          "coverage_80": 0.6471,
+          "smape": 46.359,
           "smape_reliable": true,
           "zero_days": 0,
           "mean_actual": 160.824
@@ -2448,15 +2478,15 @@
         {
           "model": "baseline",
           "weather_mode": "operational",
-          "predicted": 3241.7,
+          "predicted": 3227.5,
           "actual": 5149.0,
-          "difference": -1907.3,
-          "difference_pct": -37.04,
-          "p10": 2885.3,
-          "p90": 4617.1,
+          "difference": -1921.5,
+          "difference_pct": -37.32,
+          "p10": 2926.2,
+          "p90": 4685.1,
           "covers_actual": false,
-          "summed_daily_p10": 1164.8,
-          "summed_daily_p90": 6967.0,
+          "summed_daily_p10": 1160.1,
+          "summed_daily_p90": 6928.4,
           "interval_method": "block_bootstrap_of_training_window_relative_errors",
           "n_ratio_samples": 217,
           "is_thin": false,
@@ -2520,19 +2550,19 @@
         {
           "model": "baseline",
           "weather_mode": "climatology",
-          "predicted": 3072.4,
+          "predicted": 3027.7,
           "actual": 5149.0,
-          "difference": -2076.6,
-          "difference_pct": -40.33,
-          "p10": 2852.7,
-          "p90": 4875.0,
-          "covers_actual": false,
-          "summed_daily_p10": 1099.4,
-          "summed_daily_p90": 7243.1,
+          "difference": -2121.3,
+          "difference_pct": -41.2,
+          "p10": 3020.5,
+          "p90": 5156.6,
+          "covers_actual": true,
+          "summed_daily_p10": 1096.1,
+          "summed_daily_p90": 7498.1,
           "interval_method": "block_bootstrap_of_training_window_relative_errors",
           "n_ratio_samples": 217,
           "is_thin": false,
-          "median_ratio": 1.103,
+          "median_ratio": 1.147,
           "is_drifted": false
         },
         {
@@ -2594,63 +2624,93 @@
         "baseline": [
           {
             "date": "2026-05-05",
-            "weekday": "tiistai",
+            "weekday": {
+              "fi": "tiistai",
+              "en": "Tuesday"
+            },
             "y_true": 514.0,
             "p50": 167.82784169265918,
             "error": -346.17215830734085,
             "abs_error": 346.17215830734085,
             "horizon_days": 5,
-            "note": "runsas sade 9.6 mm"
+            "note": {
+              "fi": "runsas sade 9,6 mm",
+              "en": "heavy rain 9.6 mm"
+            }
           },
           {
             "date": "2026-05-22",
-            "weekday": "perjantai",
+            "weekday": {
+              "fi": "perjantai",
+              "en": "Friday"
+            },
             "y_true": 348.0,
-            "p50": 108.04711279014344,
-            "error": -239.95288720985656,
-            "abs_error": 239.95288720985656,
+            "p50": 111.44482463526384,
+            "error": -236.55517536473616,
+            "abs_error": 236.55517536473616,
             "horizon_days": 22,
-            "note": "malli sai klimatologiasään (horisontti 22 vrk)"
+            "note": {
+              "fi": "malli sai klimatologiasään (horisontti 22 vrk)",
+              "en": "the model got climatology weather (horizon 22 days)"
+            }
           },
           {
             "date": "2026-05-21",
-            "weekday": "torstai",
+            "weekday": {
+              "fi": "torstai",
+              "en": "Thursday"
+            },
             "y_true": 309.0,
-            "p50": 111.29089118814119,
-            "error": -197.7091088118588,
-            "abs_error": 197.7091088118588,
+            "p50": 111.9199809013822,
+            "error": -197.0800190986178,
+            "abs_error": 197.0800190986178,
             "horizon_days": 21,
-            "note": "malli sai klimatologiasään (horisontti 21 vrk)"
-          },
-          {
-            "date": "2026-05-19",
-            "weekday": "tiistai",
-            "y_true": 265.0,
-            "p50": 106.41705009602634,
-            "error": -158.58294990397366,
-            "abs_error": 158.58294990397366,
-            "horizon_days": 19,
-            "note": "malli sai klimatologiasään (horisontti 19 vrk)"
+            "note": {
+              "fi": "malli sai klimatologiasään (horisontti 21 vrk)",
+              "en": "the model got climatology weather (horizon 21 days)"
+            }
           },
           {
             "date": "2026-05-06",
-            "weekday": "keskiviikko",
+            "weekday": {
+              "fi": "keskiviikko",
+              "en": "Wednesday"
+            },
             "y_true": 251.0,
             "p50": 103.73729842750375,
             "error": -147.26270157249627,
             "abs_error": 147.26270157249627,
             "horizon_days": 6,
-            "note": "ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne"
+            "note": {
+              "fi": "ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne",
+              "en": "no identified cause, possibly an event the model does not know about"
+            }
+          },
+          {
+            "date": "2026-05-08",
+            "weekday": {
+              "fi": "perjantai",
+              "en": "Friday"
+            },
+            "y_true": 256.0,
+            "p50": 120.39200248617318,
+            "error": -135.60799751382683,
+            "abs_error": 135.60799751382683,
+            "horizon_days": 8,
+            "note": {
+              "fi": "ei tunnistettua syytä, mahdollisesti tapahtuma jota malli ei tunne",
+              "en": "no identified cause, possibly an event the model does not know about"
+            }
           }
         ]
       },
       "weather_sensitivity": {
         "baseline": {
           "perfect": 78.16691659565844,
-          "operational": 76.446877004631,
-          "climatology": 79.86631425238546,
-          "gap": 1.6993976567270295,
-          "gap_pct": 2.127802782230271
+          "operational": 75.78517119479436,
+          "climatology": 80.09923942720536,
+          "gap": 1.9323228315469265,
+          "gap_pct": 2.412410960909351
         }
       }
     }

@@ -1,0 +1,179 @@
+{
+  "kind": "window",
+  "schema_version": "v1",
+  "run_id": "eval_v1_2026-07-31_2026-08-01_2026-08-31_baseline",
+  "window": {
+    "origin": "2026-07-31",
+    "test_start": "2026-08-01",
+    "test_end": "2026-08-31",
+    "horizon_days": 31,
+    "train_window": "all"
+  },
+  "primary_weather_mode": "operational",
+  "reference_rule": "best",
+  "family_size": 2,
+  "summary_fi": "Ikkuna 2026-08-01–2026-08-31 (31 vrk), koulutus päättyy 2026-07-31, koulutusikkuna all, sään tila operational. Venue 1 (Pekuri): malli baseline teki keskimäärin 255,8 kävijän päivävirheen, päävertailukohta climatology_dow 128,0. Malli häviää vertailukohdalle tilastollisesti: ero +127,8 kävijää päivässä (95 % väli +44,2…+184,1). Yksinkertainen sääntö climatology_dow on tällä ikkunalla parempi kuin malli. Tämä otos (31 päivää) olisi erottanut vasta 70,8 kävijän eron, eli 55,3 % vertailukohdan MAE:sta. Jakson kokonaismäärä: ennuste 20 173, toteuma 13 514, ero +49,3 %, 80 % väli 18 620–27 237. Venue 2 (Kaupungintalo): malli baseline teki keskimäärin 37,0 kävijän päivävirheen, päävertailukohta climatology_dow 36,8. Eroa ei havaittu: +0,2 kävijää päivässä (95 % väli -10,6…+8,5). Tämä otos (31 päivää) olisi erottanut vasta 10,6 kävijän eron, eli 28,8 % vertailukohdan MAE:sta; \"ei eroa\" ei siis tarkoita samanveroisuutta. Jakson kokonaismäärä: ennuste 4 335, toteuma 4 866, ero -10,9 %, 80 % väli 4 166–7 382. Yhden ikkunan tulos on kuvaileva, ei todistava: varsinainen näyttö syntyy usean ikkunan koosteesta.",
+  "summary_en": "Window 2026-08-01–2026-08-31 (31 days), training ends 2026-07-31, training window all, weather mode operational. Venue 1 (Pekuri): the model baseline made a mean daily error of 255.8 visitors, the main reference climatology_dow 128.0. The model loses to the reference statistically: a difference of +127.8 visitors per day (95 % interval +44.2…+184.1). The simple rule climatology_dow is better than the model on this window. This sample (31 days) would only have resolved a difference of 70.8 visitors, i.e. 55.3 % of the reference's MAE. The total for the period: forecast 20,173, actual 13,514, difference +49.3 %, 80 % interval 18,620–27,237. Venue 2 (Kaupungintalo): the model baseline made a mean daily error of 37.0 visitors, the main reference climatology_dow 36.8. No difference was detected: +0.2 visitors per day (95 % interval -10.6…+8.5). This sample (31 days) would only have resolved a difference of 10.6 visitors, i.e. 28.8 % of the reference's MAE; \"no difference\" therefore does not mean equivalence. The total for the period: forecast 4,335, actual 4,866, difference -10.9 %, 80 % interval 4,166–7,382. A single window's result is descriptive, not probative: the actual evidence comes from pooling several windows.",
+  "venues": [
+    {
+      "venue_id": 1,
+      "venue_name": "Pekuri",
+      "reference": "climatology_dow",
+      "baseline_mae": {
+        "seasonal_naive": 218.613,
+        "moving_average_28d": 200.813,
+        "climatology_dow": 128.0
+      },
+      "family_size": 2,
+      "models": [
+        {
+          "model": "baseline",
+          "comparison": {
+            "model": "baseline",
+            "reference": "climatology_dow",
+            "n": 31,
+            "mean_difference": 127.801,
+            "ci_low": 44.207,
+            "ci_high": 184.132,
+            "verdict": "worse",
+            "model_mae": 255.801,
+            "reference_mae": 128.0,
+            "skill_score": -0.9984,
+            "skill_ci_low": -1.6642,
+            "skill_ci_high": -0.2731,
+            "mde": 70.775,
+            "mde_pct": 55.29,
+            "dm_statistic": 3.174,
+            "dm_p_value": 0.0554,
+            "dm_lag": 5,
+            "dm_note": "Secondary. The days of one origin share a training set and a month of weather, so they are not independent observations."
+          },
+          "raw_p_value": 0.0554,
+          "holm_p_value": 0.1108,
+          "bias": {
+            "mean_error": 214.796,
+            "ci_low": 84.554,
+            "ci_high": 306.103,
+            "verdict": "over_forecast",
+            "mean_actual": 435.935,
+            "pct_of_actual": 49.27
+          },
+          "calibration": {
+            "covered": 18,
+            "n": 31,
+            "coverage": 0.5806,
+            "ci_low": 0.3908,
+            "ci_high": 0.7545,
+            "target": 0.8,
+            "verdict": "too_narrow"
+          },
+          "total": {
+            "model": "baseline",
+            "weather_mode": "operational",
+            "predicted": 20172.7,
+            "actual": 13514.0,
+            "difference": 6658.7,
+            "difference_pct": 49.27,
+            "p10": 18620.5,
+            "p90": 27236.7,
+            "covers_actual": false,
+            "summed_daily_p10": 11569.0,
+            "summed_daily_p90": 39322.4,
+            "interval_method": "block_bootstrap_of_training_window_relative_errors",
+            "n_ratio_samples": 292,
+            "is_thin": false,
+            "median_ratio": 1.002,
+            "is_drifted": false
+          },
+          "weather_sensitivity": {
+            "perfect": 223.49918382751906,
+            "operational": 255.80147247204278,
+            "climatology": 253.02112939387558,
+            "gap": 29.52194556635652,
+            "gap_pct": 11.667778749181057
+          }
+        }
+      ]
+    },
+    {
+      "venue_id": 2,
+      "venue_name": "Kaupungintalo",
+      "reference": "climatology_dow",
+      "baseline_mae": {
+        "seasonal_naive": 100.548,
+        "moving_average_28d": 75.671,
+        "climatology_dow": 36.78
+      },
+      "family_size": 2,
+      "models": [
+        {
+          "model": "baseline",
+          "comparison": {
+            "model": "baseline",
+            "reference": "climatology_dow",
+            "n": 31,
+            "mean_difference": 0.232,
+            "ci_low": -10.557,
+            "ci_high": 8.486,
+            "verdict": "no_difference",
+            "model_mae": 37.012,
+            "reference_mae": 36.78,
+            "skill_score": -0.0063,
+            "skill_ci_low": -0.2052,
+            "skill_ci_high": 0.2947,
+            "mde": 10.606,
+            "mde_pct": 28.84,
+            "dm_statistic": 0.039,
+            "dm_p_value": 0.967,
+            "dm_lag": 5,
+            "dm_note": "Secondary. The days of one origin share a training set and a month of weather, so they are not independent observations."
+          },
+          "raw_p_value": 0.967,
+          "holm_p_value": 0.967,
+          "bias": {
+            "mean_error": -17.123,
+            "ci_low": -38.751,
+            "ci_high": 2.35,
+            "verdict": "unbiased",
+            "mean_actual": 156.968,
+            "pct_of_actual": -10.91
+          },
+          "calibration": {
+            "covered": 30,
+            "n": 31,
+            "coverage": 0.9677,
+            "ci_low": 0.833,
+            "ci_high": 0.9992,
+            "target": 0.8,
+            "verdict": "too_wide"
+          },
+          "total": {
+            "model": "baseline",
+            "weather_mode": "operational",
+            "predicted": 4335.2,
+            "actual": 4866.0,
+            "difference": -530.8,
+            "difference_pct": -10.91,
+            "p10": 4166.5,
+            "p90": 7382.4,
+            "covers_actual": true,
+            "summed_daily_p10": 1647.0,
+            "summed_daily_p90": 11230.3,
+            "interval_method": "block_bootstrap_of_training_window_relative_errors",
+            "n_ratio_samples": 372,
+            "is_thin": false,
+            "median_ratio": 1.055,
+            "is_drifted": false
+          },
+          "weather_sensitivity": {
+            "perfect": 36.993316089427694,
+            "operational": 37.01159676574133,
+            "climatology": 39.152112521575425,
+            "gap": 2.1587964321477315,
+            "gap_pct": 5.513869605268658
+          }
+        }
+      ]
+    }
+  ]
+}
