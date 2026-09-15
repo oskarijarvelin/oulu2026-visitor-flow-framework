@@ -66,6 +66,27 @@ export interface ChartStrings {
   backtestTip: (origin: string, horizon: number, target: string, forecast: string, actual: string, low: string, high: string) => string;
   backtestOutside: string;
 
+  originLabel: string;
+  originWeekNote: (
+    origin: string,
+    days: number,
+    mae: string,
+    bias: string,
+    direction: string,
+    outside: number,
+  ) => string;
+  originWeekOver: string;
+  originWeekUnder: string;
+  originWeekTip: (
+    target: string,
+    horizon: number,
+    actual: string,
+    forecast: string,
+    low: string,
+    high: string,
+  ) => string;
+  originWeekEmpty: string;
+
   capacityReference: string;
 
   referencesLabel: string;
@@ -144,6 +165,17 @@ const FI: ChartStrings = {
     `Ennuste ${forecast}, toteuma ${actual}\nVäli ${low} - ${high}`,
   backtestOutside: 'Toteuma välin ulkopuolella',
 
+  originLabel: 'Vertailuviikko, origo',
+  originWeekNote: (origin, days, mae, bias, direction, outside) =>
+    `Origo ${origin}: malli koulutettiin tähän päivään asti eikä nähnyt mitään sen jälkeen. ` +
+    `Seuraavalle ${days} vuorokaudelle keskimääräinen itseisvirhe on ${mae} kävijätapahtumaa ja ` +
+    `malli ${direction} keskimäärin ${bias}. Toteuma jäi p10 - p90 -välin ulkopuolelle ${outside} vuorokautena.`,
+  originWeekOver: 'yliarvioi',
+  originWeekUnder: 'aliarvioi',
+  originWeekTip: (target, horizon, actual, forecast, low, high) =>
+    `${target}, horisontti ${horizon} vrk\nToteuma ${actual}, ennuste ${forecast}\nVäli ${low} - ${high}`,
+  originWeekEmpty: 'Tälle origolle ja mallille ei ole backtest-rivejä.',
+
   capacityReference: 'Kapasiteetti',
 
   referencesLabel: 'Vertailukohdat',
@@ -221,6 +253,17 @@ const EN: ChartStrings = {
     `Origin ${origin}, horizon ${horizon} days\nTarget day ${target}\n` +
     `Forecast ${forecast}, actual ${actual}\nInterval ${low} to ${high}`,
   backtestOutside: 'Actual outside the interval',
+
+  originLabel: 'Comparison week, origin',
+  originWeekNote: (origin, days, mae, bias, direction, outside) =>
+    `Origin ${origin}: the model was trained up to this day and saw nothing after it. ` +
+    `Over the following ${days} days the mean absolute error is ${mae} visitor events and the ` +
+    `model ${direction} by ${bias} on average. The actual value fell outside the p10 to p90 interval on ${outside} days.`,
+  originWeekOver: 'overestimates',
+  originWeekUnder: 'underestimates',
+  originWeekTip: (target, horizon, actual, forecast, low, high) =>
+    `${target}, horizon ${horizon} days\nActual ${actual}, forecast ${forecast}\nInterval ${low} to ${high}`,
+  originWeekEmpty: 'No backtest rows for this origin and model.',
 
   capacityReference: 'Capacity',
 

@@ -397,6 +397,21 @@ export const fi = {
     backtestAlternative: (pairs: string, origins: string) =>
       `Backtestissä on ${pairs} ennuste ja toteuma -paria ${origins} origosta. Peittävyys ja muut mittarit ovat yllä olevassa taulukossa. Harha on lähes kaikkialla positiivinen: mallit yliarvioivat, koska kävijämäärä laskee kevään mittaan ja origoon lukittu taso ei seuraa laskua.`,
     bandsCaption: (venue: string) => `${venue}: ennustevälien kertoimet horisonttikoreittain`,
+
+    originWeeksTitle: 'Vertailuviikot: mitä luvattiin, mitä toteutui',
+    originWeeksDescription:
+      'Sama backtest aikajanalla. Valitse origo eli se päivä johon mallin koulutus katkaistiin, niin näet sen ennusteen kohdepäivien päällä. Yhtenäinen viiva on toteuma, katkoviiva mallin mediaani ja vaalea alue p10 - p90.',
+    originWeeksFootnote:
+      'Origot ovat viikon välein, joten vierekkäiset viikot jakavat suurimman osan koulutusdatastaan eivätkä ole toisistaan riippumattomia. Uusimmat origot ovat lyhyempiä, koska kohdepäiviä on kertynyt vasta osa.',
+    originWeeksAria: (venue: string) =>
+      `Viivakaavio: ${venue}, yhden backtest-origon ennuste ja toteuma kohdepäivittäin.`,
+    originWeeksAlternative: (origins: string, from: string, to: string) =>
+      `Taulukossa on jokaisen ${origins} origon mittarit erikseen: vuorokaudet, keskimääräinen itseisvirhe, harha ja se kuinka moni vuorokausi osui ennustevälille. Origot ovat väliltä ${from} - ${to}. Kaavio näyttää saman yhdeltä origolta kerrallaan.`,
+    originWeeksCaption: (venue: string) => `${venue}: origokohtaiset mittarit`,
+    originWeeksOrigin: 'Origo',
+    originWeeksDays: 'Vrk',
+    originWeeksBias: 'Harha',
+    originWeeksInside: 'Välillä',
     p10Factor: 'p10 kerroin',
     p90Factor: 'p90 kerroin',
 

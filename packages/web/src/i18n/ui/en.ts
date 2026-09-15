@@ -390,6 +390,21 @@ export const en: Translation = {
     backtestAlternative: (pairs: string, origins: string) =>
       `The backtest holds ${pairs} forecast and actual pairs from ${origins} origins. Coverage and the other metrics are in the table above. Bias is positive almost everywhere: the models overestimate, because the visitor count falls through the spring and a level frozen at the origin does not follow it down.`,
     bandsCaption: (venue: string) => `${venue}: interval factors by horizon bucket`,
+
+    originWeeksTitle: 'Comparison weeks: what was promised, what happened',
+    originWeeksDescription:
+      'The same backtest on a time axis. Pick an origin, the day the training was cut off, and you see that forecast laid over the days it was made for. The solid line is the actual, the dashed line the model median and the pale band p10 to p90.',
+    originWeeksFootnote:
+      'The origins are one week apart, so neighbouring weeks share most of their training data and are not independent of each other. The most recent origins are shorter because only part of their target days has happened yet.',
+    originWeeksAria: (venue: string) =>
+      `Line chart: ${venue}, the forecast and the actual of a single backtest origin by target day.`,
+    originWeeksAlternative: (origins: string, from: string, to: string) =>
+      `The table holds the metrics of each of the ${origins} origins separately: days, mean absolute error, bias and how many days landed inside the prediction interval. The origins run from ${from} to ${to}. The chart shows the same thing one origin at a time.`,
+    originWeeksCaption: (venue: string) => `${venue}: metrics by origin`,
+    originWeeksOrigin: 'Origin',
+    originWeeksDays: 'Days',
+    originWeeksBias: 'Bias',
+    originWeeksInside: 'Inside',
     p10Factor: 'p10 factor',
     p90Factor: 'p90 factor',
 

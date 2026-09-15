@@ -326,3 +326,59 @@ export function appendHatchPattern(figure: SVGSVGElement | HTMLElement, id: stri
   defs.append(pattern);
   svg.insertBefore(defs, svg.firstChild);
 }
+
+export interface SelectOption<T extends string> {
+  value: T;
+  label: string;
+}
+
+let selectSeq = 0;
+
+/**
+ * Alasvetovalitsin. Painikeryhma on selkeampi muutamalle vaihtoehdolle, mutta kun niita
+ * on toistakymmenta se tayttaa kaavion ylareunan; natiivi `select` on yhta lailla
+ * nappaimistokaytettava ja mahtuu yhdelle riville myos puhelimessa.
+ */
+export function createSelectControl<T extends string>(
+  legend: string,
+  options: SelectOption<T>[],
+  initial: T,
+  onChange: (value: T) => void,
+): { element: HTMLElement; value: () => T } {
+  let current = initial;
+
+  selectSeq += 1;
+  const id = `ovf-select-${selectSeq}`;
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'flex flex-wrap items-center gap-2';
+
+  const label = document.createElement('label');
+  label.className = 'text-xs font-medium text-ink-muted';
+  label.htmlFor = id;
+  label.textContent = legend;
+
+  const select = document.createElement('select');
+  select.id = id;
+  select.className =
+    'rounded-md border border-line bg-white px-2 py-1 text-xs font-medium text-ink ' +
+    'hover:border-ink-muted';
+
+  for (const option of options) {
+    const item = document.createElement('option');
+    item.value = option.value;
+    item.textContent = option.label;
+    item.selected = option.value === current;
+    select.append(item);
+  }
+
+  select.addEventListener('change', () => {
+    const value = select.value as T;
+    if (value === current) return;
+    current = value;
+    onChange(current);
+  });
+
+  wrapper.append(label, select);
+  return { element: wrapper, value: () => current };
+}

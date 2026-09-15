@@ -1,6 +1,7 @@
 ---
 import Backtest from '../charts/backtest.ts';
 import Lines from '../charts/lines.ts';
+import OriginWeeks from '../charts/originweeks.ts';
 import Callout from '../components/Callout.astro';
 import Figure from '../components/Figure.astro';
 import Layout from '../components/Layout.astro';
@@ -14,7 +15,7 @@ import { modelStyle } from '../lib/colors.ts';
 import { formatters } from '../lib/format.ts';
 import { horizonBucketLabel, localisedTexts, modelLabel } from '../lib/labels.ts';
 import { toBacktestRows } from '../lib/series.ts';
-import type { ForecastData, Meta, QualityData, VenueQuality } from '../lib/types.ts';
+import type { BacktestRow, ForecastData, Meta, QualityData, VenueQuality } from '../lib/types.ts';
 
 interface Props {
   lang: Lang;
@@ -53,8 +54,34 @@ const panels = site.venues.map((venue) => {
     backtestPoints: venueQuality.models.flatMap((model) =>
       toBacktestRows(venueQuality.backtest[model]).map((row) => ({ ...row, model })),
     ),
+    originRows: originMetrics(toBacktestRows(venueQuality.backtest[defaultModel])),
   };
 });
+
+/**
+ * Origokohtaiset mittarit kaavion tekstivastineeksi. Nama lasketaan tuotantomallista:
+ * mallin vaihtaminen on kaavion sisainen valinta, eika staattinen taulukko voi seurata
+ * sita ilman JavaScriptia.
+ */
+function originMetrics(
+  rows: BacktestRow[],
+): { origin: string; days: number; mae: number; bias: number; inside: number }[] {
+  const byOrigin = new Map<string, BacktestRow[]>();
+  for (const row of rows) {
+    const entry = byOrigin.get(row.origin_date);
+    if (entry) entry.push(row);
+    else byOrigin.set(row.origin_date, [row]);
+  }
+  return [...byOrigin.entries()]
+    .map(([origin, entries]) => ({
+      origin,
+      days: entries.length,
+      mae: entries.reduce((sum, row) => sum + Math.abs(row.y_pred - row.y_true), 0) / entries.length,
+      bias: entries.reduce((sum, row) => sum + (row.y_pred - row.y_true), 0) / entries.length,
+      inside: entries.filter((row) => row.y_true >= row.p10 && row.y_true <= row.p90).length,
+    }))
+    .sort((a, b) => a.origin.localeCompare(b.origin));
+}
 
 /**
  * Suhdeluvut vertailukohtiin poimitaan valmiiksi. Avain on muotoa
@@ -115,7 +142,7 @@ const headlineMae = firstQuality?.metrics[defaultModel]?.['1-7']?.mae ?? 0;
 
   <div class="mt-6 space-y-6">
     {
-      panels.map(({ venue, q, maeSeries, backtestPoints }) => (
+      panels.map(({ venue, q, maeSeries, backtestPoints, originRows }) => (
         <div class="space-y-6">
           <h2 class="text-xl font-semibold tracking-tight text-ink">{venue.name}</h2>
           <p class="text-sm leading-6 text-ink-muted">
@@ -231,6 +258,64 @@ const headlineMae = firstQuality?.metrics[defaultModel]?.['1-7']?.mae ?? 0;
                         </tr>
                       )),
                     )}
+                  </tbody>
+                </table>
+              </TableScroll>
+            </div>
+          </Figure>
+
+          <Figure
+            lang={lang}
+            title={t.quality.originWeeksTitle}
+            level={3}
+            description={t.quality.originWeeksDescription}
+            footnote={t.quality.originWeeksFootnote}
+          >
+            <OriginWeeks
+              client:visible
+              lang={lang}
+              ariaLabel={t.quality.originWeeksAria(venue.name)}
+              points={backtestPoints}
+              models={q.models.map((model) => ({ name: model, label: modelLabel(model, lang) }))}
+              defaultModel={defaultModel}
+              origins={originRows.map((row) => row.origin)}
+              placeholderHeight={320}
+            />
+            <div slot="alternative">
+              <p class="mb-3 text-xs leading-5 text-ink-muted">
+                {t.quality.originWeeksAlternative(
+                  f.int(originRows.length),
+                  f.date(originRows[0]?.origin ?? q.backtest_window[0]),
+                  f.date(originRows.at(-1)?.origin ?? q.backtest_window[1]),
+                )}
+              </p>
+              <TableScroll label={t.quality.originWeeksCaption(venue.name)} scrollY={false}>
+                <table class="data-table">
+                  <caption>{t.quality.originWeeksCaption(venue.name)}</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">{t.quality.originWeeksOrigin}</th>
+                      <th scope="col" class="num">{t.quality.originWeeksDays}</th>
+                      <th scope="col" class="num">MAE</th>
+                      <th scope="col" class="num">{t.quality.originWeeksBias}</th>
+                      <th scope="col" class="num">{t.quality.originWeeksInside}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {originRows.map((row) => (
+                      <tr>
+                        <th scope="row">{f.date(row.origin)}</th>
+                        <td class="num muted">{row.days}</td>
+                        <td class="num">{f.decimal(row.mae)}</td>
+                        <td class="num">
+                          {row.bias > 0 ? '+' : ''}
+                          {f.decimal(row.bias)}
+                        </td>
+                        <td class:list={['num', row.inside / row.days < 0.7 && 'warn']}>
+                          {row.inside} / {row.days}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </TableScroll>
