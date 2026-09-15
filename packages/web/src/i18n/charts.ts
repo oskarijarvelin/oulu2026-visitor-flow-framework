@@ -67,24 +67,20 @@ export interface ChartStrings {
   backtestOutside: string;
 
   originLabel: string;
-  originWeekNote: (
-    origin: string,
-    days: number,
+  originWeekHeader: (origin: string, days: number) => string;
+  originWeekModel: (
+    label: string,
     mae: string,
     bias: string,
     direction: string,
-    outside: number,
+    inside: number,
+    days: number,
   ) => string;
   originWeekOver: string;
   originWeekUnder: string;
-  originWeekTip: (
-    target: string,
-    horizon: number,
-    actual: string,
-    forecast: string,
-    low: string,
-    high: string,
-  ) => string;
+  originWeekTipHead: (target: string, horizon: number, actual: string) => string;
+  originWeekTipModel: (label: string, forecast: string, low: string, high: string) => string;
+  originWeekTipOutside: string;
   originWeekEmpty: string;
 
   capacityReference: string;
@@ -166,14 +162,18 @@ const FI: ChartStrings = {
   backtestOutside: 'Toteuma välin ulkopuolella',
 
   originLabel: 'Vertailuviikko, origo',
-  originWeekNote: (origin, days, mae, bias, direction, outside) =>
-    `Origo ${origin}: malli koulutettiin tähän päivään asti eikä nähnyt mitään sen jälkeen. ` +
-    `Seuraavalle ${days} vuorokaudelle keskimääräinen itseisvirhe on ${mae} kävijätapahtumaa ja ` +
-    `malli ${direction} keskimäärin ${bias}. Toteuma jäi p10 - p90 -välin ulkopuolelle ${outside} vuorokautena.`,
+  originWeekHeader: (origin, days) =>
+    `Origo ${origin}: mallit koulutettiin tähän päivään asti eivätkä nähneet mitään sen jälkeen. ` +
+    `Seuraavat ${days} vuorokautta:`,
+  originWeekModel: (label, mae, bias, direction, inside, days) =>
+    `${label}: keskimääräinen itseisvirhe ${mae} kävijätapahtumaa, ${direction} keskimäärin ${bias}, ` +
+    `toteuma osui p10 - p90 -välille ${inside} / ${days} vuorokautena.`,
   originWeekOver: 'yliarvioi',
   originWeekUnder: 'aliarvioi',
-  originWeekTip: (target, horizon, actual, forecast, low, high) =>
-    `${target}, horisontti ${horizon} vrk\nToteuma ${actual}, ennuste ${forecast}\nVäli ${low} - ${high}`,
+  originWeekTipHead: (target, horizon, actual) =>
+    `${target}, horisontti ${horizon} vrk\nToteuma ${actual}`,
+  originWeekTipModel: (label, forecast, low, high) => `${label} ${forecast}, väli ${low} - ${high}`,
+  originWeekTipOutside: '(välin ulkopuolella)',
   originWeekEmpty: 'Tälle origolle ja mallille ei ole backtest-rivejä.',
 
   capacityReference: 'Kapasiteetti',
@@ -255,14 +255,18 @@ const EN: ChartStrings = {
   backtestOutside: 'Actual outside the interval',
 
   originLabel: 'Comparison week, origin',
-  originWeekNote: (origin, days, mae, bias, direction, outside) =>
-    `Origin ${origin}: the model was trained up to this day and saw nothing after it. ` +
-    `Over the following ${days} days the mean absolute error is ${mae} visitor events and the ` +
-    `model ${direction} by ${bias} on average. The actual value fell outside the p10 to p90 interval on ${outside} days.`,
+  originWeekHeader: (origin, days) =>
+    `Origin ${origin}: the models were trained up to this day and saw nothing after it. ` +
+    `The following ${days} days:`,
+  originWeekModel: (label, mae, bias, direction, inside, days) =>
+    `${label}: mean absolute error ${mae} visitor events, ${direction} by ${bias} on average, ` +
+    `the actual value landed inside the p10 to p90 interval on ${inside} of ${days} days.`,
   originWeekOver: 'overestimates',
   originWeekUnder: 'underestimates',
-  originWeekTip: (target, horizon, actual, forecast, low, high) =>
-    `${target}, horizon ${horizon} days\nActual ${actual}, forecast ${forecast}\nInterval ${low} to ${high}`,
+  originWeekTipHead: (target, horizon, actual) =>
+    `${target}, horizon ${horizon} days\nActual ${actual}`,
+  originWeekTipModel: (label, forecast, low, high) => `${label} ${forecast}, interval ${low} to ${high}`,
+  originWeekTipOutside: '(outside the interval)',
   originWeekEmpty: 'No backtest rows for this origin and model.',
 
   capacityReference: 'Capacity',

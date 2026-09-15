@@ -400,13 +400,13 @@ export const fi = {
 
     originWeeksTitle: 'Vertailuviikot: mitä luvattiin, mitä toteutui',
     originWeeksDescription:
-      'Sama backtest aikajanalla. Valitse origo eli se päivä johon mallin koulutus katkaistiin, niin näet sen ennusteen kohdepäivien päällä. Yhtenäinen viiva on toteuma, katkoviiva mallin mediaani ja vaalea alue p10 - p90.',
+      'Sama backtest aikajanalla. Valitse origo eli se päivä johon koulutus katkaistiin, niin näet sen ennusteen kohdepäivien päällä. Yhtenäinen viiva on toteuma, katkoviiva mallin mediaani ja vaalea alue p10 - p90. Valinnalla ”Molemmat” mallit piirtyvät samaan kuvaan, jolloin niiden osumatarkkuutta vertaa samalta viikolta ilman sivun vaihtoa.',
     originWeeksFootnote:
       'Origot ovat viikon välein, joten vierekkäiset viikot jakavat suurimman osan koulutusdatastaan eivätkä ole toisistaan riippumattomia. Uusimmat origot ovat lyhyempiä, koska kohdepäiviä on kertynyt vasta osa.',
     originWeeksAria: (venue: string) =>
       `Viivakaavio: ${venue}, yhden backtest-origon ennuste ja toteuma kohdepäivittäin.`,
     originWeeksAlternative: (origins: string, from: string, to: string) =>
-      `Taulukossa on jokaisen ${origins} origon mittarit erikseen: vuorokaudet, keskimääräinen itseisvirhe, harha ja se kuinka moni vuorokausi osui ennustevälille. Origot ovat väliltä ${from} - ${to}. Kaavio näyttää saman yhdeltä origolta kerrallaan.`,
+      `Taulukossa on jokaisen ${origins} origon mittarit malleittain: vuorokaudet, keskimääräinen itseisvirhe, harha ja se kuinka moni vuorokausi osui ennustevälille. Origot ovat väliltä ${from} - ${to}. Kaavio näyttää saman yhdeltä origolta kerrallaan.`,
     originWeeksCaption: (venue: string) => `${venue}: origokohtaiset mittarit`,
     originWeeksOrigin: 'Origo',
     originWeeksDays: 'Vrk',

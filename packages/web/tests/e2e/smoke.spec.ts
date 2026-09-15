@@ -3,7 +3,12 @@
  * paakaavio renderoityy ja sivu ei vieri vaakasuunnassa.
  */
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { expect, test, type ConsoleMessage, type Page } from '@playwright/test';
+
+import { OUT_DIR } from '../../scripts/lib/paths.ts';
 
 type Lang = 'fi' | 'en';
 
@@ -264,7 +269,18 @@ for (const lang of LANGS) {
  * sama nakyma suoraan.
  */
 const RUNS_LABEL: Record<Lang, string> = { fi: 'Valitse arviointiajo', en: 'Choose an evaluation run' };
-const SWEEP_RUN = 'eval_v1_sweep_monthly_2026-04-01_2026-08-25_baseline';
+
+/**
+ * Oletusajo luetaan paketista eika kirjoiteta tahan.
+ *
+ * Uusin kooste on sivun oletus, ja se vaihtuu joka kerta kun joku ajaa uuden sweepin.
+ * Kovakoodattu tunnus vanheni juuri niin, ja testi kaatui vaikka sivu toimi oikein.
+ */
+const SWEEP_RUN = JSON.parse(
+  readFileSync(resolve(OUT_DIR, 'accuracy.json'), 'utf8'),
+).default_run as string;
+
+/** Yksittainen ikkuna jonka valitsemista testataan. Sen tunnus ei riipu uusista ajoista. */
 const APRIL_RUN = 'eval_v1_2026-03-31_2026-04-01_2026-04-30_baseline';
 
 for (const lang of LANGS) {

@@ -27,7 +27,7 @@ import {
   type PredictionRow,
   type RunRef,
 } from '../scripts/lib/accuracy.ts';
-import { OUT_DIR, PROCESSED_DIR, WEB_ROOT } from '../scripts/lib/paths.ts';
+import { EVALUATIONS_DIR, OUT_DIR, PROCESSED_DIR, WEB_ROOT } from '../scripts/lib/paths.ts';
 import type { AccuracyData } from '../src/lib/types.ts';
 
 const hasData = existsSync(resolve(PROCESSED_DIR, 'manifest.json'));
@@ -82,6 +82,48 @@ function runBuildData(env: Record<string, string>): RunResult {
 
 function readAccuracy(): AccuracyData {
   return JSON.parse(readFileSync(resolve(OUT_DIR, 'accuracy.json'), 'utf8')) as AccuracyData;
+}
+
+/** Levylla oleva verdikti sen verran tyypitettyna kuin nama testit siita lukevat. */
+interface StoredNumbers {
+  [key: string]: unknown;
+}
+
+interface StoredVenue {
+  venue_id: number;
+  baseline_mae: Record<string, number>;
+  models: { model: string; comparison?: StoredNumbers; pooled?: StoredNumbers; total?: StoredNumbers }[];
+}
+
+interface StoredRun {
+  run_id: string;
+  venues: StoredVenue[];
+}
+
+/**
+ * Tallennettu verdikti levylta.
+ *
+ * Nama testit vertaavat pakettia lahteeseen eivatka kirjattuun lukuun. Arvioinnin saa
+ * ajaa uudelleen ja luvut muuttuvat silloin; kovakoodattu odotusarvo vanhenisi vaikka
+ * putki toimisi oikein, ja se on tapahtunut. Vaite on se joka tassa on tarkoituskin:
+ * accuracy.json kantaa verdicts.jsonin luvut samoina, yhteen desimaaliin pyoristettyna.
+ */
+function storedRun(runId: string): StoredRun {
+  const path = resolve(EVALUATIONS_DIR, runId, 'verdicts.json');
+  return JSON.parse(readFileSync(path, 'utf8')) as StoredRun;
+}
+
+function storedVenue(run: StoredRun, venueId: number): StoredVenue {
+  const venue = run.venues.find((entry) => entry.venue_id === venueId);
+  if (!venue) throw new Error(`Ajossa ${run.run_id} ei ole venueta ${venueId}`);
+  return venue;
+}
+
+/** Yhden kentan odotusarvo tallennetusta lohkosta, samalla pyoristyksella kuin paketti. */
+function stored1(block: StoredNumbers | undefined, key: string): number {
+  const value = block?.[key];
+  if (typeof value !== 'number') throw new Error(`Kentta ${key} puuttuu tallennetusta verdiktista`);
+  return count1(value);
 }
 
 // --- Pyoristys -------------------------------------------------------------
@@ -460,6 +502,9 @@ describeWithData('arviointidatan portit', () => {
 
 // --- Paketti oikealla datalla ----------------------------------------------
 
+/** Vakioikkuna johon nama testit tarttuvat. Luvut luetaan levylta, vain tunnus on kiinni. */
+const APRIL_RUN = 'eval_v1_2026-03-31_2026-04-01_2026-04-30_baseline';
+
 describeWithData('accuracy.json oikealla datalla', () => {
   const accuracy = readAccuracy();
   const byId = new Map(accuracy.runs.map((entry) => [entry.run_id, entry]));
@@ -476,56 +521,58 @@ describeWithData('accuracy.json oikealla datalla', () => {
   });
 
   it('antaa koosteelle verdiktin molemmille venueille', () => {
-    const sweep = byId.get('eval_v1_sweep_monthly_2026-04-01_2026-08-25_baseline');
+    // Uusin kooste on aina oletusajo, joten tama seuraa mukana kun sweep ajetaan uudelleen.
+    const sweepId = accuracy.default_run;
+    expect(sweepId, 'oletusajo puuttuu').toBeTruthy();
+    const sweep = byId.get(sweepId ?? '');
     expect(sweep, 'kuukausikooste puuttuu').toBeDefined();
+    const stored = storedRun(sweepId ?? '');
 
-    const first = sweep?.venues.find((venue) => venue.venue_id === 1)?.models[0]?.pooled;
-    expect(first?.verdict).toBe('worse');
-    expect(first?.mean_difference).toBe(60);
-    expect(first?.ci_low).toBe(3.1);
-    expect(first?.ci_high).toBe(124.4);
-    expect(first?.windows_favouring).toBe(1);
-    expect(first?.windows_opposing).toBe(4);
-
-    const second = sweep?.venues.find((venue) => venue.venue_id === 2)?.models[0]?.pooled;
-    expect(second?.verdict).toBe('worse');
-    expect(second?.mean_difference).toBe(17.1);
-    expect(second?.ci_low).toBe(3.7);
-    expect(second?.ci_high).toBe(32.7);
+    for (const venueId of [1, 2]) {
+      const packed = sweep?.venues.find((venue) => venue.venue_id === venueId)?.models[0]?.pooled;
+      const source = storedVenue(stored, venueId).models[0]?.pooled;
+      expect(packed?.verdict, `venue ${venueId}`).toBe(source?.['verdict']);
+      expect(packed?.mean_difference, `venue ${venueId}`).toBe(stored1(source, 'mean_difference'));
+      expect(packed?.ci_low, `venue ${venueId}`).toBe(stored1(source, 'ci_low'));
+      expect(packed?.ci_high, `venue ${venueId}`).toBe(stored1(source, 'ci_high'));
+      expect(packed?.windows_favouring, `venue ${venueId}`).toBe(source?.['windows_favouring']);
+      expect(packed?.windows_opposing, `venue ${venueId}`).toBe(source?.['windows_opposing']);
+    }
   });
 
   it('antaa huhtikuun ikkunalle verdiktin ja MDE:n', () => {
-    const april = byId.get('eval_v1_2026-03-31_2026-04-01_2026-04-30_baseline');
+    const april = byId.get(APRIL_RUN);
     expect(april, 'huhtikuun ikkuna puuttuu').toBeDefined();
+    const stored = storedRun(APRIL_RUN);
 
-    const first = april?.venues.find((venue) => venue.venue_id === 1)?.models[0]?.comparison;
-    expect(first?.verdict).toBe('no_difference');
-    expect(first?.mean_difference).toBe(6.7);
-    expect(first?.ci_low).toBe(-3.2);
-    expect(first?.ci_high).toBe(30.7);
-    expect(first?.mde).toBe(34.5);
-    expect(first?.mde_pct).toBe(35.9);
-
-    const second = april?.venues.find((venue) => venue.venue_id === 2)?.models[0]?.comparison;
-    expect(second?.verdict).toBe('worse');
-    expect(second?.mean_difference).toBe(20.4);
+    for (const venueId of [1, 2]) {
+      const packed = april?.venues.find((venue) => venue.venue_id === venueId)?.models[0]?.comparison;
+      const source = storedVenue(stored, venueId).models[0]?.comparison;
+      expect(packed?.verdict, `venue ${venueId}`).toBe(source?.['verdict']);
+      expect(packed?.mean_difference, `venue ${venueId}`).toBe(stored1(source, 'mean_difference'));
+      expect(packed?.ci_low, `venue ${venueId}`).toBe(stored1(source, 'ci_low'));
+      expect(packed?.ci_high, `venue ${venueId}`).toBe(stored1(source, 'ci_high'));
+      expect(packed?.mde, `venue ${venueId}`).toBe(stored1(source, 'mde'));
+      expect(packed?.mde_pct, `venue ${venueId}`).toBe(stored1(source, 'mde_pct'));
+    }
   });
 
   it('sailyttaa huhtikuun vertailukohtien MAE:t', () => {
-    const april = byId.get('eval_v1_2026-03-31_2026-04-01_2026-04-30_baseline');
-    expect(april?.venues.find((venue) => venue.venue_id === 1)?.baseline_mae).toEqual({
-      seasonal_naive: 129.5,
-      moving_average_28d: 197.6,
-      climatology_dow: 96.2,
-    });
+    const april = byId.get(APRIL_RUN);
+    const source = storedVenue(storedRun(APRIL_RUN), 1).baseline_mae;
+    const expected = Object.fromEntries(
+      Object.entries(source).map(([rule, mae]) => [rule, count1(mae)]),
+    );
+    expect(april?.venues.find((venue) => venue.venue_id === 1)?.baseline_mae).toEqual(expected);
   });
 
   it('sailyttaa huhtikuun kokonaismaaran', () => {
-    const april = byId.get('eval_v1_2026-03-31_2026-04-01_2026-04-30_baseline');
+    const april = byId.get(APRIL_RUN);
     const total = april?.venues.find((venue) => venue.venue_id === 1)?.models[0]?.total;
-    expect(total?.predicted).toBe(13639.2);
-    expect(total?.actual).toBe(13189);
-    expect(total?.difference_pct).toBe(3.4);
+    const source = storedVenue(storedRun(APRIL_RUN), 1).models[0]?.total;
+    expect(total?.predicted).toBe(stored1(source, 'predicted'));
+    expect(total?.actual).toBe(stored1(source, 'actual'));
+    expect(total?.difference_pct).toBe(stored1(source, 'difference_pct'));
   });
 
   it('ei tallenna koosteelle omaa aikasarjaa, koska se kootaan jasenista', () => {
@@ -538,11 +585,13 @@ describeWithData('accuracy.json oikealla datalla', () => {
   });
 
   it('rajaa ennusterivit ajon paasaan tilaan', () => {
-    const april = byId.get('eval_v1_2026-03-31_2026-04-01_2026-04-30_baseline');
+    const april = byId.get(APRIL_RUN);
     expect(april?.primary_weather_mode).toBe('operational');
     const venue = april?.venues.find((entry) => entry.venue_id === 1);
+    const source = storedVenue(storedRun(APRIL_RUN), 1).models[0]?.comparison;
+    const metrics = venue?.metrics.find((entry) => entry.model === 'baseline');
     // Yksi rivi per paiva per malli: kolme saan tilaa kolminkertaistaisi taman.
-    expect(venue?.metrics.find((entry) => entry.model === 'baseline')?.n).toBe(30);
-    expect(venue?.metrics.find((entry) => entry.model === 'baseline')?.mae).toBe(102.9);
+    expect(metrics?.n).toBe(source?.['n']);
+    expect(metrics?.mae).toBe(stored1(source, 'model_mae'));
   });
 });

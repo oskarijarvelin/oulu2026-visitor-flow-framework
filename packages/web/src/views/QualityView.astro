@@ -54,14 +54,19 @@ const panels = site.venues.map((venue) => {
     backtestPoints: venueQuality.models.flatMap((model) =>
       toBacktestRows(venueQuality.backtest[model]).map((row) => ({ ...row, model })),
     ),
-    originRows: originMetrics(toBacktestRows(venueQuality.backtest[defaultModel])),
+    originRows: venueQuality.models.flatMap((model) =>
+      originMetrics(toBacktestRows(venueQuality.backtest[model])).map((row) => ({ ...row, model })),
+    ),
+    origins: [
+      ...new Set(toBacktestRows(venueQuality.backtest[defaultModel]).map((row) => row.origin_date)),
+    ].sort((a, b) => a.localeCompare(b)),
   };
 });
 
 /**
- * Origokohtaiset mittarit kaavion tekstivastineeksi. Nama lasketaan tuotantomallista:
- * mallin vaihtaminen on kaavion sisainen valinta, eika staattinen taulukko voi seurata
- * sita ilman JavaScriptia.
+ * Origokohtaiset mittarit kaavion tekstivastineeksi. Kaavio vertailee malleja keskenaan,
+ * joten taulukko laskee ne kaikille malleille: ilman JavaScriptia valitsinta ei ole, ja
+ * silloin vertailun pitaa olla valmiina taulukossa.
  */
 function originMetrics(
   rows: BacktestRow[],
@@ -142,7 +147,7 @@ const headlineMae = firstQuality?.metrics[defaultModel]?.['1-7']?.mae ?? 0;
 
   <div class="mt-6 space-y-6">
     {
-      panels.map(({ venue, q, maeSeries, backtestPoints, originRows }) => (
+      panels.map(({ venue, q, maeSeries, backtestPoints, originRows, origins }) => (
         <div class="space-y-6">
           <h2 class="text-xl font-semibold tracking-tight text-ink">{venue.name}</h2>
           <p class="text-sm leading-6 text-ink-muted">
@@ -278,23 +283,24 @@ const headlineMae = firstQuality?.metrics[defaultModel]?.['1-7']?.mae ?? 0;
               points={backtestPoints}
               models={q.models.map((model) => ({ name: model, label: modelLabel(model, lang) }))}
               defaultModel={defaultModel}
-              origins={originRows.map((row) => row.origin)}
+              origins={origins}
               placeholderHeight={320}
             />
             <div slot="alternative">
               <p class="mb-3 text-xs leading-5 text-ink-muted">
                 {t.quality.originWeeksAlternative(
-                  f.int(originRows.length),
-                  f.date(originRows[0]?.origin ?? q.backtest_window[0]),
-                  f.date(originRows.at(-1)?.origin ?? q.backtest_window[1]),
+                  f.int(origins.length),
+                  f.date(origins[0] ?? q.backtest_window[0]),
+                  f.date(origins.at(-1) ?? q.backtest_window[1]),
                 )}
               </p>
-              <TableScroll label={t.quality.originWeeksCaption(venue.name)} scrollY={false}>
+              <TableScroll label={t.quality.originWeeksCaption(venue.name)}>
                 <table class="data-table">
                   <caption>{t.quality.originWeeksCaption(venue.name)}</caption>
-                  <thead>
+                  <thead class="is-sticky">
                     <tr>
                       <th scope="col">{t.quality.originWeeksOrigin}</th>
+                      <th scope="col">{t.common.model}</th>
                       <th scope="col" class="num">{t.quality.originWeeksDays}</th>
                       <th scope="col" class="num">MAE</th>
                       <th scope="col" class="num">{t.quality.originWeeksBias}</th>
@@ -302,20 +308,25 @@ const headlineMae = firstQuality?.metrics[defaultModel]?.['1-7']?.mae ?? 0;
                     </tr>
                   </thead>
                   <tbody>
-                    {originRows.map((row) => (
-                      <tr>
-                        <th scope="row">{f.date(row.origin)}</th>
-                        <td class="num muted">{row.days}</td>
-                        <td class="num">{f.decimal(row.mae)}</td>
-                        <td class="num">
-                          {row.bias > 0 ? '+' : ''}
-                          {f.decimal(row.bias)}
-                        </td>
-                        <td class:list={['num', row.inside / row.days < 0.7 && 'warn']}>
-                          {row.inside} / {row.days}
-                        </td>
-                      </tr>
-                    ))}
+                    {origins.flatMap((origin) =>
+                      originRows
+                        .filter((row) => row.origin === origin)
+                        .map((row, index) => (
+                          <tr>
+                            <th scope="row">{index === 0 ? f.date(row.origin) : ''}</th>
+                            <td>{modelLabel(row.model, lang)}</td>
+                            <td class="num muted">{row.days}</td>
+                            <td class="num">{f.decimal(row.mae)}</td>
+                            <td class="num">
+                              {row.bias > 0 ? '+' : ''}
+                              {f.decimal(row.bias)}
+                            </td>
+                            <td class:list={['num', row.inside / row.days < 0.7 && 'warn']}>
+                              {row.inside} / {row.days}
+                            </td>
+                          </tr>
+                        )),
+                    )}
                   </tbody>
                 </table>
               </TableScroll>
